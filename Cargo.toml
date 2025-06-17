@@ -1,0 +1,19 @@
+[package]
+name = "terraspiel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# base
+pixels = "0.15"
+winit = { version="0.30", features = ["rwh_06"] }
+log = "0.4"
+env_logger = "0.11"
+# parallel
+rayon = "1.10"
+
+[profile.dev]
+opt-level = 1   # ちょっとだけ最適化。デバッグ速度向上
+
+[profile.release]
+opt-level = "z" # サイズ重視の最適化
