@@ -11,6 +11,8 @@ log = "0.4"
 env_logger = "0.11"
 # parallel
 rayon = "1.10"
+# random
+rand = "0.9"
 
 [profile.dev]
 opt-level = 1   # ちょっとだけ最適化。デバッグ速度向上

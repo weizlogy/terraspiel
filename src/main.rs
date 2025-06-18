@@ -10,7 +10,8 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window;
 use winit::window::{Window, WindowId};
 
-use crate::core::material::Terrain;
+use crate::core::engine;
+use crate::core::material::{Terrain, Overlay}; // Overlay をインポート
 use crate::core::world::{World, Tile, HEIGHT, WIDTH}; // Tile をインポート
 
 use std::sync::Arc;
@@ -20,6 +21,7 @@ struct App {
   window: Option<Arc<Window>>,
   pixels: Option<Pixels<'static>>,
   world: Option<Box<World>>, // World はヒープに置くのが安全だよ！
+  coords: Vec<(usize, usize)>,
 }
 
 impl ApplicationHandler for App {
@@ -60,6 +62,11 @@ impl ApplicationHandler for App {
       _ => (),
     }
   }
+
+  fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+    engine::update_world(&mut self.world.as_mut().unwrap(), &mut self.coords); // 💥重力を適用！
+    self.window.as_ref().unwrap().request_redraw();
+  }
 }
 
 fn main() -> Result<(), Error> {
@@ -90,19 +97,47 @@ fn init(app: &mut App) {
     Some(Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap())
   };
 
+  app.coords = generate_coords();
+
   // World インスタンスを Box で包んでヒープに確保！
   app.world = Some(Box::new(World::new()));
-}
 
-fn draw_world(world: &mut World, frame: &mut [u8]) {
+  // ★テストコード
   // 📦 地形の一部をDirtにする（仮）
   // この処理は毎フレーム実行されるから、ワールドの初期化は init 関数とかでした方がいいかもね！
-  for x in 0..WIDTH {
-    for y in (HEIGHT - 10)..HEIGHT {
-      world.set_terrain(x, y, Terrain::Dirt);
+  for x in WIDTH / 4..WIDTH / 2 {
+    for y in 100..200 {
+      app.world.as_mut().unwrap().set_terrain(x, y, Terrain::Dirt);
     }
   }
 
+  for x in WIDTH / 4..WIDTH / 2 {
+    for y in 0..100 {
+      app.world.as_mut().unwrap().set_terrain(x, y, Terrain::Sand);
+    }
+  }
+
+  // 💧 水 (Overlay) もちょっと置いてみよう！ 岩盤の上に水を配置
+  for x in WIDTH / 2..WIDTH * 3 / 4 {
+    // 水を置く範囲の底に岩盤を敷いておく
+    app.world.as_mut().unwrap().set_terrain(x, 150, Terrain::Rock);
+    // その一段上に水を配置
+    app.world.as_mut().unwrap().set_overlay(x, 0, Overlay::Water);
+    app.world.as_mut().unwrap().set_overlay(x, 0, Overlay::Water); // さらにもう一段水
+  }
+}
+
+fn generate_coords() -> Vec<(usize, usize)> {
+  let mut coords = Vec::with_capacity(WIDTH * HEIGHT);
+  for y in (0..HEIGHT).rev() {
+    for x in 0..WIDTH {
+      coords.push((x, y));
+    }
+  }
+  coords
+}
+
+fn draw_world(world: &mut World, frame: &mut [u8]) {
   // ワールドの各タイルを描画バッファに書き込むよ！
   render::render::draw_world(world, frame);
 }
