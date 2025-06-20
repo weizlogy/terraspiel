@@ -8,11 +8,12 @@ pub enum Terrain {
   Dirt,
   Rock,
   Sand,
-  Snow,
+  HardIce,
   Coal,
   Copper,
   Iron,
   Gold,
+  Obsidian,
 }
 
 impl Terrain {
@@ -22,11 +23,12 @@ impl Terrain {
       Terrain::Dirt => [101, 67, 33, 255],
       Terrain::Rock => [100, 100, 100, 255],
       Terrain::Sand => [194, 178, 128, 255],
-      Terrain::Snow => [240, 240, 255, 255],
+      Terrain::HardIce => [180, 200, 255, 255], // ちょっと青みがかった氷の色
       Terrain::Coal => [30, 30, 30, 255],
       Terrain::Copper => [184, 115, 51, 255],
       Terrain::Iron => [180, 180, 200, 255],
       Terrain::Gold => [255, 215, 0, 255],
+      Terrain::Obsidian => [40, 20, 50, 255], // 暗紫色っぽい色
     }
   }
 
@@ -45,7 +47,7 @@ impl Terrain {
   /// 横滑りを試みるべきなら `true`、そうでないなら `false`。
   pub fn should_attempt_slide(&self, world: &World, x: usize, y: usize) -> bool {
     match self {
-      Terrain::Sand => true, // Sand は下に支えがあれば常に滑ろうとする
+      Terrain::Sand => true, // Sand と Snow は下に支えがなければ常に滑ろうとする
       Terrain::Dirt => world.count_stack_height(x, y) >= 1, // Dirt は上に圧力がかかると滑ろうとする
       _ => false, // 他のテレインはデフォルトでは滑らない
     }
@@ -56,7 +58,7 @@ impl Terrain {
   /// 流体はこの地形のマスに流れ込む (染み込む) ことができる。
   pub fn allows_fluid_passthrough(&self) -> bool {
     match self {
-      Terrain::Rock => false, // 岩は流体を通さない
+      Terrain::Rock | Terrain::HardIce | Terrain::Obsidian => false, // 岩、固い氷、黒曜石は流体を通さない
       Terrain::Dirt | Terrain::Sand | Terrain::Empty => true, // 土、砂、空は流体を通す
       _ => false, // デフォルトでは通さない
     }
@@ -107,12 +109,12 @@ impl Overlay {
 
   /// このオーバーレイが流体のように振る舞うか (落下や横滑りの対象になるか)
   pub fn can_flow(&self) -> bool {
-    matches!(self, Overlay::Water | Overlay::Lava) // とりあえず水と溶岩を流体にしてみよう
+    matches!(self, Overlay::Water | Overlay::Lava | Overlay::Snow) // 水、溶岩、雪を流体にしてみよう！
   }
 
   /// このオーバーレイが他の流体によって置き換え可能か (例: 空気は水に置き換わる)
   pub fn is_replaceable_by_fluid(&self) -> bool {
-    matches!(self, Overlay::Air | Overlay::None) // 空気や何もない空間は置き換え可能
+    matches!(self, Overlay::Air | Overlay::None | Overlay::Snow) // 空気、何もない空間、そして雪も他の流体で置き換え可能に
   }
 
   /// このオーバーレイが指定された位置で横滑りを試みるべきかどうかを判断する。
@@ -126,7 +128,7 @@ impl Overlay {
   /// 横滑りを試みるべきなら `true`、そうでないなら `false`。
   pub fn should_attempt_slide(&self, world: &World, x: usize, y: usize) -> bool {
     match self {
-      Overlay::Water | Overlay::Lava => true, // 水や溶岩は常に滑ろうとする
+      Overlay::Water | Overlay::Lava | Overlay::Snow => true, // 水、溶岩、雪は常に滑ろうとする
       _ => false,
     }
   }

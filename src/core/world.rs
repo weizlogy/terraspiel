@@ -1,5 +1,6 @@
 // 世界そのものの定義
 
+use rand::Rng; // grow_grass で乱数を使うために追加！
 use crate::core::material::{Terrain, Overlay};
 
 pub const WIDTH: usize = 800;
@@ -60,6 +61,13 @@ impl World {
       .and_then(|option_tile| option_tile.as_mut())
   }
 
+  /// 指定された座標のオーバーレイへの参照を取得する。
+  /// 座標が無効な場合は `None` を返すよ。
+  pub fn get_overlay(&self, x: usize, y: usize) -> Option<&Overlay> {
+    self.get(x, y).map(|tile| &tile.overlay)
+  }
+
+
   pub fn get_fall_speed(&self, x: usize, y: usize) -> u8 {
     // fall_speeds は1次元配列のままなので、インデックス計算が必要だね
     self.fall_speeds[y * WIDTH + x]
@@ -118,5 +126,51 @@ impl World {
       }
     }
     count
+  }
+
+  /// ワールド内で草を成長させる処理。
+  ///
+  /// この関数はゲームループから定期的に呼び出されることを想定しているよ。
+  /// 光が届き、かつ土 (Dirt) である地形の上に、一定の確率で草 (Grass) を生成するんだ。
+  ///
+  /// # Arguments
+  /// * `rng` - 乱数生成器への可変参照。草が生えるかどうかの確率判定に使うよ。
+  ///
+  /// # 注意
+  /// この関数はワールドの全列をスキャンするから、頻繁に呼びすぎるとパフォーマンスに影響が出るかもしれないよ。
+  /// 呼び出し頻度を調整するか、将来的に部分的な更新を検討してみてね！😉
+  pub fn grow_grass(&mut self, rng: &mut impl Rng) {
+    // ワールドの各列をスキャンするよ
+    // 草の成長は上から光が当たる場所で起こるので、Y=0から順にスキャンするのが効率的だよ。
+    for x in 0..WIDTH {
+      // 各列で、Y=0 (一番上) から順に下にスキャンして、最初に光が遮られる場所を探す
+      for y_ground in 0..HEIGHT {
+        // まず、現在のタイルを取得。取得できなければ次のYへ (ありえないはずだけど安全のため)
+        let Some(ground_tile) = self.get(x, y_ground) else { continue; };
+
+        // 固体地形にぶつかったら、それより下は光が届かないのでこの列は終了。
+        // ただし、草が生えるのは土の上なので、土以外の場合は単に光が遮られただけ。
+        if ground_tile.terrain.is_solid() {
+          // もし土だったら、その上に草を生やせるかチェックする。
+          if ground_tile.terrain == Terrain::Dirt {
+            // 土ブロックの1つ上 (y_ground - 1) が草を生やせる空間かチェック。
+            // y_ground が0だと、その上はないのでスキップ。
+            if y_ground == 0 { break; } // Y=0の土の上には草は生えない
+
+            // 一つ上のタイルを取得。取得できなければ次のYへ (ありえないはずだけど安全のため)
+            let Some(tile_above) = self.get(x, y_ground - 1) else { break; }; // 上のタイルがなければこの列は終了
+
+            // 上のタイルが Empty Terrain かつ Air Overlay (完全に空間) であることを確認。
+            if tile_above.terrain == Terrain::Empty && tile_above.overlay == Overlay::Air {
+              // 草が生える条件がそろった！🎉
+              // ここで、さらに確率で草を生やす (例: 0.5%の確率にしてみようかな？)
+              if rng.random_bool(0.005) { // 0.5% の確率で草を生成！🌱
+                self.set_overlay(x, y_ground - 1, Overlay::Grass);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

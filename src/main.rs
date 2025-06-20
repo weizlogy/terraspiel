@@ -1,5 +1,7 @@
 mod core;
 mod render;
+mod ui; // ✨ 新しいUIモジュールを宣言！
+mod input; // ✨ 新しい入力モジュールを宣言！
 
 use pixels::Error;
 use pixels::Pixels;
@@ -7,20 +9,26 @@ use pixels::SurfaceTexture;
 use winit::application::ApplicationHandler;
 use winit::event::{WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::window;
 use winit::window::{Window, WindowId};
 
 use crate::core::engine;
-use crate::core::material::{Terrain, Overlay}; // Overlay をインポート
-use crate::core::world::{World, Tile, HEIGHT, WIDTH}; // Tile をインポート
+use crate::core::generation; // 地形生成モジュールをインポート！
+use crate::core::seed_generator; // ✨新しいシードジェネレーターをインポート！
+use crate::core::world::{World, HEIGHT, WIDTH}; // Tile をインポート
+use rand::rngs::StdRng; // 乱数生成器
+use rand::{SeedableRng}; // Rng トレイトと SeedableRng を use
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant}; // Instant を使うために追加！
+use crate::input::UserAction; // inputモジュールからUserActionをインポート
 
 #[derive(Default)]
 struct App {
+  seed_value: u64, // 生成されたシード値を保持するフィールド
+  fps: f64,        // 計算されたFPSを保持するフィールド
   window: Option<Arc<Window>>,
   pixels: Option<Pixels<'static>>,
   world: Option<Box<World>>, // World はヒープに置くのが安全だよ！
+  rng: Option<StdRng>,      // 草の成長などに使う乱数生成器
   coords: Vec<(usize, usize)>,
 }
 
@@ -39,10 +47,24 @@ impl ApplicationHandler for App {
   }
 
   fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-    match event {
-      WindowEvent::CloseRequested => {
+    // --- 入力処理 ---
+    // inputモジュールにイベント処理をお願いするよ！
+    match input::handle_window_event(&event) {
+      UserAction::ExitApp => {
+        println!("Exit action received. Closing application.");
         event_loop.exit();
-      },
+        return; // イベントループを抜けるので、これ以上の処理は不要
+      }
+      UserAction::RegenerateWorld => {
+        init(self); // ワールドを再生成！
+      }
+      UserAction::None => {
+        // 他のウィンドウイベント（RedrawRequestedなど）の処理を続ける
+      }
+    }
+
+    // UserActionで処理されなかったイベントのみ、ここで処理する
+    match event {
       WindowEvent::RedrawRequested => {
         // pixels と world がちゃんと準備できてるか確認してから描画しようね！
         if let (Some(pixels), Some(world_box)) = (self.pixels.as_mut(), self.world.as_mut()) {
@@ -65,7 +87,18 @@ impl ApplicationHandler for App {
 
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
     engine::update_world(&mut self.world.as_mut().unwrap(), &mut self.coords); // 💥重力を適用！
-    self.window.as_ref().unwrap().request_redraw();
+
+    // --- 草を成長させる処理 ---
+    // world と rng の両方が利用可能な場合のみ実行するよ
+    if let (Some(world_box), Some(rng_instance)) = (self.world.as_mut(), self.rng.as_mut()) {
+      world_box.grow_grass(rng_instance); // 🌱
+    }
+
+    // --- UI更新 ---
+    // uiモジュールにウィンドウタイトルの更新をお願い！
+    ui::update_window_title(self.window.as_ref(), self.seed_value);
+
+    if let Some(window) = self.window.as_ref() { window.request_redraw(); }
   }
 }
 
@@ -87,44 +120,43 @@ fn main() -> Result<(), Error> {
 fn init(app: &mut App) {
   // Arcで包んだwindowを使うことで、ライフタイム問題を華麗に回避！(๑•̀ㅂ•́)و✧
   let window = app.window.as_ref().unwrap();
-  window.set_title("terraspiel");
-
-  app.pixels = {
-    let size = window.inner_size();
-    // SurfaceTexture::newはArc<Window>も受け取れるから、cloneでOK！
-    let surface_texture =
-      SurfaceTexture::new(size.width, size.height, window.clone());
-    Some(Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap())
-  };
+  // 初期タイトルはシンプルに。FPSなどは about_to_wait で更新されるよ。
+  // window.set_title("terraspiel"); // ui::update_window_title が担当するので不要
+  
+  // Pixels インスタンスがまだなければ作成する
+  if app.pixels.is_none() {
+    app.pixels = {
+      let size = window.inner_size();
+      let surface_texture =
+        SurfaceTexture::new(size.width, size.height, window.clone());
+      Some(Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap())
+    };
+  } else {
+    // 既存の Pixels インスタンスがあれば、バッファサイズをリセットする
+    // (ワールドが再生成されるので、描画バッファもクリアしたい)
+    // 必要であれば、ウィンドウサイズ変更に合わせて surface もリサイズする
+    // let size = window.inner_size();
+    // app.pixels.as_mut().unwrap().resize_surface(size.width, size.height).unwrap();
+    app.pixels.as_mut().unwrap().resize_buffer(WIDTH as u32, HEIGHT as u32).unwrap();
+  }
 
   app.coords = generate_coords();
 
   // World インスタンスを Box で包んでヒープに確保！
   app.world = Some(Box::new(World::new()));
 
-  // ★テストコード
-  // 📦 地形の一部をDirtにする（仮）
-  // この処理は毎フレーム実行されるから、ワールドの初期化は init 関数とかでした方がいいかもね！
-  for x in WIDTH / 4..WIDTH / 2 {
-    for y in 100..200 {
-      app.world.as_mut().unwrap().set_terrain(x, y, Terrain::Dirt);
-    }
-  }
+  // --- シード値の生成 ---
+  let world_seed = seed_generator::generate_seed(); // 🌟ここで新しい関数を呼び出すよ！
+  app.seed_value = world_seed; // 生成したシード値を App に保持
+  println!("Generated World Seed: {}", app.seed_value); // 生成されたシードをログに出してみよう！
 
-  for x in WIDTH / 4..WIDTH / 2 {
-    for y in 0..100 {
-      app.world.as_mut().unwrap().set_terrain(x, y, Terrain::Sand);
-    }
-  }
+  // 乱数生成器を初期化
+  // ワールド生成とは別のシードを使うことで、草の生え方などに異なるランダム性を与えられるよ！
+  app.rng = Some(StdRng::seed_from_u64(world_seed + 1)); // ワールド生成とは別のシード
 
-  // 💧 水 (Overlay) もちょっと置いてみよう！ 岩盤の上に水を配置
-  for x in WIDTH / 2..WIDTH * 3 / 4 {
-    // 水を置く範囲の底に岩盤を敷いておく
-    app.world.as_mut().unwrap().set_terrain(x, 150, Terrain::Rock);
-    // その一段上に水を配置
-    app.world.as_mut().unwrap().set_overlay(x, 0, Overlay::Water);
-    app.world.as_mut().unwrap().set_overlay(x, 0, Overlay::Water); // さらにもう一段水
-  }
+  // --- 地形生成 ---
+  // シード値を指定してワールドを生成するよ！この数字を変えると地形も変わるんだ。
+  generation::generate_initial_world(app.world.as_mut().unwrap(), world_seed);
 }
 
 fn generate_coords() -> Vec<(usize, usize)> {
