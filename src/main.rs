@@ -14,21 +14,21 @@ use winit::window::{Window, WindowId};
 use crate::core::engine;
 use crate::core::generation; // 地形生成モジュールをインポート！
 use crate::core::seed_generator; // ✨新しいシードジェネレーターをインポート！
-use crate::core::world::{World, HEIGHT, WIDTH}; // Tile をインポート
-use rand::rngs::StdRng; // 乱数生成器
-use rand::{SeedableRng}; // Rng トレイトと SeedableRng を use
+use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
+use crate::core::world::{World, HEIGHT, WIDTH};
+use crate::core::player::{Player, PlayerAction, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
 
-use std::{sync::Arc, time::Instant}; // Instant を使うために追加！
+use std::{sync::Arc}; // Instant を使うために追加！
 use crate::input::UserAction; // inputモジュールからUserActionをインポート
 
 #[derive(Default)]
 struct App {
   seed_value: u64, // 生成されたシード値を保持するフィールド
-  fps: f64,        // 計算されたFPSを保持するフィールド
   window: Option<Arc<Window>>,
   pixels: Option<Pixels<'static>>,
   world: Option<Box<World>>, // World はヒープに置くのが安全だよ！
-  rng: Option<StdRng>,      // 草の成長などに使う乱数生成器
+  player: Option<Box<Player>>, // ✨ Player も独立させてヒープに！
+  rng: Option<Box<GameRng>>, // ✨ ゲーム全体の乱数生成器を管理するよ！
   coords: Vec<(usize, usize)>,
 }
 
@@ -67,9 +67,9 @@ impl ApplicationHandler for App {
     match event {
       WindowEvent::RedrawRequested => {
         // pixels と world がちゃんと準備できてるか確認してから描画しようね！
-        if let (Some(pixels), Some(world_box)) = (self.pixels.as_mut(), self.world.as_mut()) {
+        if let (Some(pixels), Some(world), Some(player)) = (self.pixels.as_mut(), self.world.as_ref(), self.player.as_ref()) {
           let frame = pixels.frame_mut();
-          draw_world(world_box.as_mut(), frame); // Box から &mut World を取り出して渡すよ
+          draw_game(world, player, frame); // ✨ Playerも描画関数に渡すよ！
 
           // 描画結果を画面に反映！
           if let Err(err) = pixels.render() {
@@ -86,12 +86,13 @@ impl ApplicationHandler for App {
   }
 
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-    engine::update_world(&mut self.world.as_mut().unwrap(), &mut self.coords); // 💥重力を適用！
+    // TODO: ここでキーボード入力から PlayerAction のリストを作成する
+    let player_actions: Vec<PlayerAction> = vec![]; // 今はまだ空っぽ
 
-    // --- 草を成長させる処理 ---
-    // world と rng の両方が利用可能な場合のみ実行するよ
-    if let (Some(world_box), Some(rng_instance)) = (self.world.as_mut(), self.rng.as_mut()) {
-      world_box.grow_grass(rng_instance); // 🌱
+    // world, player, rng が全部準備OKなら、ゲームの状態を更新！
+    if let (Some(world), Some(player), Some(rng)) = (self.world.as_mut(), self.player.as_mut(), self.rng.as_mut()) {
+      engine::update_game_state(world, player, &mut self.coords, &player_actions, rng); // 💥ゲームの状態を更新！
+      world.grow_grass(rng); // 🌱
     }
 
     // --- UI更新 ---
@@ -145,18 +146,20 @@ fn init(app: &mut App) {
   // World インスタンスを Box で包んでヒープに確保！
   app.world = Some(Box::new(World::new()));
 
+  // Player インスタンスも Box で包んでヒープに確保！
+  app.player = Some(Box::new(Player::new(PLAYER_SPAWN_X, PLAYER_SPAWN_Y)));
+
   // --- シード値の生成 ---
   let world_seed = seed_generator::generate_seed(); // 🌟ここで新しい関数を呼び出すよ！
   app.seed_value = world_seed; // 生成したシード値を App に保持
   println!("Generated World Seed: {}", app.seed_value); // 生成されたシードをログに出してみよう！
 
-  // 乱数生成器を初期化
-  // ワールド生成とは別のシードを使うことで、草の生え方などに異なるランダム性を与えられるよ！
-  app.rng = Some(StdRng::seed_from_u64(world_seed + 1)); // ワールド生成とは別のシード
+  // 共通の乱数生成器マネージャーを初期化
+  app.rng = Some(Box::new(GameRng::new(world_seed)));
 
   // --- 地形生成 ---
   // シード値を指定してワールドを生成するよ！この数字を変えると地形も変わるんだ。
-  generation::generate_initial_world(app.world.as_mut().unwrap(), world_seed);
+  generation::generate_initial_world(app.world.as_mut().unwrap(), app.rng.as_mut().unwrap().world_mut());
 }
 
 fn generate_coords() -> Vec<(usize, usize)> {
@@ -169,7 +172,8 @@ fn generate_coords() -> Vec<(usize, usize)> {
   coords
 }
 
-fn draw_world(world: &mut World, frame: &mut [u8]) {
+fn draw_game(world: &World, player: &Player, frame: &mut [u8]) {
   // ワールドの各タイルを描画バッファに書き込むよ！
-  render::render::draw_world(world, frame);
+  // render モジュールにお願いするよ！
+  render::render::draw_game(world, player, frame);
 }
