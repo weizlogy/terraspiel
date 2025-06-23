@@ -60,7 +60,7 @@ impl Player {
 }
 
 /// プレイヤーの状態を更新する関数。入力、物理、ワールドとのインタラクションを処理するよ。
-pub fn update(player: &mut Player, world: &mut World, player_actions: &[PlayerAction]) {
+pub fn update(player: &mut Player, world: &mut World, player_actions: &[PlayerAction], cursor_pos: (f32, f32)) {
   // 1. 水平方向の移動入力
   let mut desired_vel_x = 0.0;
   if player_actions.contains(&PlayerAction::MoveLeft) {
@@ -139,15 +139,21 @@ pub fn update(player: &mut Player, world: &mut World, player_actions: &[PlayerAc
   player.y = new_y;
 
   // 4. ブロックの破壊と設置
-  // TODO: マウスカーソル位置で操作できるようにする
-  let target_x_break_place = (player.x + player.width + 0.5).floor() as usize;
-  let target_y_break_place = (player.y + player.height / 2.0).floor() as usize;
+  // マウスカーソルの位置をターゲット座標とする
+  let target_x_break_place = cursor_pos.0.floor() as usize;
+  let target_y_break_place = cursor_pos.1.floor() as usize;
 
-  let dist_x = (target_x_break_place as f32 - player.x).abs();
-  let dist_y = (target_y_break_place as f32 - player.y).abs();
-  let max_reach = 3.0;
+  // プレイヤーの中心からターゲットブロックの中心までの距離を計算する
+  let player_center_x = player.x + player.width / 2.0;
+  let player_center_y = player.y + player.height / 2.0;
+  let target_center_x = target_x_break_place as f32 + 0.5;
+  let target_center_y = target_y_break_place as f32 + 0.5;
 
-  if dist_x <= max_reach && dist_y <= max_reach {
+  let dist_sq = (target_center_x - player_center_x).powi(2) + (target_center_y - player_center_y).powi(2);
+  let max_reach_sq = 5.0f32.powi(2); // 5ブロックの範囲まで届くようにする
+
+  // 届く範囲内であれば、アクションを実行する
+  if dist_sq <= max_reach_sq {
     if player_actions.contains(&PlayerAction::BreakBlock) {
       if let Some(tile_to_break) = world.get(target_x_break_place, target_y_break_place) {
         if tile_to_break.is_solid() {

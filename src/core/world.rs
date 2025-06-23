@@ -1,6 +1,6 @@
 // 世界そのものの定義
 
-use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
+use crate::core::rng::GameRngMethods; // ✨ 共通の乱数生成器メソッドトレイトをインポート！
 use crate::core::material::{Terrain, Overlay};
 
 pub const WIDTH: usize = 800;
@@ -136,10 +136,10 @@ impl World {
   /// # Arguments
   /// * `rng` - 乱数生成器への可変参照。草が生えるかどうかの確率判定に使うよ。
   ///
-  /// # 注意
+  /// # Note
   /// この関数はワールドの全列をスキャンするから、頻繁に呼びすぎるとパフォーマンスに影響が出るかもしれないよ。
   /// 呼び出し頻度を調整するか、将来的に部分的な更新を検討してみてね！😉
-  pub fn grow_grass(&mut self, rng: &mut GameRng) {
+  pub fn grow_grass(&mut self, rng: &mut dyn GameRngMethods) {
     // ワールドの各列をスキャンするよ
     // 草の成長は上から光が当たる場所で起こるので、Y=0から順にスキャンするのが効率的だよ。
     for x in 0..WIDTH {
@@ -164,7 +164,7 @@ impl World {
             if tile_above.terrain == Terrain::Empty && tile_above.overlay == Overlay::Air {
               // 草が生える条件がそろった！🎉
               // ゲームプレイ用のRNGを使用して、確率で草を生成します
-              if rng.random_bool(0.005) { // 0.5% の確率で草を生成！🌱
+              if rng.gen_bool_prob(0.005) { // 0.5% の確率で草を生成！🌱
                 self.set_overlay(x, y_ground - 1, Overlay::Grass);
               }
             }

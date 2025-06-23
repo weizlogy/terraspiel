@@ -3,14 +3,14 @@
 use crate::core::world::{World, WIDTH, HEIGHT}; // Terrain は material.rs から直接使うので不要になるかも
 use crate::core::material::{Terrain, Overlay}; // Overlay も使うよ！
 use crate::core::player::{self, Player, PlayerAction}; // ✨ player モジュールと関連するものをインポート！
-use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
+use crate::core::rng::{GameRng, GameRngMethods}; // ✨ 共通の乱数生成器とメソッドトレイトをインポート！
 
 const GRAVITY: u8 = 1;
 const MAX_FALL_SPEED: u8 = 6;
 
-pub fn update_game_state(world: &mut World, player: &mut Player, coords: &mut [(usize, usize)], player_actions: &[PlayerAction], rng: &mut GameRng) {
+pub fn update_game_state(world: &mut World, player: &mut Player, coords: &mut [(usize, usize)], player_actions: &[PlayerAction], rng: &mut GameRng, cursor_pos: (f32, f32)) {
   // プレイヤーの更新を物理演算の前に実行！
-  player::update(player, world, player_actions);
+  player::update(player, world, player_actions, cursor_pos);
 
   // 座標をシャッフルして、更新順序をランダムにする
   rng.shuffle(coords);
@@ -78,7 +78,7 @@ pub fn update_game_state(world: &mut World, player: &mut Player, coords: &mut [(
       } else { // 地形が何かに乗っている場合
         world.set_fall_speed(x, y, 0); // 接地したら速度リセット // ガード節ではないけど、ネスト解消のため移動
         if current_terrain.should_attempt_slide(world, x, y) {
-          if try_slide_terrain(world, x, y, rng) { // try_slide_terrain は以前の try_slide
+          if try_slide_terrain(world, x, y, rng.gameplay_gen_mut()) { // try_slide_terrain は以前の try_slide
             continue; // 地形が横滑りしたので、この座標の処理は完了
           }
         }
@@ -123,7 +123,7 @@ pub fn update_game_state(world: &mut World, player: &mut Player, coords: &mut [(
       world.set_fall_speed(x, y, 0);
       // 横滑りを試みる
       if current_overlay.should_attempt_slide(world, x, y) { // should_attempt_slide は Overlay のメソッド
-        if try_slide_overlay(world, x, y, current_overlay, rng) {
+        if try_slide_overlay(world, x, y, current_overlay, rng.gameplay_gen_mut()) {
           continue; // オーバーレイが横滑りしたので、この (x,y) は完了
         }
       }
@@ -132,9 +132,9 @@ pub fn update_game_state(world: &mut World, player: &mut Player, coords: &mut [(
 }
 
 // 地形全体をスライドさせる (以前の try_slide 関数)
-fn try_slide_terrain(world: &mut World, x: usize, y: usize, rng: &mut GameRng) -> bool {
+fn try_slide_terrain(world: &mut World, x: usize, y: usize, rng: &mut dyn GameRngMethods) -> bool {
   let mut did_slide = false;
-  let offsets = if rng.random_bool(0.5) {
+  let offsets = if rng.gen_bool_prob(0.5) {
     [(-1, 1), (1, 1)] // 左下、右下
   } else {
     [(1, 1), (-1, 1)] // 右下、左下
@@ -166,11 +166,11 @@ fn try_slide_terrain(world: &mut World, x: usize, y: usize, rng: &mut GameRng) -
 }
 
 // オーバーレイのみをスライドさせる
-fn try_slide_overlay(world: &mut World, x: usize, y: usize, overlay_to_move: Overlay, rng: &mut GameRng) -> bool {
+fn try_slide_overlay(world: &mut World, x: usize, y: usize, overlay_to_move: Overlay, rng: &mut dyn GameRngMethods) -> bool {
   let mut did_slide = false;
   // オーバーレイは左右均等に広がりたいので、(-1,0)と(1,0)も候補に入れるとより自然かも。
   // 今回は斜め下への広がりを維持。
-  let offsets = if rng.random_bool(0.5) { [(-1, 1), (1, 1)] } else { [(1, 1), (-1, 1)] };
+  let offsets = if rng.gen_bool_prob(0.5) { [(-1, 1), (1, 1)] } else { [(1, 1), (-1, 1)] };
 
   // dyは常に1 (斜め下) と仮定してループ
   for (dx, dy) in offsets { // dyは常に1 (斜め下)
@@ -183,7 +183,8 @@ fn try_slide_overlay(world: &mut World, x: usize, y: usize, overlay_to_move: Ove
       // 移動先のタイルを取得。取得できなければ次のオフセットへ。
       let Some(target_tile) = world.get(nx, ny) else { continue; }; // ガード節
 
-      if target_tile.overlay.is_replaceable_by_fluid() { // 移動先のオーバーレイが空気など置き換え可能なものか // ガード節
+      // 移動先のオーバーレイが置き換え可能で、かつ、地形が流体の通過を許す場合のみスライド
+      if target_tile.overlay.is_replaceable_by_fluid() && target_tile.terrain.allows_fluid_passthrough() {
           world.set_overlay(x, y, Overlay::Air); // 元の場所は空気になる
           world.set_overlay(nx, ny, overlay_to_move); // 新しい場所にオーバーレイを移動
           world.set_fall_speed(nx, ny, 0); // スライド先は速度0

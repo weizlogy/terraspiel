@@ -4,4 +4,5 @@ pub mod player;
 pub mod rng;
 pub mod world;
 pub mod generation;
+pub mod biomes;
 pub mod seed_generator;

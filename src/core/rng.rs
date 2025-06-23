@@ -1,8 +1,40 @@
 //! src/core/rng.rs
 
-use rand::{Rng, SeedableRng};
+use rand::{Rng as RandRng, RngCore, SeedableRng}; // RngCoreをインポート
 use rand::rngs::{StdRng, ThreadRng};
 use rand::seq::SliceRandom;
+
+// --- Custom Object-Safe RNG Trait ---
+/// ワールド生成やゲームプレイで必要な乱数操作を定義する、オブジェクト安全なトレイト。
+/// `rand::Rng`トレイトはジェネリックメソッドを持つためオブジェクト安全ではないので、
+/// ここで必要なメソッドを再定義し、`dyn`キーワードで利用できるようにします。
+pub trait GameRngMethods: RngCore { // RngCoreはオブジェクト安全なので継承できる
+  /// 0.0から1.0の範囲の`f64`乱数を生成します。
+  fn gen_f64(&mut self) -> f64;
+
+  /// 指定された確率で`bool`値を生成します。
+  fn gen_bool_prob(&mut self, p: f64) -> bool;
+
+  /// 指定された範囲の`f64`乱数を生成します。
+  fn gen_f64_range(&mut self, low: f64, high: f64) -> f64;
+
+  /// 指定された範囲の`usize`乱数を生成します。
+  fn gen_usize_range(&mut self, low: usize, high: usize) -> usize;
+
+  /// 指定された範囲の`i32`乱数を生成します。
+  fn gen_i32_range(&mut self, low: i32, high: i32) -> i32;
+}
+
+// --- Blanket Implementation for rand::Rng ---
+// rand::Rngを実装する任意の型Tに対して、GameRngMethodsを実装します。
+// これにより、StdRngなどのrand::Rng実装をdyn GameRngMethodsとして扱えるようになります。
+impl<T: RandRng> GameRngMethods for T {
+  fn gen_f64(&mut self) -> f64 { self.r#gen::<f64>() }
+  fn gen_bool_prob(&mut self, p: f64) -> bool { self.gen_bool(p) }
+  fn gen_f64_range(&mut self, low: f64, high: f64) -> f64 { self.gen_range(low..high) }
+  fn gen_usize_range(&mut self, low: usize, high: usize) -> usize { self.gen_range(low..high) }
+  fn gen_i32_range(&mut self, low: i32, high: i32) -> i32 { self.gen_range(low..high) }
+}
 
 /// ゲーム全体で使用される乱数生成器を管理する構造体。
 ///
@@ -33,8 +65,15 @@ impl GameRng {
   }
 
   /// ワールド生成用のRNGへの可変参照を返します。
-  pub fn world_mut(&mut self) -> &mut StdRng {
+  /// オブジェクト安全な`GameRngMethods`トレイトオブジェクトとして返します。
+  pub fn world_gen_mut(&mut self) -> &mut dyn GameRngMethods {
     &mut self.world_rng
+  }
+
+  /// ゲームプレイ用のRNGへの可変参照を返します。
+  /// オブジェクト安全な`GameRngMethods`トレイトオブジェクトとして返します。
+  pub fn gameplay_gen_mut(&mut self) -> &mut dyn GameRngMethods {
+    &mut self.gameplay_rng
   }
 
   /// スライスをシャッフルします。この操作にはスレッドローカルなRNGを使用します。
@@ -42,8 +81,4 @@ impl GameRng {
     slice.shuffle(&mut self.thread_rng);
   }
 
-  /// ゲームプレイ用のRNGを使用して、指定された確率で `bool` 値を生成します。
-  pub fn random_bool(&mut self, p: f64) -> bool {
-    self.gameplay_rng.random_bool(p)
-  }
 }

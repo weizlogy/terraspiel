@@ -7,8 +7,9 @@ use pixels::Error;
 use pixels::Pixels;
 use pixels::SurfaceTexture;
 use winit::application::ApplicationHandler;
-use winit::event::{WindowEvent};
+use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::keyboard::KeyCode; use winit::event::MouseButton;
 use winit::window::{Window, WindowId};
 
 use crate::core::engine;
@@ -18,7 +19,8 @@ use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート
 use crate::core::world::{World, HEIGHT, WIDTH};
 use crate::core::player::{Player, PlayerAction, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
 
-use std::{sync::Arc}; // Instant を使うために追加！
+use std::collections::HashSet;
+use std::sync::Arc; // Instant を使うために追加！
 use crate::input::UserAction; // inputモジュールからUserActionをインポート
 
 #[derive(Default)]
@@ -30,6 +32,9 @@ struct App {
   player: Option<Box<Player>>, // ✨ Player も独立させてヒープに！
   rng: Option<Box<GameRng>>, // ✨ ゲーム全体の乱数生成器を管理するよ！
   coords: Vec<(usize, usize)>,
+  pressed_keys: HashSet<KeyCode>, // 現在押されているキーボードのキーを保持する
+  pressed_mouse_buttons: HashSet<MouseButton>, // 現在押されているマウスボタンを保持する
+  cursor_pos: (f32, f32), // マウスカーソルの位置を保持する
 }
 
 impl ApplicationHandler for App {
@@ -49,7 +54,7 @@ impl ApplicationHandler for App {
   fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
     // --- 入力処理 ---
     // inputモジュールにイベント処理をお願いするよ！
-    match input::handle_window_event(&event) {
+    match input::handle_window_event(&event, &mut self.pressed_keys, &mut self.pressed_mouse_buttons) {
       UserAction::ExitApp => {
         println!("Exit action received. Closing application.");
         event_loop.exit();
@@ -65,6 +70,16 @@ impl ApplicationHandler for App {
 
     // UserActionで処理されなかったイベントのみ、ここで処理する
     match event {
+      WindowEvent::CursorMoved { position, .. } => {
+        // マウスカーソルのウィンドウ座標を、ピクセルバッファ上の座標に変換するよ
+        if let Some(pixels) = self.pixels.as_ref() {
+          // もし pixels.window_pos_to_pixel が (f32, f32) を要求するなら、ここでキャストするよ！
+          let pos_f32 = (position.x as f32, position.y as f32);
+          if let Ok(pixel_coords) = pixels.window_pos_to_pixel(pos_f32) {
+            self.cursor_pos = (pixel_coords.0 as f32, pixel_coords.1 as f32);
+          }
+        }
+      }
       WindowEvent::RedrawRequested => {
         // pixels と world がちゃんと準備できてるか確認してから描画しようね！
         if let (Some(pixels), Some(world), Some(player)) = (self.pixels.as_mut(), self.world.as_ref(), self.player.as_ref()) {
@@ -86,13 +101,13 @@ impl ApplicationHandler for App {
   }
 
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-    // TODO: ここでキーボード入力から PlayerAction のリストを作成する
-    let player_actions: Vec<PlayerAction> = vec![]; // 今はまだ空っぽ
+    // 押されているキーからプレイヤーのアクションを生成
+    let player_actions = input::get_player_actions(&self.pressed_keys, &self.pressed_mouse_buttons);
 
     // world, player, rng が全部準備OKなら、ゲームの状態を更新！
     if let (Some(world), Some(player), Some(rng)) = (self.world.as_mut(), self.player.as_mut(), self.rng.as_mut()) {
-      engine::update_game_state(world, player, &mut self.coords, &player_actions, rng); // 💥ゲームの状態を更新！
-      world.grow_grass(rng); // 🌱
+      engine::update_game_state(world, player, &mut self.coords, &player_actions, rng.as_mut(), self.cursor_pos); // 💥ゲームの状態を更新！
+      world.grow_grass(rng.gameplay_gen_mut()); // 🌱
     }
 
     // --- UI更新 ---
@@ -159,7 +174,7 @@ fn init(app: &mut App) {
 
   // --- 地形生成 ---
   // シード値を指定してワールドを生成するよ！この数字を変えると地形も変わるんだ。
-  generation::generate_initial_world(app.world.as_mut().unwrap(), app.rng.as_mut().unwrap().world_mut());
+  generation::generate_initial_world(app.world.as_mut().unwrap(), app.rng.as_mut().unwrap().world_gen_mut());
 }
 
 fn generate_coords() -> Vec<(usize, usize)> {
