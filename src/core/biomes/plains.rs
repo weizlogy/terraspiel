@@ -1,7 +1,7 @@
 /*! src/core/biomes/plains.rs */
 
 use super::BiomeGenerator;
-use crate::core::generation::{BiomeParameters, DetermineTileParameters, BiomeWeights};
+use crate::core::generation::{BiomeParameters, DetermineTileParameters};
 use crate::core::world::World;
 use crate::core::material::{Terrain, Overlay};
 use crate::core::rng::GameRngMethods;

@@ -13,7 +13,6 @@ pub enum PlayerAction {
   PlaceBlock,
   SelectNextTerrain,
   SelectNextOverlay,
-  None,
 }
 
 // --- プレイヤーの物理演算に関する定数 ---

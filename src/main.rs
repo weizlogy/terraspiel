@@ -17,7 +17,7 @@ use crate::core::generation; // 地形生成モジュールをインポート！
 use crate::core::seed_generator; // ✨新しいシードジェネレーターをインポート！
 use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
 use crate::core::world::{World, HEIGHT, WIDTH};
-use crate::core::player::{Player, PlayerAction, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
+use crate::core::player::{Player, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
 
 use std::collections::HashSet;
 use std::sync::Arc; // Instant を使うために追加！

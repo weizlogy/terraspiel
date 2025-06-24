@@ -1,7 +1,7 @@
 /*! src/core/biomes/desert.rs */
 
 use super::BiomeGenerator; // BiomeGenerator trait のみインポート
-use crate::core::generation::{BiomeParameters, DetermineTileParameters, BiomeWeights}; // generation.rs から構造体をインポート
+use crate::core::generation::{BiomeParameters, DetermineTileParameters}; // generation.rs から構造体をインポート
 use crate::core::world::World;
 use crate::core::material::{Terrain, Overlay}; // TerrainとOverlayをインポート
 use crate::core::rng::GameRngMethods; // GameRngMethodsトレイトをインポート

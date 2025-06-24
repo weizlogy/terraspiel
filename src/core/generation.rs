@@ -14,8 +14,6 @@ pub struct DetermineTileParameters<'a> {
   pub y: usize,
   pub surface_y: usize,
   pub rock_layer_y: usize,
-  pub temp_val: f64,
-  pub precip_val: f64,
   pub ore_noise: OreNoiseValues,
   pub biome_weights: &'a BiomeWeights,
 }
@@ -191,7 +189,6 @@ pub fn generate_initial_world(world: &mut World, rng: &mut dyn GameRngMethods) {
           x, y,
           surface_y: current_dirt_surface_y,
           rock_layer_y: biome_params.rock_layer_y,
-          temp_val, precip_val,
           ore_noise: ore_noise_values,
           biome_weights: &biome_weights,
         };

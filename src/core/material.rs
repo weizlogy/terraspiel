@@ -95,14 +95,6 @@ impl Overlay {
     }
   }
 
-  pub fn is_liquid(&self) -> bool {
-    matches!(self, Overlay::Water | Overlay::Lava | Overlay::Snow)
-  }
-
-  pub fn is_gas(&self) -> bool {
-    matches!(self, Overlay::Air | Overlay::FlammableGas)
-  }
-
   pub fn is_solid(&self) -> bool {
     matches!(self, Overlay::Grass | Overlay::Tree | Overlay::Stone | Overlay::Ice)
   }
@@ -126,7 +118,7 @@ impl Overlay {
   ///
   /// # Returns
   /// 横滑りを試みるべきなら `true`、そうでないなら `false`。
-  pub fn should_attempt_slide(&self, world: &World, x: usize, y: usize) -> bool {
+  pub fn should_attempt_slide(&self, _world: &World, _x: usize, _y: usize) -> bool {
     match self {
       Overlay::Water | Overlay::Lava | Overlay::Snow => true, // 水、溶岩、雪は常に滑ろうとする
       _ => false,

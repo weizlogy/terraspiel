@@ -29,11 +29,11 @@ pub trait GameRngMethods: RngCore { // RngCoreはオブジェクト安全なの�
 // rand::Rngを実装する任意の型Tに対して、GameRngMethodsを実装します。
 // これにより、StdRngなどのrand::Rng実装をdyn GameRngMethodsとして扱えるようになります。
 impl<T: RandRng> GameRngMethods for T {
-  fn gen_f64(&mut self) -> f64 { self.r#gen::<f64>() }
-  fn gen_bool_prob(&mut self, p: f64) -> bool { self.gen_bool(p) }
-  fn gen_f64_range(&mut self, low: f64, high: f64) -> f64 { self.gen_range(low..high) }
-  fn gen_usize_range(&mut self, low: usize, high: usize) -> usize { self.gen_range(low..high) }
-  fn gen_i32_range(&mut self, low: i32, high: i32) -> i32 { self.gen_range(low..high) }
+  fn gen_f64(&mut self) -> f64 { self.random::<f64>() }
+  fn gen_bool_prob(&mut self, p: f64) -> bool { self.random_bool(p) }
+  fn gen_f64_range(&mut self, low: f64, high: f64) -> f64 { self.random_range(low..high) }
+  fn gen_usize_range(&mut self, low: usize, high: usize) -> usize { self.random_range(low..high) }
+  fn gen_i32_range(&mut self, low: i32, high: i32) -> i32 { self.random_range(low..high) }
 }
 
 /// ゲーム全体で使用される乱数生成器を管理する構造体。
@@ -60,7 +60,7 @@ impl GameRng {
       world_rng: StdRng::seed_from_u64(seed),
       // ゲームプレイ用RNGには、ワールド生成用とは異なるシードを使用します。
       gameplay_rng: StdRng::seed_from_u64(seed.wrapping_add(1)),
-      thread_rng: rand::thread_rng(),
+      thread_rng: rand::rng(),
     }
   }
 
