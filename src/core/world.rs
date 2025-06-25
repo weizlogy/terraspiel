@@ -3,8 +3,8 @@
 use crate::core::rng::GameRngMethods; // ✨ 共通の乱数生成器メソッドトレイトをインポート！
 use crate::core::material::{Terrain, Overlay};
 
-pub const WIDTH: usize = 800;
-pub const HEIGHT: usize = 600;
+pub const WIDTH: usize = 1600; // ワールドの幅を2倍に
+pub const HEIGHT: usize = 1200; // ワールドの高さも2倍に
 
 #[derive(Clone, Copy, Debug)]
 pub struct Tile {

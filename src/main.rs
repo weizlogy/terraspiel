@@ -15,8 +15,9 @@ use winit::window::{Window, WindowId};
 use crate::core::engine;
 use crate::core::generation; // 地形生成モジュールをインポート！
 use crate::core::seed_generator; // ✨新しいシードジェネレーターをインポート！
+use crate::core::camera::{Camera, VIEW_WIDTH, VIEW_HEIGHT}; // ✨ カメラとビューポートサイズをインポート！
 use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
-use crate::core::world::{World, HEIGHT, WIDTH};
+use crate::core::world::World; // Worldの定数は使わなくなるよ
 use crate::core::player::{Player, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
 
 use std::collections::HashSet;
@@ -29,6 +30,7 @@ struct App {
   window: Option<Arc<Window>>,
   pixels: Option<Pixels<'static>>,
   world: Option<Box<World>>, // World はヒープに置くのが安全だよ！
+  camera: Option<Box<Camera>>, // ✨ カメラも状態として管理するよ！
   player: Option<Box<Player>>, // ✨ Player も独立させてヒープに！
   rng: Option<Box<GameRng>>, // ✨ ゲーム全体の乱数生成器を管理するよ！
   coords: Vec<(usize, usize)>,
@@ -82,9 +84,9 @@ impl ApplicationHandler for App {
       }
       WindowEvent::RedrawRequested => {
         // pixels と world がちゃんと準備できてるか確認してから描画しようね！
-        if let (Some(pixels), Some(world), Some(player)) = (self.pixels.as_mut(), self.world.as_ref(), self.player.as_ref()) {
+        if let (Some(pixels), Some(world), Some(player), Some(camera)) = (self.pixels.as_mut(), self.world.as_ref(), self.player.as_ref(), self.camera.as_ref()) {
           let frame = pixels.frame_mut();
-          draw_game(world, player, frame); // ✨ Playerも描画関数に渡すよ！
+          draw_game(world, player, camera, frame); // ✨ カメラも描画関数に渡すよ！
 
           // 描画結果を画面に反映！
           if let Err(err) = pixels.render() {
@@ -105,8 +107,12 @@ impl ApplicationHandler for App {
     let player_actions = input::get_player_actions(&self.pressed_keys, &self.pressed_mouse_buttons);
 
     // world, player, rng が全部準備OKなら、ゲームの状態を更新！
-    if let (Some(world), Some(player), Some(rng)) = (self.world.as_mut(), self.player.as_mut(), self.rng.as_mut()) {
+    if let (Some(world), Some(player), Some(camera), Some(rng)) = (self.world.as_mut(), self.player.as_mut(), self.camera.as_mut(), self.rng.as_mut()) {
       engine::update_game_state(world, player, &mut self.coords, &player_actions, rng.as_mut(), self.cursor_pos); // 💥ゲームの状態を更新！
+      
+      // プレイヤーの動きに合わせてカメラを更新！
+      camera.update(player);
+
       world.grow_grass(rng.gameplay_gen_mut()); // 🌱
     }
 
@@ -145,7 +151,8 @@ fn init(app: &mut App) {
       let size = window.inner_size();
       let surface_texture =
         SurfaceTexture::new(size.width, size.height, window.clone());
-      Some(Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap())
+      // ピクセルバッファのサイズをワールドサイズからビューポートサイズに変更！
+      Some(Pixels::new(VIEW_WIDTH as u32, VIEW_HEIGHT as u32, surface_texture).unwrap())
     };
   } else {
     // 既存の Pixels インスタンスがあれば、バッファサイズをリセットする
@@ -153,16 +160,16 @@ fn init(app: &mut App) {
     // 必要であれば、ウィンドウサイズ変更に合わせて surface もリサイズする
     // let size = window.inner_size();
     // app.pixels.as_mut().unwrap().resize_surface(size.width, size.height).unwrap();
-    app.pixels.as_mut().unwrap().resize_buffer(WIDTH as u32, HEIGHT as u32).unwrap();
+    app.pixels.as_mut().unwrap().resize_buffer(VIEW_WIDTH as u32, VIEW_HEIGHT as u32).unwrap();
   }
-
-  app.coords = generate_coords();
 
   // World インスタンスを Box で包んでヒープに確保！
   app.world = Some(Box::new(World::new()));
 
   // Player インスタンスも Box で包んでヒープに確保！
   app.player = Some(Box::new(Player::new(PLAYER_SPAWN_X, PLAYER_SPAWN_Y)));
+  // カメラも初期化！最初は(0,0)からスタート
+  app.camera = Some(Box::new(Camera::new(0.0, 0.0)));
 
   // --- シード値の生成 ---
   let world_seed = seed_generator::generate_seed(); // 🌟ここで新しい関数を呼び出すよ！
@@ -177,18 +184,9 @@ fn init(app: &mut App) {
   generation::generate_initial_world(app.world.as_mut().unwrap(), app.rng.as_mut().unwrap().world_gen_mut());
 }
 
-fn generate_coords() -> Vec<(usize, usize)> {
-  let mut coords = Vec::with_capacity(WIDTH * HEIGHT);
-  for y in (0..HEIGHT).rev() {
-    for x in 0..WIDTH {
-      coords.push((x, y));
-    }
-  }
-  coords
-}
-
-fn draw_game(world: &World, player: &Player, frame: &mut [u8]) {
+fn draw_game(world: &World, player: &Player, camera: &Camera, frame: &mut [u8]) {
   // ワールドの各タイルを描画バッファに書き込むよ！
   // render モジュールにお願いするよ！
-  render::render::draw_game(world, player, frame);
+  // 引数に camera を追加するのを忘れずに！
+  render::render::draw_game(world, player, camera, frame);
 }
