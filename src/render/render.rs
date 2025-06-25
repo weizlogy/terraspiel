@@ -1,7 +1,7 @@
 // src/render/render.rs に配置してください
 
 use crate::core::camera::{Camera, VIEW_WIDTH, VIEW_HEIGHT};
-use crate::core::player::Player;
+use crate::core::player::Player; // Player 構造体だけインポートするよ
 use crate::core::world::World;
 
 /// 2つのRGBAカラーをアルファブレンディングで合成するヘルパー関数。
@@ -69,15 +69,12 @@ pub fn draw_game(world: &World, player: &Player, camera: &Camera, frame: &mut [u
   let player_screen_x = player.x - camera.x;
   let player_screen_y = player.y - camera.y;
 
-  // プレイヤーのサイズを定義（ここでは仮に 1x2 タイルサイズ）
-  let player_width = 1.0;
-  let player_height = 2.0;
-
   // プレイヤーを描画するピクセル範囲を計算
+  // プレイヤーの当たり判定サイズ (width, height) を使って描画するよ！
   let start_x = player_screen_x.floor() as isize;
-  let end_x = (player_screen_x + player_width).ceil() as isize;
+  let end_x = (player_screen_x + player.width).ceil() as isize;
   let start_y = player_screen_y.floor() as isize;
-  let end_y = (player_screen_y + player_height).ceil() as isize;
+  let end_y = (player_screen_y + player.height).ceil() as isize;
 
   // プレイヤーの色（目立つようにピンク！💖）
   let player_color = [255, 0, 255, 255];

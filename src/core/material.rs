@@ -96,7 +96,7 @@ impl Overlay {
   }
 
   pub fn is_solid(&self) -> bool {
-    matches!(self, Overlay::Grass | Overlay::Tree | Overlay::Stone | Overlay::Ice)
+    matches!(self, Overlay::Grass | Overlay::Stone | Overlay::Ice)
   }
 
   /// このオーバーレイが流体のように振る舞うか (落下や横滑りの対象になるか)

@@ -8,6 +8,10 @@ use crate::core::world::{WIDTH as WORLD_WIDTH, HEIGHT as WORLD_HEIGHT};
 pub const VIEW_WIDTH: usize = 300;
 pub const VIEW_HEIGHT: usize = 200;
 
+// ゲームの各ピクセルを画面上でどれだけ大きく表示するかのスケールです。
+// 例えば 4.0 にすると、1つのゲームピクセルが 4x4 の画面ピクセルで描画されます。
+pub const PIXEL_SCALE: f64 = 4.0;
+
 /// ゲームワールドを覗くカメラを表す構造体。
 ///
 /// カメラの位置は、描画するワールド領域の左上の角に対応するよ。

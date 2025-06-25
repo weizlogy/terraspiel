@@ -6,7 +6,7 @@ mod input; // ✨ 新しい入力モジュールを宣言！
 use pixels::Error;
 use pixels::Pixels;
 use pixels::SurfaceTexture;
-use winit::application::ApplicationHandler;
+use winit::{application::ApplicationHandler, dpi::LogicalSize}; // LogicalSize をインポートします。
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::KeyCode; use winit::event::MouseButton;
@@ -15,7 +15,7 @@ use winit::window::{Window, WindowId};
 use crate::core::engine;
 use crate::core::generation; // 地形生成モジュールをインポート！
 use crate::core::seed_generator; // ✨新しいシードジェネレーターをインポート！
-use crate::core::camera::{Camera, VIEW_WIDTH, VIEW_HEIGHT}; // ✨ カメラとビューポートサイズをインポート！
+use crate::core::camera::{Camera, VIEW_WIDTH, VIEW_HEIGHT, PIXEL_SCALE}; // PIXEL_SCALE もインポートします。
 use crate::core::rng::GameRng; // ✨ 共通の乱数生成器をインポート！
 use crate::core::world::World; // Worldの定数は使わなくなるよ
 use crate::core::player::{Player, PLAYER_SPAWN_X, PLAYER_SPAWN_Y}; // ✨ Player関連をインポート！
@@ -46,7 +46,13 @@ impl ApplicationHandler for App {
   fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: winit::event::StartCause) {
     match cause {
       winit::event::StartCause::Init => {
-        self.window = Some(Arc::new(event_loop.create_window(Window::default_attributes()).unwrap()));
+        // ウィンドウサイズを、ビューポートサイズ x スケールで計算します。
+        let window_size = LogicalSize::new(
+          VIEW_WIDTH as f64 * PIXEL_SCALE,
+          VIEW_HEIGHT as f64 * PIXEL_SCALE,
+        );
+        let window_attrs = Window::default_attributes().with_inner_size(window_size).with_title("terraspiel");
+        self.window = Some(Arc::new(event_loop.create_window(window_attrs).unwrap()));
         init(self);
       },
       _ => (),

@@ -61,8 +61,8 @@ pub fn generate_initial_world(world: &mut World, rng: &mut dyn GameRngMethods) {
   // --- 地表生成用のノイズ関数 ---
   // ノイズ関数のシードは、RNGから新しい乱数を取得して設定します。
   let surface_noise_seed: u32 = rng.next_u32();
-  let surface_noise = OpenSimplex::new(surface_noise_seed as u32);
-  let surface_scale = 0.025; // 地表の起伏のスケール。小さいほど滑らか、大きいほどギザギザになるよ。 (0.02 ~ 0.03 がおすすめ)
+  let surface_noise = Fbm::<OpenSimplex>::new(surface_noise_seed).set_octaves(3).set_persistence(0.4); // FBMを使うとより自然な起伏になるよ
+  let surface_scale = 0.015; // 地表の起伏のスケール。小さいほどなだらかになるよ (0.01 ~ 0.02 がおすすめ)
   let surface_amplitude = 20.0; // 地表の起伏の最大高さ。この値の範囲で地表が上下するよ。
   let base_surface_y_level = (HEIGHT as f64 / 2.5).max(20.0); // 地表の基準Y座標。画面の上から1/3～半分くらいの高さが良いかな。
 
@@ -129,8 +129,8 @@ pub fn generate_initial_world(world: &mut World, rng: &mut dyn GameRngMethods) {
   for x in 0..WIDTH {
     // --- 各列の地表の高さとバイオームを決定 ---
     let surface_offset_noise = surface_noise.get([
-        x as f64 * surface_scale,
-          rng.gen_f64_range(0.0, 1.0) * 50.0 // X座標だけでなく、ランダムな値からも影響を受けるようにして、ワールドごとのパターンを増やすよ。
+      x as f64 * surface_scale,
+      (surface_noise_seed % 1000) as f64 // 乱数ではなく、シードから決定的な値を使うことで、滑らかな地形を保証するよ！
     ]);
     let surface_y_fluctuation = surface_offset_noise * surface_amplitude;
     let current_dirt_surface_y = (base_surface_y_level + surface_y_fluctuation)
@@ -138,10 +138,9 @@ pub fn generate_initial_world(world: &mut World, rng: &mut dyn GameRngMethods) {
                                   .max(15.0) // 地表が画面上部に行き過ぎないように最低値を設定。
                                   .min((HEIGHT - 40) as f64) as usize; // 地表が画面下部に行き過ぎないように最大値を設定。
 
-    // バイオーム決定: X座標とシードに基づいて温度と降水量のノイズ値を取得
-    // Y座標は使わず、ワールドの水平方向の変化でバイオームが決まるようにするよ。
-      let temp_val = temperature_noise.get([x as f64 * temperature_scale, rng.gen_f64_range(0.0, 1.0) * 2.0]);
-      let precip_val = precipitation_noise.get([x as f64 * precipitation_scale, rng.gen_f64_range(0.0, 1.0) * 2.0 + 50.0]);
+    // バイオーム決定: X座標とシードから決定的な値を使ってノイズを取得するよ
+    let temp_val = temperature_noise.get([x as f64 * temperature_scale, (temperature_noise_seed % 1000) as f64]);
+    let precip_val = precipitation_noise.get([x as f64 * precipitation_scale, (precipitation_noise_seed % 1000) as f64]);
 
     let current_biome = if temp_val > desert_temp_threshold && precip_val < desert_precip_threshold {
       Biome::Desert
@@ -235,13 +234,13 @@ pub fn generate_initial_world(world: &mut World, rng: &mut dyn GameRngMethods) {
   // 地形生成が終わった後に、各バイオーム特有の装飾を配置するよ！
   for x in 0..WIDTH {
     // 地表の高さを再計算 (ループ内で計算済みだけど、念のため)
-      let surface_offset_noise = surface_noise.get([x as f64 * surface_scale, rng.gen_f64_range(0.0, 1.0) * 50.0]);
+    let surface_offset_noise = surface_noise.get([x as f64 * surface_scale, (surface_noise_seed % 1000) as f64]);
     let surface_y_fluctuation = surface_offset_noise * surface_amplitude;
     let current_surface_y = (base_surface_y_level + surface_y_fluctuation).round().max(15.0).min((HEIGHT - 40) as f64) as usize;
 
     // バイオームを再決定
-      let temp_val = temperature_noise.get([x as f64 * temperature_scale, rng.gen_f64_range(0.0, 1.0) * 2.0]);
-      let precip_val = precipitation_noise.get([x as f64 * precipitation_scale, rng.gen_f64_range(0.0, 1.0) * 2.0 + 50.0]);
+    let temp_val = temperature_noise.get([x as f64 * temperature_scale, (temperature_noise_seed % 1000) as f64]);
+    let precip_val = precipitation_noise.get([x as f64 * precipitation_scale, (precipitation_noise_seed % 1000) as f64]);
     let biome_at_x = if temp_val > desert_temp_threshold && precip_val < desert_precip_threshold { Biome::Desert }
                      else if temp_val < snow_temp_threshold { Biome::Snowland }
                      else if precip_val < plains_precip_threshold { Biome::Plains }

@@ -16,12 +16,14 @@ pub enum PlayerAction {
 }
 
 // --- プレイヤーの物理演算に関する定数 ---
-const PLAYER_ACCEL_X: f32 = 0.5;
-const PLAYER_MAX_SPEED_X: f32 = 4.0;
-const PLAYER_JUMP_STRENGTH: f32 = 7.0;
-const PLAYER_FRICTION: f32 = 0.8; // 摩擦係数
-const GRAVITY: f32 = 0.3;
-const MAX_FALL_SPEED: f32 = 8.0;
+// PIXEL_SCALE で見た目を拡大したのに合わせて、移動やジャンプの値を調整するよ。
+// これで、体感速度がちょうどよくなるはず！
+const PLAYER_ACCEL_X: f32 = 0.2;          // 左右の加速度
+const PLAYER_MAX_SPEED_X: f32 = 2.0;      // 左右の最大速度
+const PLAYER_JUMP_STRENGTH: f32 = 4.0;    // ジャンプの強さ
+const PLAYER_FRICTION: f32 = 0.85;        // 摩擦係数。1に近いほど滑りやすくなるよ。
+const GRAVITY: f32 = 0.18;                // 重力加速度
+const MAX_FALL_SPEED: f32 = 4.0;          // 最大落下速度
 
 // プレイヤーの初期スポーン位置
 pub const PLAYER_SPAWN_X: f32 = WIDTH as f32 / 2.0;
@@ -89,9 +91,12 @@ pub fn update(player: &mut Player, world: &mut World, player_actions: &[PlayerAc
   // --- X軸方向 ---
   let mut new_x = player.x + player.vel_x;
   let target_x_min = new_x.floor() as isize;
-  let target_x_max = (new_x + player.width - 0.001).floor() as isize;
-  let current_y_min = player.y.floor() as isize;
-  let current_y_max = (player.y + player.height - 0.001).floor() as isize;
+  let target_x_max = (new_x + player.width - 0.001).floor() as isize; // 0.001を引くことで、タイル境界での不具合を防ぐよ
+  // 衝突判定のY座標の範囲を少しだけ内側に狭めることで、
+  // 1ブロックの段差の角に足や頭が引っかかるのを防ぐよ。
+  let y_margin = 0.49; // この値で引っかかりにくさを調整できるよ！0.49にすると、ほぼ半ブロックの段差を無視できる
+  let current_y_min = (player.y + y_margin).floor() as isize;
+  let current_y_max = (player.y + player.height - y_margin).floor() as isize;
 
   for y_check in current_y_min..=current_y_max {
     if player.vel_x > 0.0 { // 右に移動中
@@ -198,5 +203,11 @@ pub fn update(player: &mut Player, world: &mut World, player_actions: &[PlayerAc
       Overlay::FlammableGas => Overlay::Air,
       Overlay::None => Overlay::Air,
     };
+  }
+
+  // 6. 地面にいるときにY座標をグリッドにスナップ
+  // 浮動小数点数の誤差による「めり込み」や「浮き」を防ぐよ。
+  if player.on_ground && player.vel_y == 0.0 {
+    player.y = player.y.round();
   }
 }
