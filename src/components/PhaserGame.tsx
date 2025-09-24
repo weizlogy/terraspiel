@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import useGameStore from '../stores/gameStore';
 import { ELEMENTS, type ElementName, type Particle, type MoveDirection } from '../types/elements';
 import { simulatePhysics, calculateStats, simulateParticles } from '../game/physics';
-import { varyColor } from '../utils/colors';
+import { varyColor, blendColors } from '../utils/colors';
 
 const PARTICLE_ELEMENTS: ElementName[] = ['FIRE'];
 
@@ -14,7 +14,7 @@ export class GameScene extends Phaser.Scene {
   private particles: Particle[] = []; // Add state for particles
   private width: number = 160; // Fixed grid width
   private height: number = 90; // Fixed grid height
-  private cellSize: number = 8; // Fixed cell size
+  private cellSize: number = 4; // Fixed cell size
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private isDrawing: boolean = false;
   private eraseMode: boolean = false;
@@ -135,7 +135,6 @@ export class GameScene extends Phaser.Scene {
       state.setGrid(newGrid);
       state.setColorGrid(newColorGrid);
     } else {
-      // 型アサーションで selectedElement を ElementName にしちゃうよ！
       const selectedElement = state.selectedElement as ElementName;
       // If selected element is a particle type, add a particle. Otherwise, update the grid.p
       if (PARTICLE_ELEMENTS.includes(selectedElement)) {
@@ -165,8 +164,36 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < this.width; x++) {
         const elementName = this.grid[y][x];
         if (elementName !== 'EMPTY') {
-          const color = this.colorGrid[y][x];
-          this.gridGraphics.fillStyle(parseInt(color.replace('#', '0x')), 1);
+          let displayColor = this.colorGrid[y][x];
+          const elementData = ELEMENTS[elementName]; // Get element data to access alpha
+
+          // Special rendering for WATER: blend with neighbors
+          if (elementName === 'WATER') {
+            let blendedColor = displayColor;
+            let blendCount = 1; // Start with self color
+
+            // Check 8 neighbors
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+
+                const nx = x + dx;
+                const ny = y + dy;
+
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                  const neighborElement = this.grid[ny][nx];
+                  if (neighborElement !== 'EMPTY' && neighborElement !== 'WATER') { // Blend with non-empty, non-water neighbors
+                    const neighborColor = this.colorGrid[ny][nx];
+                    blendedColor = blendColors(blendedColor, neighborColor, 0.9); // Small weight for neighbor
+                    blendCount++;
+                  }
+                }
+              }
+            }
+            displayColor = blendedColor;
+          }
+
+          this.gridGraphics.fillStyle(parseInt(displayColor.replace('#', '0x')), elementData.alpha || 1);
           this.gridGraphics.fillRect(
             x * this.cellSize,
             y * this.cellSize,
@@ -211,8 +238,8 @@ const PhaserGame: React.FC = () => {
       backgroundColor: '#000000',
       scene: GameScene,
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.NO_CENTER,
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
         parent: gameContainerRef.current
       }
     };

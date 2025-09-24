@@ -56,3 +56,36 @@ export const varyColor = (hex: string, amount: number = 15): string => {
 
   return `#${toHex(r_new)}${toHex(g_new)}${toHex(b_new)}`;
 };
+
+/**
+ * Blends two hex colors together.
+ * @param color1 The first hex color string.
+ * @param color2 The second hex color string.
+ * @param weight1 The weight of the first color (0 to 1). Default is 0.5.
+ * @returns A new blended hex color string.
+ */
+export const blendColors = (color1: string, color2: string, weight1: number = 0.5): string => {
+  const hexToRgb = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return { r, g, b };
+  };
+
+  const rgbToHex = (r: number, g: number, b: number) => {
+    const toHex = (c: number) => {
+      const hex = Math.round(Math.max(0, Math.min(255, c))).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+
+  const r = rgb1.r * weight1 + rgb2.r * (1 - weight1);
+  const g = rgb1.g * weight1 + rgb2.g * (1 - weight1);
+  const b = rgb1.b * weight1 + rgb2.b * (1 - weight1);
+
+  return rgbToHex(r, g, b);
+};

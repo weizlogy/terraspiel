@@ -5,20 +5,22 @@ export const simulatePhysics = (
   grid: ElementName[][],
   lastMoveGrid: MoveDirection[][],
   colorGrid: string[][]
-): { 
-  newGrid: ElementName[][]; 
+): {
+  newGrid: ElementName[][];
   newLastMoveGrid: MoveDirection[][];
   newColorGrid: string[][];
 } => {
+  // Create new grids by copying the current state. This is the double-buffering approach.
+  // All modifications will be made to these new grids.
   const newGrid = grid.map(row => [...row]);
   const newColorGrid = colorGrid.map(row => [...row]);
+  const newLastMoveGrid: MoveDirection[][] = lastMoveGrid.map(row => [...row]); // Copy lastMoveGrid as well
+
   const height = grid.length;
   const width = grid[0].length;
 
   // Create a grid to track which cells have already been moved in this simulation step
   const moved = Array(height).fill(null).map(() => Array(width).fill(false));
-  // Create a new grid to store the movement directions for the next frame
-  const newLastMoveGrid: MoveDirection[][] = Array(height).fill(null).map(() => Array(width).fill('NONE'));
 
   // Process grid from bottom to top for gravity simulation
   const xIndices = Array.from(Array(width).keys());
@@ -129,7 +131,7 @@ export const simulatePhysics = (
       else if (element === 'WATER') {
         // Movement priority: down > diagonally down > sideways
         let hasMoved = false;
-
+        
         // 1. Try moving down
         if (!hasMoved && y + 1 < height && grid[y + 1][x] === 'EMPTY' && !moved[y + 1][x]) {
           newGrid[y][x] = 'EMPTY';
@@ -140,14 +142,14 @@ export const simulatePhysics = (
           moved[y + 1][x] = true;
           hasMoved = true;
         }
-
+        
         // 2. Try moving diagonally down (randomize direction to avoid bias)
         if (!hasMoved && y + 1 < height) {
           const diagonalDirections = [-1, 1]; // Left-down and right-down
           if (Math.random() > 0.5) diagonalDirections.reverse();
-
+          
           for (const dx of diagonalDirections) {
-            if (x + dx >= 0 && x + dx < width &&
+            if (x + dx >= 0 && x + dx < width && 
                 grid[y + 1][x + dx] === 'EMPTY' && !moved[y + 1][x + dx]) {
               newGrid[y][x] = 'EMPTY';
               newColorGrid[y][x] = ELEMENTS.EMPTY.color;
@@ -160,23 +162,23 @@ export const simulatePhysics = (
             }
           }
         }
-
+        
         // 3. Try moving sideways with horizontal stability in mind
         if (!hasMoved) {
           // Instead of random direction, check which side has more space for water to spread evenly
           const leftX = x - 1;
           const rightX = x + 1;
-
+          
           // Check availability of left and right positions
           const canGoLeft = leftX >= 0 && grid[y][leftX] === 'EMPTY' && !moved[y][leftX];
           const canGoRight = rightX < width && grid[y][rightX] === 'EMPTY' && !moved[y][rightX];
-
+          
           if (canGoLeft && canGoRight) {
             // When both sides are available, check which side has more empty space below
             // to spread water more evenly and maintain horizontal level
             let leftOpenSpaces = 0;
             let rightOpenSpaces = 0;
-
+            
             // Count empty spaces below the potential left position
             for (let testY = y; testY < height; testY++) {
               if (grid[testY][leftX] === 'EMPTY') {
@@ -185,7 +187,7 @@ export const simulatePhysics = (
                 break;
               }
             }
-
+            
             // Count empty spaces below the potential right position
             for (let testY = y; testY < height; testY++) {
               if (grid[testY][rightX] === 'EMPTY') {
@@ -194,7 +196,7 @@ export const simulatePhysics = (
                 break;
               }
             }
-
+            
             // Move to the side with more open space below, or random if equal
             if (leftOpenSpaces > rightOpenSpaces) {
               newGrid[y][x] = 'EMPTY';
@@ -247,7 +249,6 @@ export const simulatePhysics = (
 
   return { newGrid, newLastMoveGrid, newColorGrid };
 };
-
 // Calculate statistics for elements in the grid
 export const calculateStats = (grid: ElementName[][]): Record<ElementName, number> => {
   const stats: Record<ElementName, number> = {

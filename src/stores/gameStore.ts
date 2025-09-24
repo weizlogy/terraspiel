@@ -27,8 +27,8 @@ interface GameState {
   setFps: (fps: number) => void;
 }
 
-const FIXED_WIDTH = 160;
-const FIXED_HEIGHT = 90;
+const FIXED_WIDTH = 320;
+const FIXED_HEIGHT = 180;
 
 const useGameStore = create<GameState>()((set, get) => ({
   selectedElement: 'SOIL',
@@ -117,12 +117,21 @@ const useGameStore = create<GameState>()((set, get) => ({
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
-    const elements: ElementName[] = ['EMPTY', 'SOIL', 'WATER', 'FIRE'];
-    const grid: ElementName[][] = [];
-    const lastMoveGrid: MoveDirection[][] = [];
-    const colorGrid: string[][] = [];
+    const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
+    const particleElementsForRandom: ElementName[] = ['FIRE']; // Elements that become particles
+
+    const newGrid: ElementName[][] = Array(state.height)
+      .fill(null)
+      .map(() => Array(state.width).fill('EMPTY'));
+    const newLastMoveGrid: MoveDirection[][] = Array(state.height)
+      .fill(null)
+      .map(() => Array(state.width).fill('NONE'));
+    const newColorGrid: string[][] = Array(state.height)
+      .fill(null)
+      .map(() => Array(state.width).fill(ELEMENTS.EMPTY.color));
+    
     const stats: Record<ElementName, number> = {
-      EMPTY: 0, // Don't count EMPTY
+      EMPTY: 0,
       SOIL: 0,
       WATER: 0,
       FIRE: 0,
@@ -130,26 +139,51 @@ const useGameStore = create<GameState>()((set, get) => ({
       STEAM: 0,
     };
     
-    for (let y = 0; y < state.height; y++) {
-      const row: ElementName[] = [];
-      const moveRow: MoveDirection[] = [];
-      const colorRow: string[] = [];
-      for (let x = 0; x < state.width; x++) {
-        const randomElement = elements[Math.floor(Math.random() * elements.length)];
-        row.push(randomElement);
-        moveRow.push('NONE');
+    const newParticles: Particle[] = [];
+    let nextParticleId = 0; // Reset particle IDs for new random grid
+
+    const totalCells = state.width * state.height;
+
+    // Generate random grid elements (around 30% of total cells with variation)
+    const baseTargetGridElements = totalCells * 0.3;
+    const gridElementVariation = totalCells * 0.1; // +/- 10% of total cells
+    const targetGridElements = Math.floor(baseTargetGridElements + (Math.random() - 0.5) * 2 * gridElementVariation);
+
+    for (let i = 0; i < targetGridElements; i++) {
+      const randomX = Math.floor(Math.random() * state.width);
+      const randomY = Math.floor(Math.random() * state.height);
+      const randomElement = gridElements[Math.floor(Math.random() * gridElements.length)];
+
+      if (newGrid[randomY][randomX] === 'EMPTY') { // Only place if cell is empty
+        newGrid[randomY][randomX] = randomElement;
         const baseColor = ELEMENTS[randomElement].color;
-        colorRow.push(randomElement !== 'EMPTY' ? varyColor(baseColor) : baseColor);
-        if (randomElement !== 'EMPTY') {
-          stats[randomElement]++;
-        }
+        newColorGrid[randomY][randomX] = varyColor(baseColor);
+        stats[randomElement]++;
       }
-      grid.push(row);
-      lastMoveGrid.push(moveRow);
-      colorGrid.push(colorRow);
     }
-    
-    return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
+
+    // Generate random particles (around 1% of total cells with variation)
+    const baseTargetParticles = totalCells * 0.01;
+    const particleVariation = totalCells * 0.005; // +/- 0.5% of total cells
+    const targetTotalParticles = Math.floor(baseTargetParticles + (Math.random() - 0.5) * 2 * particleVariation);
+
+    for (let i = 0; i < targetTotalParticles; i++) {
+      const randomX = Math.floor(Math.random() * state.width);
+      const randomY = Math.floor(Math.random() * state.height);
+      const randomParticleType = particleElementsForRandom[Math.floor(Math.random() * particleElementsForRandom.length)];
+      newParticles.push({
+        id: nextParticleId++,
+        px: randomX + 0.5,
+        py: randomY + 0.5,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        type: randomParticleType,
+        life: ELEMENTS[randomParticleType].lifespan || 100,
+      });
+      stats[randomParticleType]++; // Update stats for particles
+    }
+
+    return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats, particles: newParticles, nextParticleId };
   }),
   updateStats: (stats) => set({ stats }),
   setFps: (fps) => set({ fps })
