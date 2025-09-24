@@ -3,7 +3,7 @@ export type ElementName =
   | 'SOIL'
   | 'WATER'
   | 'FIRE'
-  | 'WET_SOIL'
+  | 'MUD'
   | 'STEAM';
 
 export interface Element {
@@ -20,7 +20,7 @@ export const ELEMENTS: Record<ElementName, Element> = {
   SOIL: { name: 'SOIL', color: '#8B4513', density: 2, isStatic: false },
   WATER: { name: 'WATER', color: '#4169E1', density: 1, isStatic: false, alpha: 0.7 },
   FIRE: { name: 'FIRE', color: '#FF4500', density: 0.5, isStatic: false, lifespan: 100 },
-  WET_SOIL: { name: 'WET_SOIL', color: '#654321', density: 2, isStatic: false },
+  MUD: { name: 'MUD', color: '#5D4037', density: 2, isStatic: false },
   STEAM: { name: 'STEAM', color: '#C0C0C0', density: 0.1, isStatic: false },
 };
 

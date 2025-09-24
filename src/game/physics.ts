@@ -50,8 +50,41 @@ export const simulatePhysics = (
       if (element === 'SOIL') {
         let hasMoved = false;
 
-        // 1. Try moving down into empty space
-        if (y + 1 < height && grid[y + 1][x] === 'EMPTY' && !moved[y + 1][x]) {
+        // 4. Check for water interaction and convert to mud (both soil and water)
+        let waterNearby = false;
+        let waterY = -1; // Position of the nearby water
+        let waterX = -1;
+        
+        if (y + 1 < height && grid[y + 1][x] === 'WATER' && !moved[y + 1][x]) {
+          waterNearby = true;
+          waterY = y + 1;
+          waterX = x;
+        } else if (y > 0 && grid[y - 1][x] === 'WATER' && !moved[y - 1][x]) {
+          waterNearby = true;
+          waterY = y - 1;
+          waterX = x;
+        } else if (x + 1 < width && grid[y][x + 1] === 'WATER' && !moved[y][x + 1]) {
+          waterNearby = true;
+          waterY = y;
+          waterX = x + 1;
+        } else if (x > 0 && grid[y][x - 1] === 'WATER' && !moved[y][x - 1]) {
+          waterNearby = true;
+          waterY = y;
+          waterX = x - 1;
+        }
+        
+        if (waterNearby) {
+          newGrid[y][x] = 'MUD';
+          newColorGrid[y][x] = ELEMENTS.MUD.color;
+          moved[y][x] = true; // Mark as moved to prevent further movement
+          hasMoved = true;
+          // Consume the nearby water (convert to empty)
+          newGrid[waterY][waterX] = 'EMPTY';
+          newColorGrid[waterY][waterX] = ELEMENTS.EMPTY.color;
+          moved[waterY][waterX] = true; // Mark water as moved to prevent further movement
+        }
+        // 1. Try moving down into empty space (only if not converted to mud)
+        else if (y + 1 < height && grid[y + 1][x] === 'EMPTY' && !moved[y + 1][x]) {
           newGrid[y][x] = 'EMPTY';
           newColorGrid[y][x] = ELEMENTS.EMPTY.color;
           newGrid[y + 1][x] = 'SOIL';
@@ -61,7 +94,7 @@ export const simulatePhysics = (
           newLastMoveGrid[y + 1][x] = 'DOWN';
           hasMoved = true;
         }
-        // 2. Try swapping with water below
+        // 2. Try swapping with water below (only if not converted to mud)
         else if (y + 1 < height && grid[y + 1][x] === 'WATER' && !moved[y + 1][x]) {
           const waterColor = colorGrid[y + 1][x];
           // Swap elements
@@ -76,7 +109,7 @@ export const simulatePhysics = (
           newLastMoveGrid[y + 1][x] = 'DOWN'; // SOIL moved down
           hasMoved = true;
         }
-        // 3. Try moving diagonally down
+        // 3. Try moving diagonally down (only if not converted to mud)
         else if (y + 1 < height) {
           const lastMove = lastMoveGrid[y][x];
           const inertiaChance = 0.75; // 75% chance to follow inertia
@@ -107,7 +140,7 @@ export const simulatePhysics = (
           }
         }
 
-        // 4. Try to slip sideways if on a peak
+        // 4. Try to slip sideways if on a peak (only if not converted to mud)
         if (!hasMoved && Math.random() < 0.3) { // 30% chance to slip
           // Check if the particle is on a peak (empty on both sides)
           if (x > 0 && x < width - 1 && grid[y][x - 1] === 'EMPTY' && grid[y][x + 1] === 'EMPTY') {
@@ -244,6 +277,101 @@ export const simulatePhysics = (
           }
         }
       }
+
+      // Mud physics - similar to water but heavier and sinks in water
+      else if (element === 'MUD') {
+        let hasMoved = false;
+        
+        // 1. Try moving down
+        if (!hasMoved && y + 1 < height && (grid[y + 1][x] === 'EMPTY' || grid[y + 1][x] === 'WATER') && !moved[y + 1][x]) {
+          // Swap with water if below
+          if (grid[y + 1][x] === 'WATER') {
+            const waterColor = colorGrid[y + 1][x];
+            newGrid[y][x] = 'WATER';
+            newGrid[y + 1][x] = 'MUD';
+            newColorGrid[y][x] = waterColor;
+            newColorGrid[y + 1][x] = color;
+          } else {
+            // Move down to empty space
+            newGrid[y][x] = 'EMPTY';
+            newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+            newGrid[y + 1][x] = 'MUD';
+            newColorGrid[y + 1][x] = color;
+          }
+          moved[y][x] = true;
+          moved[y + 1][x] = true;
+          hasMoved = true;
+        }
+        
+        // 2. Try moving diagonally down (randomize direction to avoid bias)
+        if (!hasMoved && y + 1 < height) {
+          const diagonalDirections = [-1, 1]; // Left-down and right-down
+          if (Math.random() > 0.5) diagonalDirections.reverse();
+          
+          for (const dx of diagonalDirections) {
+            if (x + dx >= 0 && x + dx < width && 
+                (grid[y + 1][x + dx] === 'EMPTY' || grid[y + 1][x + dx] === 'WATER') && !moved[y + 1][x + dx]) {
+              // Swap with water if diagonally below
+              if (grid[y + 1][x + dx] === 'WATER') {
+                const waterColor = colorGrid[y + 1][x + dx];
+                newGrid[y][x] = 'WATER';
+                newGrid[y + 1][x + dx] = 'MUD';
+                newColorGrid[y][x] = waterColor;
+                newColorGrid[y + 1][x + dx] = color;
+              } else {
+                // Move diagonally down to empty space
+                newGrid[y][x] = 'EMPTY';
+                newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+                newGrid[y + 1][x + dx] = 'MUD';
+                newColorGrid[y + 1][x + dx] = color;
+              }
+              moved[y][x] = true;
+              moved[y + 1][x + dx] = true;
+              hasMoved = true;
+              break;
+            }
+          }
+        }
+        
+        // 3. Try moving sideways with less horizontal stability compared to water
+        if (!hasMoved) {
+          // Mud spreads sideways but doesn't maintain a perfect horizontal level
+          const leftX = x - 1;
+          const rightX = x + 1;
+          
+          // Check availability of left and right positions
+          const canGoLeft = leftX >= 0 && grid[y][leftX] === 'EMPTY' && !moved[y][leftX];
+          const canGoRight = rightX < width && grid[y][rightX] === 'EMPTY' && !moved[y][rightX];
+          
+          if (canGoLeft && canGoRight) {
+            // Mud moves sideways more randomly without trying to balance levels like water
+            const direction = Math.random() > 0.5 ? leftX : rightX;
+            newGrid[y][x] = 'EMPTY';
+            newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+            newGrid[y][direction] = 'MUD';
+            newColorGrid[y][direction] = color;
+            moved[y][x] = true;
+            moved[y][direction] = true;
+            hasMoved = true;
+          } else if (canGoLeft) {
+            newGrid[y][x] = 'EMPTY';
+            newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+            newGrid[y][leftX] = 'MUD';
+            newColorGrid[y][leftX] = color;
+            moved[y][x] = true;
+            moved[y][leftX] = true;
+            hasMoved = true;
+          } else if (canGoRight) {
+            newGrid[y][x] = 'EMPTY';
+            newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+            newGrid[y][rightX] = 'MUD';
+            newColorGrid[y][rightX] = color;
+            moved[y][x] = true;
+            moved[y][rightX] = true;
+            hasMoved = true;
+          }
+        }
+      }
     }
   }
 
@@ -256,7 +384,7 @@ export const calculateStats = (grid: ElementName[][]): Record<ElementName, numbe
     SOIL: 0,
     WATER: 0,
     FIRE: 0,
-    WET_SOIL: 0,
+    MUD: 0,
     STEAM: 0,
   };
   

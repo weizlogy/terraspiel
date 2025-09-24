@@ -45,7 +45,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     SOIL: 0,
     WATER: 0,
     FIRE: 0,
-    WET_SOIL: 0,
+    MUD: 0,
     STEAM: 0,
   },
   fps: 0,
@@ -88,7 +88,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       FIRE: 0,
-      WET_SOIL: 0,
+      MUD: 0,
       STEAM: 0,
     };
     
@@ -110,7 +110,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       FIRE: 0,
-      WET_SOIL: 0,
+      MUD: 0,
       STEAM: 0,
     };
     
@@ -135,7 +135,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       FIRE: 0,
-      WET_SOIL: 0,
+      MUD: 0,
       STEAM: 0,
     };
     

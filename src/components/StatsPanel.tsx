@@ -8,7 +8,7 @@ const StatsPanel: React.FC = () => {
 
   // Only show elements that have a count > 0 or are important to always show
   const importantElements = [
-    'SOIL', 'WATER', 'FIRE', 'WET_SOIL', 'STEAM'
+    'SOIL', 'WATER', 'FIRE', 'MUD', 'STEAM'
   ];
 
   return (

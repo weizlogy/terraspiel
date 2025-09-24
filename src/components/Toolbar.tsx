@@ -1,7 +1,6 @@
 
 import useGameStore from '../stores/gameStore';
 import { ELEMENTS, type ElementName } from '../types/elements';
-import StatsPanel from './StatsPanel';
 
 const Toolbar: React.FC = () => {
   const selectedElement = useGameStore((state) => state.selectedElement);

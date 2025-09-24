@@ -123,4 +123,5 @@ http://localhost:5173/
 
 ## 錬金術
 
-
+SOIL - WATER = MUD
+SOIL - FIRE  = SAND
