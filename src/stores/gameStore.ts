@@ -20,12 +20,15 @@ interface GameState {
   setColorGrid: (colorGrid: string[][]) => void;
   setParticles: (particles: Particle[]) => void;
   addParticle: (x: number, y: number, type: ElementName, vx?: number, vy?: number) => void;
-  initializeGrid: (width: number, height: number) => void;
+  initializeGrid: () => void;
   clearGrid: () => void;
   randomizeGrid: () => void;
   updateStats: (stats: Record<ElementName, number>) => void;
   setFps: (fps: number) => void;
 }
+
+const FIXED_WIDTH = 160;
+const FIXED_HEIGHT = 90;
 
 const useGameStore = create<GameState>()((set, get) => ({
   selectedElement: 'SOIL',
@@ -35,8 +38,8 @@ const useGameStore = create<GameState>()((set, get) => ({
   colorGrid: [],
   particles: [],
   nextParticleId: 0,
-  width: 80,
-  height: 60,
+  width: FIXED_WIDTH,
+  height: FIXED_HEIGHT,
   stats: {
     EMPTY: 0, // Will be set to 0 to not count EMPTY elements
     SOIL: 0,
@@ -66,7 +69,9 @@ const useGameStore = create<GameState>()((set, get) => ({
       nextParticleId: state.nextParticleId + 1,
     }));
   },
-  initializeGrid: (width, height) => {
+  initializeGrid: () => {
+    const width = FIXED_WIDTH;
+    const height = FIXED_HEIGHT;
     const grid: ElementName[][] = Array(height)
       .fill(null)
       .map(() => Array(width).fill('EMPTY'));

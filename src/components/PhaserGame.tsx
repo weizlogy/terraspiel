@@ -7,14 +7,14 @@ import { varyColor } from '../utils/colors';
 
 const PARTICLE_ELEMENTS: ElementName[] = ['FIRE'];
 
-class GameScene extends Phaser.Scene {
+export class GameScene extends Phaser.Scene {
   private grid: ElementName[][] = [];
   private lastMoveGrid: MoveDirection[][] = [];
   private colorGrid: string[][] = [];
   private particles: Particle[] = []; // Add state for particles
-  private width: number = 80;
-  private height: number = 60;
-  private cellSize: number = 8;
+  private width: number = 160; // Fixed grid width
+  private height: number = 90; // Fixed grid height
+  private cellSize: number = 8; // Fixed cell size
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private isDrawing: boolean = false;
   private eraseMode: boolean = false;
@@ -36,9 +36,6 @@ class GameScene extends Phaser.Scene {
     this.particles = state.particles;
     this.width = state.width;
     this.height = state.height;
-    
-    // Calculate cell size based on window dimensions to fit the grid
-    this.adjustCellSize();
   }
 
   create() {
@@ -61,27 +58,10 @@ class GameScene extends Phaser.Scene {
       this.renderAll(); // Re-render whenever state changes
     });
     
-    // Listen for window resize to adjust cell size
-    window.addEventListener('resize', () => {
-      this.adjustCellSize();
-    });
-    
     // Initial render
     this.renderAll();
   }
   
-  private adjustCellSize() {
-    // Calculate new cell size based on current window dimensions
-    const availableWidth = window.innerWidth;
-    const availableHeight = window.innerHeight - 120; // Account for toolbar and footer
-    
-    const cellWidth = Math.floor(availableWidth / this.width);
-    const cellHeight = Math.floor(availableHeight / this.height);
-    
-    // Use the smaller of the two to ensure the grid fits in the window
-    this.cellSize = Math.max(1, Math.min(cellWidth, cellHeight, 10)); // Max cell size of 10, min of 1
-  }
-
   update(time: number) {
     // Update FPS counter
     const fps = Math.round(this.game.loop.actualFps);
@@ -155,8 +135,9 @@ class GameScene extends Phaser.Scene {
       state.setGrid(newGrid);
       state.setColorGrid(newColorGrid);
     } else {
-      const selectedElement = state.selectedElement;
-      // If selected element is a particle type, add a particle. Otherwise, update the grid.
+      // 型アサーションで selectedElement を ElementName にしちゃうよ！
+      const selectedElement = state.selectedElement as ElementName;
+      // If selected element is a particle type, add a particle. Otherwise, update the grid.p
       if (PARTICLE_ELEMENTS.includes(selectedElement)) {
         // Add particle with some initial random velocity
         const vx = (Math.random() - 0.5) * 0.5;
@@ -198,7 +179,11 @@ class GameScene extends Phaser.Scene {
     
     // 2. Render the particles
     for (const particle of this.particles) {
-      const element = ELEMENTS[particle.type];
+      const particleType = particle.type;
+      if (particleType === 'EMPTY') {
+        continue;
+      }
+      const element = ELEMENTS[particleType];
       this.gridGraphics.fillStyle(parseInt(element.color.replace('#', '0x')), 1);
       // Render particle as a smaller circle in the center of its floating position
       this.gridGraphics.fillCircle(
@@ -220,14 +205,14 @@ const PhaserGame: React.FC = () => {
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.WEBGL,
-      width: window.innerWidth,
-      height: window.innerHeight - 120, // Account for toolbar and footer
+      width: 1280,
+      height: 720,
       parent: gameContainerRef.current,
       backgroundColor: '#000000',
       scene: GameScene,
       scale: {
-        mode: Phaser.Scale.FIT, // Fit to container but without animation
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.NO_CENTER,
         parent: gameContainerRef.current
       }
     };
@@ -245,12 +230,6 @@ const PhaserGame: React.FC = () => {
   return (
     <div className="relative flex-1 w-full">
       <div ref={gameContainerRef} className="game-container w-full h-full" />
-      <div className="absolute top-2 right-2 z-10">
-        <div className="bg-black bg-opacity-50 text-white p-2 rounded text-sm">
-          <div>Left Click: Place Element</div>
-          <div>Right Click: Erase</div>
-        </div>
-      </div>
     </div>
   );
 };

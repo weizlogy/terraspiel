@@ -53,8 +53,6 @@ const Toolbar: React.FC = () => {
             CLEAR
           </button>
         </div>
-        
-        <StatsPanel />
       </div>
     </div>
   );
