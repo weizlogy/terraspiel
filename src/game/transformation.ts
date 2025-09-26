@@ -1,5 +1,4 @@
-import { type Cell, type ElementName } from "../types/elements";
-import { transformationRules } from "./rules";
+import { type Cell, type RuleCondition, type SurroundingCondition, type EnvironmentCondition } from "../types/elements";
 import useGameStore from "../stores/gameStore";
 
 interface BehaviorContext {
@@ -11,12 +10,45 @@ interface BehaviorContext {
   height: number;
 }
 
-// Helper function to get the type of a cell at a given coordinate
-const getCellType = (grid: Cell[][], x: number, y: number, width: number, height: number): ElementName | null => {
-  if (x >= 0 && x < width && y >= 0 && y < height) {
-    return grid[y][x].type;
+// Helper to check if a single condition is met
+const checkCondition = (condition: RuleCondition, grid: Cell[][], x: number, y: number, width: number, height: number): boolean => {
+  switch (condition.type) {
+    case 'surrounding': {
+      const { element, min = 0, max = 8 } = condition as SurroundingCondition;
+      let count = 0;
+      for (let j = -1; j <= 1; j++) {
+        for (let i = -1; i <= 1; i++) {
+          if (i === 0 && j === 0) continue;
+          const nx = x + i;
+          const ny = y + j;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === element) {
+            count++;
+          }
+        }
+      }
+      return count >= min && count <= max;
+    }
+    case 'environment': {
+      const { element, presence, radius } = condition as EnvironmentCondition;
+      let elementFound = false;
+      for (let j = -radius; j <= radius; j++) {
+        for (let i = -radius; i <= radius; i++) {
+          if (i === 0 && j === 0) continue;
+          const nx = x + i;
+          const ny = y + j;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === element) {
+            elementFound = true;
+            break;
+          }
+        }
+        if (elementFound) break;
+      }
+
+      return presence === 'exists' ? elementFound : !elementFound;
+    }
+    default:
+      return true;
   }
-  return null;
 };
 
 export const handleTransformations = ({
@@ -27,6 +59,7 @@ export const handleTransformations = ({
   width,
   height,
 }: BehaviorContext): void => {
+  const { transformationRules, addParticle } = useGameStore.getState();
   const cell = grid[y][x];
   const applicableRules = transformationRules.filter(rule => rule.from === cell.type);
 
@@ -34,55 +67,28 @@ export const handleTransformations = ({
     return;
   }
 
-  // Count neighbors
-  const neighborCounts: Partial<Record<ElementName, number>> = {};
-  for (let j = -1; j <= 1; j++) {
-    for (let i = -1; i <= 1; i++) {
-      if (i === 0 && j === 0) continue;
-      const neighborType = getCellType(grid, x + i, y + j, width, height);
-      if (neighborType) {
-        neighborCounts[neighborType] = (neighborCounts[neighborType] || 0) + 1;
-      }
-    }
-  }
-
-  // Check each applicable rule
   for (const rule of applicableRules) {
-    let conditionsMet = true;
-    for (const condition of rule.conditions.surrounding) {
-      const count = neighborCounts[condition.type] || 0;
-      if (count < (condition.min || 0) || count > (condition.max || 8)) {
-        conditionsMet = false;
-        break;
-      }
-    }
+    const allConditionsMet = rule.conditions.every(cond => checkCondition(cond, grid, x, y, width, height));
 
-    if (conditionsMet) {
-      // Conditions are met, process the transformation probability
+    if (allConditionsMet) {
       if (Math.random() < rule.probability) {
         const currentCounter = newGrid[y][x].counter || 0;
         const newCounter = currentCounter + 1;
 
         if (newCounter >= rule.threshold) {
-          // Consume a neighbor if specified by the rule
+          // --- Transformation occurs ---
           if (rule.consumes) {
             let consumed = false;
-            // Find and consume a neighbor (randomize search order)
-            const directions = [-1, 0, 1];
-            directions.sort(() => Math.random() - 0.5); // Shuffle directions
+            const directions = [-1, 0, 1].sort(() => Math.random() - 0.5);
             for (const j of directions) {
               for (const i of directions) {
                 if (i === 0 && j === 0) continue;
                 const nx = x + i;
                 const ny = y + j;
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                  // Check the original grid for the element to consume
-                  if (grid[ny][nx].type === rule.consumes) {
-                    // Consume it in the new grid
-                    newGrid[ny][nx] = { type: 'EMPTY' };
-                    consumed = true;
-                    break;
-                  }
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === rule.consumes) {
+                  newGrid[ny][nx] = { type: 'EMPTY' };
+                  consumed = true;
+                  break;
                 }
               }
               if (consumed) break;
@@ -90,27 +96,24 @@ export const handleTransformations = ({
           }
 
           const fromType = newGrid[y][x].type;
-          // Transform the cell
-          newGrid[y][x].type = rule.to;
-          newGrid[y][x].counter = 0; // Reset counter after transformation
+          newGrid[y][x] = { type: rule.to, counter: 0 };
 
-          // Spawn ETHER on transformation
-          const ETHER_SPAWN_CHANCE = 0.005; // 0.5% chance
+          const ETHER_SPAWN_CHANCE = 0.005;
           if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
-            const { addParticle } = useGameStore.getState();
-            const vx = (Math.random() - 0.5) * 0.3; // Slow, random drift
+            const vx = (Math.random() - 0.5) * 0.3;
             const vy = (Math.random() - 0.5) * 0.3;
             addParticle(x + 0.5, y + 0.5, 'ETHER', vx, vy);
           }
-
         } else {
-          // Increment counter
           newGrid[y][x].counter = newCounter;
         }
       }
-      // If we found a matching rule and processed it, we can stop.
-      // This prevents multiple transformations in one step.
-      break;
+      break; // Stop after the first applicable rule is processed
+    } else {
+      // Conditions not met, reset counter if it was running
+      if (newGrid[y][x].counter && newGrid[y][x].counter > 0) {
+        newGrid[y][x].counter = 0;
+      }
     }
   }
 };

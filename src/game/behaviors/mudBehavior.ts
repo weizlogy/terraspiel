@@ -27,9 +27,8 @@ export const handleMud = ({
   const color = colorGrid[y][x];
   let hasMoved = false;
 
-  // 1. Try moving down
+  // 1. Try moving down (into EMPTY or swapping with WATER)
   if (!hasMoved && y + 1 < height && (grid[y + 1][x].type === 'EMPTY' || grid[y + 1][x].type === 'WATER') && !moved[y + 1][x]) {
-    // Swap with water if below
     if (grid[y + 1][x].type === 'WATER') {
       const waterColor = colorGrid[y + 1][x];
       newGrid[y][x] = { type: 'WATER' };
@@ -37,7 +36,6 @@ export const handleMud = ({
       newColorGrid[y][x] = waterColor;
       newColorGrid[y + 1][x] = color;
     } else {
-      // Move down to empty space
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = ELEMENTS.EMPTY.color;
       newGrid[y + 1][x] = { type: 'MUD' };
@@ -48,15 +46,14 @@ export const handleMud = ({
     hasMoved = true;
   }
 
-  // 2. Try moving diagonally down (randomize direction to avoid bias)
+  // 2. Try moving diagonally down
   if (!hasMoved && y + 1 < height) {
-    const diagonalDirections = [-1, 1]; // Left-down and right-down
+    const diagonalDirections = [-1, 1];
     if (Math.random() > 0.5) diagonalDirections.reverse();
 
     for (const dx of diagonalDirections) {
       if (x + dx >= 0 && x + dx < width &&
           (grid[y + 1][x + dx].type === 'EMPTY' || grid[y + 1][x + dx].type === 'WATER') && !moved[y + 1][x + dx]) {
-        // Swap with water if diagonally below
         if (grid[y + 1][x + dx].type === 'WATER') {
           const waterColor = colorGrid[y + 1][x + dx];
           newGrid[y][x] = { type: 'WATER' };
@@ -64,7 +61,6 @@ export const handleMud = ({
           newColorGrid[y][x] = waterColor;
           newColorGrid[y + 1][x + dx] = color;
         } else {
-          // Move diagonally down to empty space
           newGrid[y][x] = { type: 'EMPTY' };
           newColorGrid[y][x] = ELEMENTS.EMPTY.color;
           newGrid[y + 1][x + dx] = { type: 'MUD' };
@@ -78,42 +74,23 @@ export const handleMud = ({
     }
   }
 
-  // 3. Try moving sideways with less horizontal stability compared to water
+  // 3. Try moving sideways
   if (!hasMoved) {
-    // Mud spreads sideways but doesn't maintain a perfect horizontal level
-    const leftX = x - 1;
-    const rightX = x + 1;
+    const directions = [-1, 1];
+    if (Math.random() > 0.5) directions.reverse();
 
-    // Check availability of left and right positions
-    const canGoLeft = leftX >= 0 && grid[y][leftX].type === 'EMPTY' && !moved[y][leftX];
-    const canGoRight = rightX < width && grid[y][rightX].type === 'EMPTY' && !moved[y][rightX];
-
-    if (canGoLeft && canGoRight) {
-      // Mud moves sideways more randomly without trying to balance levels like water
-      const direction = Math.random() > 0.5 ? leftX : rightX;
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-      newGrid[y][direction] = { type: 'MUD' };
-      newColorGrid[y][direction] = color;
-      moved[y][x] = true;
-      moved[y][direction] = true;
-      hasMoved = true;
-    } else if (canGoLeft) {
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-      newGrid[y][leftX] = { type: 'MUD' };
-      newColorGrid[y][leftX] = color;
-      moved[y][x] = true;
-      moved[y][leftX] = true;
-      hasMoved = true;
-    } else if (canGoRight) {
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-      newGrid[y][rightX] = { type: 'MUD' };
-      newColorGrid[y][rightX] = color;
-      moved[y][x] = true;
-      moved[y][rightX] = true;
-      hasMoved = true;
+    for (const dx of directions) {
+      const nx = x + dx;
+      if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && !moved[y][nx]) {
+        newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newGrid[y][nx] = { type: 'MUD' };
+        newColorGrid[y][nx] = color;
+        moved[y][x] = true;
+        moved[y][nx] = true;
+        hasMoved = true;
+        break;
+      }
     }
   }
 };

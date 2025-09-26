@@ -247,6 +247,9 @@ const PhaserGame: React.FC = () => {
   useEffect(() => {
     if (!gameContainerRef.current) return;
 
+    // Load transformation rules before starting the game
+    useGameStore.getState().loadTransformationRules();
+
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.WEBGL,
       width: 1280,

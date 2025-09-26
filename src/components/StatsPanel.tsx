@@ -9,7 +9,7 @@ const StatsPanel: React.FC = () => {
 
   // Define which elements to show in the stats panel
   const displayElements: ElementName[] = [
-    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD'
+    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY'
   ];
 
   return (

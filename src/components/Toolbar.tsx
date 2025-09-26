@@ -7,49 +7,52 @@ const Toolbar: React.FC = () => {
   const setSelectedElement = useGameStore((state) => state.setSelectedElement);
   const clearGrid = useGameStore((state) => state.clearGrid);
   const randomizeGrid = useGameStore((state) => state.randomizeGrid);
+  const loadTransformationRules = useGameStore((state) => state.loadTransformationRules);
 
-  // Only show non-empty elements that can be placed by the user
-  const placeableElements: ElementName[] = [
-    'SOIL', 'WATER'
-  ];
+  const placeableElements: ElementName[] = ['SOIL', 'WATER'];
 
   return (
-    <div className="toolbar bg-gray-800 text-white p-3 shadow-lg">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="element-selector flex flex-wrap gap-2">
+    <div className="toolbar bg-gray-900 text-white p-2 shadow-lg border-t border-gray-700">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mx-2">
+        <div className="element-selector flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium mr-2">Elements:</span>
           {placeableElements.map((element) => {
             const elementData = ELEMENTS[element];
             return (
               <button
                 key={element}
-                className={`element-btn px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow ${
-                  selectedElement === element 
-                    ? 'bg-blue-600 ring-2 ring-white transform scale-105' 
-                    : 'bg-gray-700 hover:bg-gray-600'
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 border ${
+                  selectedElement === element
+                    ? 'bg-gray-600 border-gray-400'
+                    : 'bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600'
                 }`}
                 onClick={() => setSelectedElement(element)}
-                style={{ 
-                  borderLeft: `4px solid ${elementData.color}` 
-                }}
               >
-                <span className="font-medium">{element}</span>
+                <span style={{ color: elementData.color }} className="mr-1.5">●</span>
+                {element}
               </button>
             );
           })}
         </div>
-        
-        <div className="controls flex flex-wrap gap-2">
-          <button 
-            className="control-btn bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded-lg transition-all duration-200 shadow font-medium"
+
+        <div className="controls flex flex-wrap items-center gap-2">
+          <button
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 border bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600"
             onClick={randomizeGrid}
           >
             RANDOM
           </button>
-          <button 
-            className="control-btn bg-rose-600 hover:bg-rose-700 px-3 py-2 rounded-lg transition-all duration-200 shadow font-medium"
+          <button
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 border bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600"
             onClick={clearGrid}
           >
             CLEAR
+          </button>
+          <button
+            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 border bg-indigo-800 border-indigo-700 hover:bg-indigo-700 hover:border-indigo-600"
+            onClick={loadTransformationRules}
+          >
+            RELOAD RULES
           </button>
         </div>
       </div>

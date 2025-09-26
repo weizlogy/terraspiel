@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType } from '../types/elements';
+import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType, type TransformationRule } from '../types/elements';
 import { varyColor } from '../utils/colors';
 
 interface GameState {
@@ -14,6 +14,7 @@ interface GameState {
   height: number;
   stats: Record<ElementName, number>;
   fps: number;
+  transformationRules: TransformationRule[];
   setSelectedElement: (element: ElementName) => void;
   setGrid: (grid: Cell[][]) => void;
   setLastMoveGrid: (lastMoveGrid: MoveDirection[][]) => void;
@@ -25,6 +26,7 @@ interface GameState {
   randomizeGrid: () => void;
   updateStats: (stats: Record<ElementName, number>) => void;
   setFps: (fps: number) => void;
+  loadTransformationRules: () => Promise<void>;
 }
 
 const FIXED_WIDTH = 320;
@@ -48,8 +50,10 @@ const useGameStore = create<GameState>()((set, get) => ({
     FERTILE_SOIL: 0,
     PEAT: 0,
     CLOUD: 0,
+    CLAY: 0,
   },
   fps: 0,
+  transformationRules: [],
   setSelectedElement: (element) => set({ selectedElement: element }),
   setGrid: (grid) => set({ grid }),
   setLastMoveGrid: (lastMoveGrid) => set({ lastMoveGrid }),
@@ -92,6 +96,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       FERTILE_SOIL: 0,
       PEAT: 0,
       CLOUD: 0,
+      CLAY: 0,
     };
     
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
@@ -115,6 +120,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       FERTILE_SOIL: 0,
       PEAT: 0,
       CLOUD: 0,
+      CLAY: 0,
     };
     
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
@@ -141,6 +147,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       FERTILE_SOIL: 0,
       PEAT: 0,
       CLOUD: 0,
+      CLAY: 0,
     };
     
     const newParticles: Particle[] = [];
@@ -191,7 +198,20 @@ const useGameStore = create<GameState>()((set, get) => ({
     return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats, particles: newParticles, nextParticleId };
   }),
   updateStats: (stats) => set({ stats }),
-  setFps: (fps) => set({ fps })
+  setFps: (fps) => set({ fps }),
+  loadTransformationRules: async () => {
+    try {
+      const response = await fetch('/rules.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch rules: ${response.statusText}`);
+      }
+      const rules = await response.json();
+      set({ transformationRules: rules });
+      console.log('Transformation rules loaded successfully.', rules);
+    } catch (error) {
+      console.error("Error loading transformation rules:", error);
+    }
+  },
 }));
 
 export default useGameStore;

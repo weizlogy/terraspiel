@@ -32,6 +32,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   WATER: handleWater,
   MUD: handleMud,
   CLOUD: handleCloud,
+  CLAY: handleSoil,
 };
 
 // Main physics simulation function that handles cells and particles
@@ -92,10 +93,20 @@ export const simulateWorld = (
   for (let y = height - 1; y >= 0; y--) {
     for (const x of xIndices) {
       handleTransformations({
-        grid: newGrid,
-        newGrid: gridAfterMove,
+        grid: newGrid, // Read from the result of the physics pass
+        newGrid: gridAfterMove, // Write to the grid for this pass
         x, y, width, height,
       });
+    }
+  }
+
+  // Update color grid after transformations
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (newGrid[y][x].type !== gridAfterMove[y][x].type) {
+        const newType = gridAfterMove[y][x].type;
+        newColorGrid[y][x] = ELEMENTS[newType]?.color || '#000000';
+      }
     }
   }
 
@@ -131,6 +142,7 @@ export const calculateStats = (grid: Cell[][]): Record<string, number> => {
     FERTILE_SOIL: 0,
     PEAT: 0,
     CLOUD: 0,
+    CLAY: 0,
   };
 
   for (let y = 0; y < grid.length; y++) {

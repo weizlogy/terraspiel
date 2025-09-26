@@ -1,0 +1,30 @@
+[
+  {
+    "from": "SOIL",
+    "to": "MUD",
+    "probability": 0.1,
+    "threshold": 10,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "WATER",
+        "min": 1
+      }
+    ],
+    "consumes": "WATER"
+  },
+  {
+    "from": "MUD",
+    "to": "CLAY",
+    "probability": 0.1,
+    "threshold": 200,
+    "conditions": [
+      {
+        "type": "environment",
+        "element": "WATER",
+        "presence": "not_exists",
+        "radius": 2
+      }
+    ]
+  }
+]
