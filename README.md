@@ -35,9 +35,9 @@ This is a falling sand game combined with alchemy mechanics where players can co
 
 ## Planned Features
 
-- Fire behavior implementation
+
 - Plant growth lifecycle logic
 - Alchemy reaction rules
-- Additional elements (steam, wet soil, sand, etc.)
+- Additional elements (wet soil, sand, etc.)
 - Complete debug information display
 - Save/Load functionality

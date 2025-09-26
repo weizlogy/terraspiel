@@ -1,10 +1,8 @@
-export type ElementName = 
+export type ElementName =
   | 'EMPTY'
   | 'SOIL'
   | 'WATER'
-  | 'FIRE'
-  | 'MUD'
-  | 'STEAM';
+  | 'MUD';
 
 export interface Element {
   name: ElementName;
@@ -35,13 +33,11 @@ export interface TransformationRule {
   consumes?: ElementName; // Optional: The element to consume from a neighbor upon transformation
 }
 
-export const ELEMENTS: Record<ElementName, Element> = {
+export const ELEMENTS = {
   EMPTY: { name: 'EMPTY', color: '#000000', density: 0, isStatic: true },
-  SOIL: { name: 'SOIL', color: '#8B4513', density: 2, isStatic: false },
-  WATER: { name: 'WATER', color: '#4169E1', density: 1, isStatic: false, alpha: 0.7 },
-  FIRE: { name: 'FIRE', color: '#FF4500', density: 0.5, isStatic: false, lifespan: 100 },
-  MUD: { name: 'MUD', color: '#5D4037', density: 2, isStatic: false },
-  STEAM: { name: 'STEAM', color: '#C0C0C0', density: 0.1, isStatic: false },
+  SOIL: { name: 'SOIL', color: '#8B4513', density: 4, isStatic: false },
+  WATER: { name: 'WATER', color: '#1E90FF', density: 3, isStatic: false },
+  MUD: { name: 'MUD', color: '#5D4037', density: 3.5, isStatic: false },
 };
 
 // Represents a particle with floating point coordinates and velocity

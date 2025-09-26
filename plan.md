@@ -34,7 +34,7 @@ This feature will introduce a mechanism where pixels can change into other subst
 
 - **Solution:**
     - Create a new file, `src/game/rules.ts`, to define the transformation rules in a structured way. This makes it easy to add or change transformations without digging into the logic.
-    - **Example Rule:** "Hay" (not a real element yet) dries into "Tinder" (also not real) over time when near "Fire".
+    
       ```typescript
       // In src/game/rules.ts
       export interface TransformationRule {
@@ -59,7 +59,7 @@ This feature will introduce a mechanism where pixels can change into other subst
           threshold: 100,   // Transforms when counter reaches 100
           conditions: {
             surrounding: [
-              { type: 'FIRE', min: 1 }, // Requires at least 1 fire nearby
+              
             ]
           }
         }

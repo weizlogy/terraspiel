@@ -5,7 +5,7 @@ import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cel
 import { simulatePhysics, calculateStats, simulateParticles } from '../game/physics';
 import { varyColor, blendColors } from '../utils/colors';
 
-const PARTICLE_ELEMENTS: ElementName[] = ['FIRE'];
+const PARTICLE_ELEMENTS: ElementName[] = [];
 
 export class GameScene extends Phaser.Scene {
   private grid: Cell[][] = [];
@@ -165,7 +165,6 @@ export class GameScene extends Phaser.Scene {
         const elementName = this.grid[y][x].type;
         if (elementName !== 'EMPTY') {
           let displayColor = this.colorGrid[y][x];
-          const elementData = ELEMENTS[elementName]; // Get element data to access alpha
 
           // Special rendering for WATER: blend with neighbors
           if (elementName === 'WATER') {
@@ -193,7 +192,7 @@ export class GameScene extends Phaser.Scene {
             displayColor = blendedColor;
           }
 
-          this.gridGraphics.fillStyle(parseInt(displayColor.replace('#', '0x')), elementData.alpha || 1);
+          this.gridGraphics.fillStyle(parseInt(displayColor.replace('#', '0x')), 1);
           this.gridGraphics.fillRect(
             x * this.cellSize,
             y * this.cellSize,

@@ -111,9 +111,7 @@ export const calculateStats = (grid: Cell[][]): Record<ElementName, number> => {
     EMPTY: 0,
     SOIL: 0,
     WATER: 0,
-    FIRE: 0,
     MUD: 0,
-    STEAM: 0,
   };
   
   for (let y = 0; y < grid.length; y++) {

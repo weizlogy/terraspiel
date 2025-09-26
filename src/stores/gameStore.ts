@@ -44,9 +44,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     EMPTY: 0, // Will be set to 0 to not count EMPTY elements
     SOIL: 0,
     WATER: 0,
-    FIRE: 0,
     MUD: 0,
-    STEAM: 0,
   },
   fps: 0,
   setSelectedElement: (element) => set({ selectedElement: element }),
@@ -87,9 +85,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       EMPTY: 0,
       SOIL: 0,
       WATER: 0,
-      FIRE: 0,
       MUD: 0,
-      STEAM: 0,
     };
     
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
@@ -109,16 +105,14 @@ const useGameStore = create<GameState>()((set, get) => ({
       EMPTY: 0, // Don't count EMPTY
       SOIL: 0,
       WATER: 0,
-      FIRE: 0,
       MUD: 0,
-      STEAM: 0,
     };
     
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
     const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
-    const particleElementsForRandom: ElementName[] = ['FIRE']; // Elements that become particles
+    const particleElementsForRandom: ElementName[] = []; // Elements that become particles
 
     const newGrid: Cell[][] = Array(state.height)
       .fill(null)
@@ -134,9 +128,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       EMPTY: 0,
       SOIL: 0,
       WATER: 0,
-      FIRE: 0,
       MUD: 0,
-      STEAM: 0,
     };
     
     const newParticles: Particle[] = [];
@@ -178,7 +170,7 @@ const useGameStore = create<GameState>()((set, get) => ({
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         type: randomParticleType,
-        life: ELEMENTS[randomParticleType].lifespan || 100,
+        life: (ELEMENTS[randomParticleType] as any).lifespan || 100,
       });
       stats[randomParticleType]++; // Update stats for particles
     }

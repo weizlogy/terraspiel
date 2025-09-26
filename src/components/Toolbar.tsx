@@ -10,7 +10,7 @@ const Toolbar: React.FC = () => {
 
   // Only show non-empty elements that can be placed by the user
   const placeableElements: ElementName[] = [
-    'SOIL', 'WATER', 'FIRE'
+    'SOIL', 'WATER'
   ];
 
   return (
