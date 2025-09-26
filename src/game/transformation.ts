@@ -63,6 +63,31 @@ export const handleTransformations = ({
         const newCounter = currentCounter + 1;
 
         if (newCounter >= rule.threshold) {
+          // Consume a neighbor if specified by the rule
+          if (rule.consumes) {
+            let consumed = false;
+            // Find and consume a neighbor (randomize search order)
+            const directions = [-1, 0, 1];
+            directions.sort(() => Math.random() - 0.5); // Shuffle directions
+            for (const j of directions) {
+              for (const i of directions) {
+                if (i === 0 && j === 0) continue;
+                const nx = x + i;
+                const ny = y + j;
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                  // Check the original grid for the element to consume
+                  if (grid[ny][nx].type === rule.consumes) {
+                    // Consume it in the new grid
+                    newGrid[ny][nx] = { type: 'EMPTY' };
+                    consumed = true;
+                    break;
+                  }
+                }
+              }
+              if (consumed) break;
+            }
+          }
+
           // Transform the cell
           newGrid[y][x].type = rule.to;
           newGrid[y][x].counter = 0; // Reset counter after transformation

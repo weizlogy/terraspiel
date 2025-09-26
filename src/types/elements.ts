@@ -32,6 +32,7 @@ export interface TransformationRule {
       max?: number;
     }[];
   };
+  consumes?: ElementName; // Optional: The element to consume from a neighbor upon transformation
 }
 
 export const ELEMENTS: Record<ElementName, Element> = {

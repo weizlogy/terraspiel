@@ -10,6 +10,7 @@ export const transformationRules: TransformationRule[] = [
       surrounding: [
         { type: 'WATER', min: 1 }, // if at least 1 water is nearby
       ]
-    }
+    },
+    consumes: 'WATER' // Consume one water neighbor on transformation
   }
 ];
