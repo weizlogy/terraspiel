@@ -2,7 +2,12 @@ export type ElementName =
   | 'EMPTY'
   | 'SOIL'
   | 'WATER'
-  | 'MUD';
+  | 'MUD'
+  | 'FERTILE_SOIL'
+  | 'PEAT'
+  | 'CLOUD';
+
+export type ParticleType = ElementName | 'ETHER';
 
 export interface Element {
   name: ElementName;
@@ -37,7 +42,10 @@ export const ELEMENTS = {
   EMPTY: { name: 'EMPTY', color: '#000000', density: 0, isStatic: true },
   SOIL: { name: 'SOIL', color: '#8B4513', density: 4, isStatic: false },
   WATER: { name: 'WATER', color: '#1E90FF', density: 3, isStatic: false },
-  MUD: { name: 'MUD', color: '#5D4037', density: 3.5, isStatic: false },
+  MUD: { name: 'MUD', color: '#4E342E', density: 3.5, isStatic: false },
+  FERTILE_SOIL: { name: 'FERTILE_SOIL', color: '#5C4033', density: 4, isStatic: false },
+  PEAT: { name: 'PEAT', color: '#3E2723', density: 4, isStatic: false },
+  CLOUD: { name: 'CLOUD', color: '#F0F8FF', density: 2, isStatic: false, alpha: 0.9 },
 };
 
 // Represents a particle with floating point coordinates and velocity
@@ -47,7 +55,7 @@ export interface Particle {
   py: number; // y-position
   vx: number; // x-velocity
   vy: number; // y-velocity
-  type: ElementName;
+  type: ParticleType;
   life: number; // Lifespan of the particle
 }
 

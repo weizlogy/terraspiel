@@ -1,79 +1,140 @@
-# Terraspiel Development Plan
+# Terraspiel - Alchemy Pixel Playground
 
-## Feature: Probabilistic Transformation of Pixels
+## コンセプト
 
-This feature will introduce a mechanism where pixels can change into other substances based on a set of conditions including surrounding pixels, time, and probability.
+[sandspiel.club](https://sandspiel.club/) のようなピクセルベースの物理シミュレーション（フォーリングサンドゲーム）に、要素を組み合わせて新しい要素を作る「錬金術（アルケミー）」の概念を組み合わせたアプリケーション。
 
-### 1. Evolve Pixel Data Structure
+## 技術スタック
 
-- **Problem:** The current grid (`ElementName[][]`) is an array of strings, which is insufficient for storing a "change counter".
-- **Solution:**
-    - Introduce a new `Cell` interface in `src/types/elements.ts`.
-      ```typescript
-      export interface Cell {
-        type: ElementName;
-        counter?: number; // Optional counter for transformations
-      }
-      ```
-    - Update the main grid in `gameStore.ts` and `physics.ts` to be `Cell[][]`. This is a fundamental change affecting many parts of the code.
+- フロントエンドUI
+React + TypeScript + Zustand + Tailwind CSS
 
-### 2. Create a Generic Transformation Behavior
+- ゲームエンジン
+Phaser 3
+（WebGLモード）
 
-- **Solution:**
-    - Create a new file: `src/game/transformation.ts` (at the same level as `physics.ts`).
-    - This file will contain a function, `handleTransformations`, that runs *after* the primary movement behavior for a pixel.
-    - This function will:
-        a. Accept the `BehaviorContext` (which will be updated to use `Cell[][]`).
-        b. Accept a set of `TransformationRule`s.
-        c. For each rule applicable to the current cell's `type`:
-            i. Check conditions (surrounding cell types and counts).
-            ii. If conditions are met, increment the `counter` on the `Cell` object with a given probability (`Math.random() < probability`).
-            iii. If the `counter` exceeds the rule's `threshold`, transform the cell's `type` to the `resultElement` and reset the counter.
+- 物理・合成ロジック
+自前グリッド物理 + ReactionRuleマネージャー（TypeScriptで実装）
 
-### 3. Define Transformation Rules
+- 描画最適化
+Phaser DynamicTexture + カスタムシェーダ（必要に応じて）
 
-- **Solution:**
-    - Create a new file, `src/game/rules.ts`, to define the transformation rules in a structured way. This makes it easy to add or change transformations without digging into the logic.
-    
-      ```typescript
-      // In src/game/rules.ts
-      export interface TransformationRule {
-        from: ElementName;
-        to: ElementName;
-        probability: number;
-        threshold: number;
-        conditions: {
-          surrounding: {
-            type: ElementName;
-            min?: number;
-            max?: number;
-          }[];
-        };
-      }
+- データ永続化
+Zustand + localStorage（拡張：Firebase）
 
-      export const transformationRules: TransformationRule[] = [
-        {
-          from: 'HAY',
-          to: 'TINDER',
-          probability: 0.1, // 10% chance each step to increment counter
-          threshold: 100,   // Transforms when counter reaches 100
-          conditions: {
-            surrounding: [
-              
-            ]
-          }
-        }
-      ];
-      ```
+- サウンド
+Howler.js
 
-### 4. Update Physics Simulation
+- ビルド・バンドル
+Vite（高速HMR + 本番最適化）
 
-- **Solution:**
-    - In `src/game/physics.ts`, modify `simulatePhysics` to:
-        a. Work with the new `Cell[][]` grid.
-        b. After a pixel's primary behavior (like `handleSoil`) is executed, call `handleTransformations` for that same pixel. This ensures movement and transformation can both be calculated in the same simulation step.
+- ホスティング
+Vercel / Netlify（静的サイトとしてデプロイ可能）
+http://localhost:5173/
 
-### 5. Refactor Existing Code
+## UI
 
-- **Solution:**
-    - Update `App.tsx`, `gameStore.ts`, all behavior files (`soilBehavior.ts`, etc.), and the rendering logic to handle the new `Cell[][]` grid structure. This will mostly involve changing `grid[y][x]` to `grid[y][x].type` where the element's name is needed.
+1.  **要素選択:**
+    - EMPTY以外の基本要素を選択。
+    - 選択した状態でシミュレーションエリアを左クリックで配置する。
+    - 画面上部中央
+
+2.  **その他:**
+    - キャンバスの要素をすべて消す　CLEAR
+    - テスト用にランダムに要素を配置する　RANDOM
+    - 画面上部右
+
+3.  **デバッグ情報表示:**
+    - 総数、各要素の数を見れるようにする
+    - FPS表示
+
+## 主な機能
+
+1.  **基本要素:**
+    - アルケミーの基本となる四大元素（+空）をベースにする。
+    - EMPTY以外はユーザーが置ける
+        -   `EMPTY` (空)
+        -   `SOIL` (土)
+        -   `WATER` (水)
+
+2.  **物理演算と相互作用:**
+    -   各要素に簡単な動きのルールを実装する。
+        -   `SOIL`: 重力に従って下に落ちる。
+        -   `WATER`: 下に流れ、左右に広がる。
+
+3. 接触による物質変化（錬金術）
+
+4. エーテル(ETHER)の発生と物質深化
+物質が変化するとき、超低確率でエーテルという特別な粒子が生成される。
+エーテルはランダムにその場をゆっくりと漂い一定時間で消滅する。
+消滅する前にほかの物資に触れると確率で触れた物質を物質深化ルールに基づいた別の物質に変換する。
+
+ETHERはほかの物質のようにピクセルで配置するのではなく粒子物理っぽく浮動小数点座標で管理。
+見た目は淡く光る半透明な粒子って感じで。
+ 
+ 4.1. 物質深化ルール
+    - ETHER + SOIL = FERTILE_SOIL
+    - ETHER + MUD = PEAT
+    - ETHER + WATER = CLOUD
+
+## セルベースの物理エンジン実装の工夫１
+1. サブセル（fractional position）を持たせる
+    見た目はセルにスナップして描画するけど、内部的には浮動小数点で位置や速度を持つ。
+
+    例：
+
+    X座標 = 10.3, Y座標 = 25.7
+
+    毎フレーム 0.2, 0.4 ずつ加算していって、閾値超えたらセルを移動
+
+    → 滑らかさがかなり増す (｀・ω・´)b
+
+2. セル＋粒子のハイブリッド
+    大域的な「環境」（土や水の塊）はセルで管理。
+    特殊な要素（火花、種、生命）は粒子物理っぽく浮動小数点座標で管理。
+    Minecraft の「水流」っぽい見せ方と、Noita の「粒子1個1個」みたいなのの中間。
+
+3. 移動優先度のランダム化
+    単純に下→左右の順で処理すると「縞模様」や「偏り」が出やすい。
+    更新順序をランダムにしたり、確率で移動方向を選ばせると自然に見える。
+
+4. 描画側で補間してごまかす
+    内部はセル単位でも、レンダリング時に「補間フィルタ」をかける。
+    粒子の縁をぼかす、移動軌跡をパーティクルっぽく描く → 人間の目には滑らかに見える。
+
+5. 物理ベース流体の導入（高度だけど…）
+    Lattice-Boltzmann 法（LBM）や Navier-Stokes の格子解法を使うと「流体らしさ」が爆上がりする。
+    ただし計算コストが跳ね上がるので、セルサイズや領域を工夫しないと重い。
+
+## セルベースで“自然に見える”工夫ネタ集
+1. 擬似的な慣性
+    速度を「確率」で表現する。
+    例：落下中に「80%の確率で下に進む、20%で横に流れる」みたいにすると、直線落下じゃなく“ふわっ”とした動きが出せる。
+
+2. 対角移動の解禁
+    下が塞がってたら「左下・右下」に抜けられるようにする。
+    ただし確率にした方が自然（毎回必ず斜め移動だとカクつく）。
+
+3. 更新順序のランダム化
+    上から順に処理すると“波打ち”や“カクカク”が目立つ。
+    フレームごとにランダム順にセルを処理すると偏りが減って「生き物っぽい」動きになる。
+
+4. 描画の工夫
+    1セル = 1ドットじゃなく、グラデやアルファブレンドで「縁をぼかす」
+    水は半透明＋周囲と色を少し混ぜる → 流体感が出る。
+    土や火花はノイズを混ぜて粒感を出すとリアルになる。
+
+5. 局所的な拡散
+    セル移動とは別に「色や熱」だけ周囲に伝播させる。
+    水分が染み込む
+    熱が周囲にじわっと広がる
+    → 動きは粗くても現象がリッチに見える
+
+6. 低確率イベント
+    火花が飛ぶ、泡が出る、煙がゆらぐ、エーテルが発生する（！）
+    低確率で副作用を出すと、シミュレーション全体が“生きてる”感じに。
+
+## 錬金術
+
+SOIL - WATER = MUD
+SOIL - FIRE  = SAND

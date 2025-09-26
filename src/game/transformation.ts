@@ -1,5 +1,6 @@
 import { type Cell, type ElementName } from "../types/elements";
 import { transformationRules } from "./rules";
+import useGameStore from "../stores/gameStore";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -88,9 +89,20 @@ export const handleTransformations = ({
             }
           }
 
+          const fromType = newGrid[y][x].type;
           // Transform the cell
           newGrid[y][x].type = rule.to;
           newGrid[y][x].counter = 0; // Reset counter after transformation
+
+          // Spawn ETHER on transformation
+          const ETHER_SPAWN_CHANCE = 0.005; // 0.5% chance
+          if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
+            const { addParticle } = useGameStore.getState();
+            const vx = (Math.random() - 0.5) * 0.3; // Slow, random drift
+            const vy = (Math.random() - 0.5) * 0.3;
+            addParticle(x + 0.5, y + 0.5, 'ETHER', vx, vy);
+          }
+
         } else {
           // Increment counter
           newGrid[y][x].counter = newCounter;

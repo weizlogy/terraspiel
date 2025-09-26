@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell } from '../types/elements';
+import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType } from '../types/elements';
 import { varyColor } from '../utils/colors';
 
 interface GameState {
@@ -19,7 +19,7 @@ interface GameState {
   setLastMoveGrid: (lastMoveGrid: MoveDirection[][]) => void;
   setColorGrid: (colorGrid: string[][]) => void;
   setParticles: (particles: Particle[]) => void;
-  addParticle: (x: number, y: number, type: ElementName, vx?: number, vy?: number) => void;
+  addParticle: (x: number, y: number, type: ParticleType, vx?: number, vy?: number) => void;
   initializeGrid: () => void;
   clearGrid: () => void;
   randomizeGrid: () => void;
@@ -45,6 +45,9 @@ const useGameStore = create<GameState>()((set, get) => ({
     SOIL: 0,
     WATER: 0,
     MUD: 0,
+    FERTILE_SOIL: 0,
+    PEAT: 0,
+    CLOUD: 0,
   },
   fps: 0,
   setSelectedElement: (element) => set({ selectedElement: element }),
@@ -60,7 +63,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       vx,
       vy,
       type,
-      life: 1000, // Default lifespan
+      life: 150, // Default lifespan for ETHER
     };
     set((state) => ({
       particles: [...state.particles, newParticle],
@@ -86,6 +89,9 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       MUD: 0,
+      FERTILE_SOIL: 0,
+      PEAT: 0,
+      CLOUD: 0,
     };
     
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
@@ -106,13 +112,16 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       MUD: 0,
+      FERTILE_SOIL: 0,
+      PEAT: 0,
+      CLOUD: 0,
     };
     
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
     const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
-    const particleElementsForRandom: ElementName[] = []; // Elements that become particles
+    const particleElementsForRandom: ParticleType[] = []; // Elements that become particles
 
     const newGrid: Cell[][] = Array(state.height)
       .fill(null)
@@ -129,6 +138,9 @@ const useGameStore = create<GameState>()((set, get) => ({
       SOIL: 0,
       WATER: 0,
       MUD: 0,
+      FERTILE_SOIL: 0,
+      PEAT: 0,
+      CLOUD: 0,
     };
     
     const newParticles: Particle[] = [];
@@ -163,6 +175,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       const randomX = Math.floor(Math.random() * state.width);
       const randomY = Math.floor(Math.random() * state.height);
       const randomParticleType = particleElementsForRandom[Math.floor(Math.random() * particleElementsForRandom.length)];
+      if (!randomParticleType) continue;
       newParticles.push({
         id: nextParticleId++,
         px: randomX + 0.5,
@@ -170,9 +183,9 @@ const useGameStore = create<GameState>()((set, get) => ({
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         type: randomParticleType,
-        life: (ELEMENTS[randomParticleType] as any).lifespan || 100,
+        life: (ELEMENTS[randomParticleType as ElementName] as any)?.lifespan || 100,
       });
-      stats[randomParticleType]++; // Update stats for particles
+      // stats[randomParticleType]++; // Update stats for particles
     }
 
     return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats, particles: newParticles, nextParticleId };

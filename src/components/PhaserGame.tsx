@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import useGameStore from '../stores/gameStore';
 import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell } from '../types/elements';
-import { simulatePhysics, calculateStats, simulateParticles } from '../game/physics';
+import { simulateWorld, calculateStats } from '../game/physics';
 import { varyColor, blendColors } from '../utils/colors';
 
 const PARTICLE_ELEMENTS: ElementName[] = [];
@@ -84,9 +84,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private runSimulation() {
-    // Simulate grid and particles
-    const { newGrid, newLastMoveGrid, newColorGrid } = simulatePhysics(this.grid, this.lastMoveGrid, this.colorGrid);
-    const newParticles = simulateParticles(this.particles, this.grid);
+    // Simulate grid and particles together
+    const { newGrid, newLastMoveGrid, newColorGrid, newParticles } = simulateWorld(
+      this.grid,
+      this.lastMoveGrid,
+      this.colorGrid,
+      this.particles
+    );
 
     // Update store with new states
     const state = useGameStore.getState();
@@ -209,13 +213,27 @@ export class GameScene extends Phaser.Scene {
       if (particleType === 'EMPTY') {
         continue;
       }
-      const element = ELEMENTS[particleType];
-      this.gridGraphics.fillStyle(parseInt(element.color.replace('#', '0x')), 1);
-      // Render particle as a smaller circle in the center of its floating position
+
+      let color = '#FFFFFF';
+      let alpha = 1.0;
+      let radius = this.cellSize * 0.5;
+
+      if (particleType === 'ETHER') {
+        color = '#FFFFFF';
+        alpha = Math.max(0, particle.life / 150); // Fade out as it dies
+        radius = this.cellSize * (0.2 + (particle.life / 150) * 0.6); // Shrink as it dies
+      } else {
+        const element = ELEMENTS[particleType as ElementName];
+        if (element) {
+            color = element.color;
+        }
+      }
+
+      this.gridGraphics.fillStyle(parseInt(color.replace('#', '0x')), alpha);
       this.gridGraphics.fillCircle(
         particle.px * this.cellSize,
         particle.py * this.cellSize,
-        this.cellSize * 0.5 // radius
+        radius
       );
     }
   }

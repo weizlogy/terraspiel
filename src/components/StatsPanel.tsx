@@ -1,14 +1,15 @@
 
 import useGameStore from '../stores/gameStore';
-import { ELEMENTS } from '../types/elements';
+import { ELEMENTS } from "../types/elements";
+import type { ElementName } from "../types/elements";
 
 const StatsPanel: React.FC = () => {
   const stats = useGameStore((state) => state.stats);
   const fps = useGameStore((state) => state.fps);
 
-  // Only show elements that have a count > 0 or are important to always show
-  const importantElements = [
-    'SOIL', 'WATER', 'MUD'
+  // Define which elements to show in the stats panel
+  const displayElements: ElementName[] = [
+    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD'
   ];
 
   return (
@@ -18,9 +19,9 @@ const StatsPanel: React.FC = () => {
         <div className="stat-item">
           <span className="font-semibold">FPS:</span> {fps.toFixed(1)}
         </div>
-        {importantElements.map((element) => {
+        {displayElements.map((element) => {
           const count = stats[element as keyof typeof stats];
-          if (count === 0) return null; // Only show elements with count > 0
+          if (!count || count === 0) return null; // Only show elements with count > 0
           
           const elementData = ELEMENTS[element as keyof typeof ELEMENTS];
           return (
