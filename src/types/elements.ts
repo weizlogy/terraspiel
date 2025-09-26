@@ -15,6 +15,25 @@ export interface Element {
   alpha?: number; // Optional alpha value for rendering
 }
 
+export interface Cell {
+  type: ElementName;
+  counter?: number; // Optional counter for transformations
+}
+
+export interface TransformationRule {
+  from: ElementName;
+  to: ElementName;
+  probability: number;
+  threshold: number;
+  conditions: {
+    surrounding: {
+      type: ElementName;
+      min?: number;
+      max?: number;
+    }[];
+  };
+}
+
 export const ELEMENTS: Record<ElementName, Element> = {
   EMPTY: { name: 'EMPTY', color: '#000000', density: 0, isStatic: true },
   SOIL: { name: 'SOIL', color: '#8B4513', density: 2, isStatic: false },

@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import useGameStore from '../stores/gameStore';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection } from '../types/elements';
+import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell } from '../types/elements';
 import { simulatePhysics, calculateStats, simulateParticles } from '../game/physics';
 import { varyColor, blendColors } from '../utils/colors';
 
 const PARTICLE_ELEMENTS: ElementName[] = ['FIRE'];
 
 export class GameScene extends Phaser.Scene {
-  private grid: ElementName[][] = [];
+  private grid: Cell[][] = [];
   private lastMoveGrid: MoveDirection[][] = [];
   private colorGrid: string[][] = [];
   private particles: Particle[] = []; // Add state for particles
@@ -126,11 +126,11 @@ export class GameScene extends Phaser.Scene {
     }
     
     const state = useGameStore.getState();
-    const newGrid = [...this.grid.map(row => [...row])];
+    const newGrid = this.grid.map(row => row.map(cell => ({ ...cell })));
     const newColorGrid = [...this.colorGrid.map(row => [...row])];
     
     if (this.eraseMode) {
-      newGrid[gridY][gridX] = 'EMPTY';
+      newGrid[gridY][gridX] = { type: 'EMPTY' };
       newColorGrid[gridY][gridX] = ELEMENTS.EMPTY.color;
       state.setGrid(newGrid);
       state.setColorGrid(newColorGrid);
@@ -143,7 +143,7 @@ export class GameScene extends Phaser.Scene {
         const vy = (Math.random() - 0.5) * 0.5;
         state.addParticle(gridX + 0.5, gridY + 0.5, selectedElement, vx, vy);
       } else {
-        newGrid[gridY][gridX] = selectedElement;
+        newGrid[gridY][gridX] = { type: selectedElement };
         const baseColor = ELEMENTS[selectedElement].color;
         newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
         state.setGrid(newGrid);
@@ -162,7 +162,7 @@ export class GameScene extends Phaser.Scene {
     // 1. Render the grid cells
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        const elementName = this.grid[y][x];
+        const elementName = this.grid[y][x].type;
         if (elementName !== 'EMPTY') {
           let displayColor = this.colorGrid[y][x];
           const elementData = ELEMENTS[elementName]; // Get element data to access alpha
@@ -181,7 +181,7 @@ export class GameScene extends Phaser.Scene {
                 const ny = y + dy;
 
                 if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                  const neighborElement = this.grid[ny][nx];
+                  const neighborElement = this.grid[ny][nx].type;
                   if (neighborElement !== 'EMPTY' && neighborElement !== 'WATER') { // Blend with non-empty, non-water neighbors
                     const neighborColor = this.colorGrid[ny][nx];
                     blendedColor = blendColors(blendedColor, neighborColor, 0.9); // Small weight for neighbor

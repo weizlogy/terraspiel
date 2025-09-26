@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection } from '../types/elements';
+import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell } from '../types/elements';
 import { varyColor } from '../utils/colors';
 
 interface GameState {
   selectedElement: ElementName;
   isPlaying: boolean;
-  grid: ElementName[][];
+  grid: Cell[][];
   lastMoveGrid: MoveDirection[][];
   colorGrid: string[][];
   particles: Particle[];
@@ -15,7 +15,7 @@ interface GameState {
   stats: Record<ElementName, number>;
   fps: number;
   setSelectedElement: (element: ElementName) => void;
-  setGrid: (grid: ElementName[][]) => void;
+  setGrid: (grid: Cell[][]) => void;
   setLastMoveGrid: (lastMoveGrid: MoveDirection[][]) => void;
   setColorGrid: (colorGrid: string[][]) => void;
   setParticles: (particles: Particle[]) => void;
@@ -72,9 +72,9 @@ const useGameStore = create<GameState>()((set, get) => ({
   initializeGrid: () => {
     const width = FIXED_WIDTH;
     const height = FIXED_HEIGHT;
-    const grid: ElementName[][] = Array(height)
+    const grid: Cell[][] = Array(height)
       .fill(null)
-      .map(() => Array(width).fill('EMPTY'));
+      .map(() => Array(width).fill(null).map(() => ({ type: 'EMPTY' })));
     const lastMoveGrid: MoveDirection[][] = Array(height)
       .fill(null)
       .map(() => Array(width).fill('NONE'));
@@ -95,9 +95,9 @@ const useGameStore = create<GameState>()((set, get) => ({
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
   },
   clearGrid: () => set((state) => {
-    const grid: ElementName[][] = Array(state.height)
+    const grid: Cell[][] = Array(state.height)
       .fill(null)
-      .map(() => Array(state.width).fill('EMPTY'));
+      .map(() => Array(state.width).fill(null).map(() => ({ type: 'EMPTY' })));
     const lastMoveGrid: MoveDirection[][] = Array(state.height)
       .fill(null)
       .map(() => Array(state.width).fill('NONE'));
@@ -120,9 +120,9 @@ const useGameStore = create<GameState>()((set, get) => ({
     const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
     const particleElementsForRandom: ElementName[] = ['FIRE']; // Elements that become particles
 
-    const newGrid: ElementName[][] = Array(state.height)
+    const newGrid: Cell[][] = Array(state.height)
       .fill(null)
-      .map(() => Array(state.width).fill('EMPTY'));
+      .map(() => Array(state.width).fill(null).map(() => ({ type: 'EMPTY' })));
     const newLastMoveGrid: MoveDirection[][] = Array(state.height)
       .fill(null)
       .map(() => Array(state.width).fill('NONE'));
@@ -154,8 +154,8 @@ const useGameStore = create<GameState>()((set, get) => ({
       const randomY = Math.floor(Math.random() * state.height);
       const randomElement = gridElements[Math.floor(Math.random() * gridElements.length)];
 
-      if (newGrid[randomY][randomX] === 'EMPTY') { // Only place if cell is empty
-        newGrid[randomY][randomX] = randomElement;
+      if (newGrid[randomY][randomX].type === 'EMPTY') { // Only place if cell is empty
+        newGrid[randomY][randomX] = { type: randomElement };
         const baseColor = ELEMENTS[randomElement].color;
         newColorGrid[randomY][randomX] = varyColor(baseColor);
         stats[randomElement]++;

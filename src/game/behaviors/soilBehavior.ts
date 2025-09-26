@@ -1,11 +1,11 @@
 
-import { ELEMENTS, type ElementName, type MoveDirection } from "../../types/elements";
+import { ELEMENTS, type MoveDirection, type Cell } from "../../types/elements";
 
 interface BehaviorContext {
-  grid: ElementName[][];
+  grid: Cell[][];
   lastMoveGrid: MoveDirection[][];
   colorGrid: string[][];
-  newGrid: ElementName[][];
+  newGrid: Cell[][];
   newLastMoveGrid: MoveDirection[][];
   newColorGrid: string[][];
   moved: boolean[][];
@@ -31,56 +31,23 @@ export const handleSoil = ({
   const color = colorGrid[y][x];
   let hasMoved = false;
 
-  // 4. Check for water interaction and convert to mud (both soil and water)
-  let waterNearby = false;
-  let waterY = -1; // Position of the nearby water
-  let waterX = -1;
-
-  if (y + 1 < height && grid[y + 1][x] === 'WATER' && !moved[y + 1][x]) {
-    waterNearby = true;
-    waterY = y + 1;
-    waterX = x;
-  } else if (y > 0 && grid[y - 1][x] === 'WATER' && !moved[y - 1][x]) {
-    waterNearby = true;
-    waterY = y - 1;
-    waterX = x;
-  } else if (x + 1 < width && grid[y][x + 1] === 'WATER' && !moved[y][x + 1]) {
-    waterNearby = true;
-    waterY = y;
-    waterX = x + 1;
-  } else if (x > 0 && grid[y][x - 1] === 'WATER' && !moved[y][x - 1]) {
-    waterNearby = true;
-    waterY = y;
-    waterX = x - 1;
-  }
-
-  if (waterNearby) {
-    newGrid[y][x] = 'MUD';
-    newColorGrid[y][x] = ELEMENTS.MUD.color;
-    moved[y][x] = true; // Mark as moved to prevent further movement
-    hasMoved = true;
-    // Consume the nearby water (convert to empty)
-    newGrid[waterY][waterX] = 'EMPTY';
-    newColorGrid[waterY][waterX] = ELEMENTS.EMPTY.color;
-    moved[waterY][waterX] = true; // Mark water as moved to prevent further movement
-  }
-  // 1. Try moving down into empty space (only if not converted to mud)
-  else if (y + 1 < height && grid[y + 1][x] === 'EMPTY' && !moved[y + 1][x]) {
-    newGrid[y][x] = 'EMPTY';
+  // 1. Try moving down into empty space
+  if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
+    newGrid[y][x] = { type: 'EMPTY' };
     newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-    newGrid[y + 1][x] = 'SOIL';
+    newGrid[y + 1][x] = { type: 'SOIL' };
     newColorGrid[y + 1][x] = color;
     moved[y][x] = true;
     moved[y + 1][x] = true;
     newLastMoveGrid[y + 1][x] = 'DOWN';
     hasMoved = true;
   }
-  // 2. Try swapping with water below (only if not converted to mud)
-  else if (y + 1 < height && grid[y + 1][x] === 'WATER' && !moved[y + 1][x]) {
+  // 2. Try swapping with water below
+  else if (y + 1 < height && grid[y + 1][x].type === 'WATER' && !moved[y + 1][x]) {
     const waterColor = colorGrid[y + 1][x];
     // Swap elements
-    newGrid[y][x] = 'WATER';
-    newGrid[y + 1][x] = 'SOIL';
+    newGrid[y][x] = { type: 'WATER' };
+    newGrid[y + 1][x] = { type: 'SOIL' };
     // Swap colors
     newColorGrid[y][x] = waterColor;
     newColorGrid[y + 1][x] = color;
@@ -90,7 +57,7 @@ export const handleSoil = ({
     newLastMoveGrid[y + 1][x] = 'DOWN'; // SOIL moved down
     hasMoved = true;
   }
-  // 3. Try moving diagonally down (only if not converted to mud)
+  // 3. Try moving diagonally down
   else if (y + 1 < height) {
     const lastMove = lastMoveGrid[y][x];
     const inertiaChance = 0.75; // 75% chance to follow inertia
@@ -107,10 +74,10 @@ export const handleSoil = ({
 
     for (const dx of directions) {
       if (x + dx >= 0 && x + dx < width &&
-          grid[y + 1][x + dx] === 'EMPTY' && !moved[y + 1][x + dx]) {
-        newGrid[y][x] = 'EMPTY';
+          grid[y + 1][x + dx].type === 'EMPTY' && !moved[y + 1][x + dx]) {
+        newGrid[y][x] = { type: 'EMPTY' };
         newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-        newGrid[y + 1][x + dx] = 'SOIL';
+        newGrid[y + 1][x + dx] = { type: 'SOIL' };
         newColorGrid[y + 1][x + dx] = color;
         moved[y][x] = true;
         moved[y + 1][x + dx] = true;
@@ -121,16 +88,16 @@ export const handleSoil = ({
     }
   }
 
-  // 4. Try to slip sideways if on a peak (only if not converted to mud)
+  // 4. Try to slip sideways if on a peak
   if (!hasMoved && Math.random() < 0.3) { // 30% chance to slip
     // Check if the particle is on a peak (empty on both sides)
-    if (x > 0 && x < width - 1 && grid[y][x - 1] === 'EMPTY' && grid[y][x + 1] === 'EMPTY') {
+    if (x > 0 && x < width - 1 && grid[y][x - 1].type === 'EMPTY' && grid[y][x + 1].type === 'EMPTY') {
       const slipDirection = Math.random() > 0.5 ? 1 : -1;
 
       if (!moved[y][x + slipDirection]) {
-        newGrid[y][x] = 'EMPTY';
+        newGrid[y][x] = { type: 'EMPTY' };
         newColorGrid[y][x] = ELEMENTS.EMPTY.color;
-        newGrid[y][x + slipDirection] = 'SOIL';
+        newGrid[y][x + slipDirection] = { type: 'SOIL' };
         newColorGrid[y][x + slipDirection] = color;
         moved[y][x] = true;
         moved[y][x + slipDirection] = true;
