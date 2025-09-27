@@ -99,8 +99,8 @@ export class GameScene extends Phaser.Scene {
     state.setColorGrid(newColorGrid);
     state.setParticles(newParticles);
     
-    // Update stats from grid
-    const stats = calculateStats(newGrid);
+    // Update stats from grid and particles
+    const stats = calculateStats(newGrid, newParticles);
     state.updateStats(stats);
   }
 
@@ -154,7 +154,7 @@ export class GameScene extends Phaser.Scene {
         state.setColorGrid(newColorGrid);
         
         // Update stats after grid change
-        const stats = calculateStats(newGrid);
+        const stats = calculateStats(newGrid, this.particles);
         state.updateStats(stats);
       }
     }

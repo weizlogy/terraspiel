@@ -90,13 +90,18 @@ export const simulateWorld = (
 
   // --- PASS 2: TRANSFORMATIONS ---
   const gridAfterMove = newGrid.map(row => row.map(cell => ({ ...cell })));
+  const spawnedParticles: Particle[] = [];
+
   for (let y = height - 1; y >= 0; y--) {
     for (const x of xIndices) {
-      handleTransformations({
+      const newParticle = handleTransformations({
         grid: newGrid, // Read from the result of the physics pass
         newGrid: gridAfterMove, // Write to the grid for this pass
         x, y, width, height,
       });
+      if (newParticle) {
+        spawnedParticles.push(newParticle);
+      }
     }
   }
 
@@ -111,8 +116,9 @@ export const simulateWorld = (
   }
 
   // --- PASS 3: PARTICLE SIMULATION & DEEPENING ---
+  const allParticles = particles.concat(spawnedParticles);
   const { updatedParticles, updatedGrid, gridChanged } = handleEtherParticles({
-    particles,
+    particles: allParticles,
     grid: gridAfterMove,
     width,
     height,
@@ -134,7 +140,7 @@ export const simulateWorld = (
 };
 
 // Calculate statistics for elements in the grid
-export const calculateStats = (grid: Cell[][]): Record<string, number> => {
+export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<string, number> => {
   const stats: Record<string, number> = {
     SOIL: 0,
     WATER: 0,
@@ -143,6 +149,7 @@ export const calculateStats = (grid: Cell[][]): Record<string, number> => {
     PEAT: 0,
     CLOUD: 0,
     CLAY: 0,
+    ETHER: 0,
   };
 
   for (let y = 0; y < grid.length; y++) {
@@ -151,6 +158,12 @@ export const calculateStats = (grid: Cell[][]): Record<string, number> => {
       if (element in stats) {
         stats[element]++;
       }
+    }
+  }
+
+  for (const particle of particles) {
+    if (particle.type === 'ETHER') {
+      stats.ETHER++;
     }
   }
 

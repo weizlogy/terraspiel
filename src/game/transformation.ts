@@ -1,4 +1,4 @@
-import { type Cell, type RuleCondition, type SurroundingCondition, type EnvironmentCondition } from "../types/elements";
+import { type Cell, type RuleCondition, type SurroundingCondition, type EnvironmentCondition, type Particle } from "../types/elements";
 import useGameStore from "../stores/gameStore";
 
 interface BehaviorContext {
@@ -58,13 +58,13 @@ export const handleTransformations = ({
   y,
   width,
   height,
-}: BehaviorContext): void => {
-  const { transformationRules, addParticle } = useGameStore.getState();
+}: BehaviorContext): Particle | null => {
+  const { transformationRules, nextParticleId } = useGameStore.getState();
   const cell = grid[y][x];
   const applicableRules = transformationRules.filter(rule => rule.from === cell.type);
 
   if (applicableRules.length === 0) {
-    return;
+    return null;
   }
 
   for (const rule of applicableRules) {
@@ -95,14 +95,25 @@ export const handleTransformations = ({
             }
           }
 
-          const fromType = newGrid[y][x].type;
+          const fromType = grid[y][x].type;
           newGrid[y][x] = { type: rule.to, counter: 0 };
 
-          const ETHER_SPAWN_CHANCE = 0.005;
+          const ETHER_SPAWN_CHANCE = 0.005; // Reset to original value
           if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
             const vx = (Math.random() - 0.5) * 0.3;
             const vy = (Math.random() - 0.5) * 0.3;
-            addParticle(x + 0.5, y + 0.5, 'ETHER', vx, vy);
+            
+            const newParticle: Particle = {
+              id: nextParticleId,
+              px: x + 0.5,
+              py: y + 0.5,
+              vx,
+              vy,
+              type: 'ETHER',
+              life: 150,
+            };
+            useGameStore.setState({ nextParticleId: nextParticleId + 1 });
+            return newParticle;
           }
         } else {
           newGrid[y][x].counter = newCounter;
@@ -116,4 +127,6 @@ export const handleTransformations = ({
       }
     }
   }
+
+  return null;
 };

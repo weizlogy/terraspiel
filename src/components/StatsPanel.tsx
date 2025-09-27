@@ -1,4 +1,3 @@
-
 import useGameStore from '../stores/gameStore';
 import { ELEMENTS } from "../types/elements";
 import type { ElementName } from "../types/elements";
@@ -8,8 +7,8 @@ const StatsPanel: React.FC = () => {
   const fps = useGameStore((state) => state.fps);
 
   // Define which elements to show in the stats panel
-  const displayElements: ElementName[] = [
-    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY'
+  const displayElements: (ElementName | 'ETHER')[] = [
+    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'ETHER'
   ];
 
   return (
@@ -24,6 +23,8 @@ const StatsPanel: React.FC = () => {
           if (!count || count === 0) return null; // Only show elements with count > 0
           
           const elementData = ELEMENTS[element as keyof typeof ELEMENTS];
+          const color = element === 'ETHER' ? '#FFFFFF' : elementData?.color || '#000000';
+
           return (
             <div 
               key={element} 
@@ -31,7 +32,7 @@ const StatsPanel: React.FC = () => {
             >
               <div 
                 className="w-4 h-4 rounded-sm" 
-                style={{ backgroundColor: elementData?.color || '#000000' }}
+                style={{ backgroundColor: color }}
               ></div>
               <span className="font-semibold">{element}:</span> 
               <span>{count}</span>

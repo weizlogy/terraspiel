@@ -12,7 +12,7 @@ interface GameState {
   nextParticleId: number;
   width: number;
   height: number;
-  stats: Record<ElementName, number>;
+  stats: Record<ElementName | 'ETHER', number>;
   fps: number;
   transformationRules: TransformationRule[];
   setSelectedElement: (element: ElementName) => void;
@@ -24,7 +24,7 @@ interface GameState {
   initializeGrid: () => void;
   clearGrid: () => void;
   randomizeGrid: () => void;
-  updateStats: (stats: Record<ElementName, number>) => void;
+  updateStats: (stats: Record<ElementName | 'ETHER', number>) => void;
   setFps: (fps: number) => void;
   loadTransformationRules: () => Promise<void>;
 }
@@ -51,6 +51,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     PEAT: 0,
     CLOUD: 0,
     CLAY: 0,
+    ETHER: 0,
   },
   fps: 0,
   transformationRules: [],
@@ -88,7 +89,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       .map(() => Array(width).fill(ELEMENTS.EMPTY.color));
     
     // Initialize stats (don't count EMPTY)
-    const stats: Record<ElementName, number> = {
+    const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0,
       SOIL: 0,
       WATER: 0,
@@ -97,6 +98,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       PEAT: 0,
       CLOUD: 0,
       CLAY: 0,
+      ETHER: 0,
     };
     
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
@@ -112,7 +114,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       .fill(null)
       .map(() => Array(state.width).fill(ELEMENTS.EMPTY.color));
       
-    const stats: Record<ElementName, number> = {
+    const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0, // Don't count EMPTY
       SOIL: 0,
       WATER: 0,
@@ -121,6 +123,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       PEAT: 0,
       CLOUD: 0,
       CLAY: 0,
+      ETHER: 0,
     };
     
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
@@ -139,7 +142,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       .fill(null)
       .map(() => Array(state.width).fill(ELEMENTS.EMPTY.color));
     
-    const stats: Record<ElementName, number> = {
+    const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0,
       SOIL: 0,
       WATER: 0,
@@ -148,6 +151,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       PEAT: 0,
       CLOUD: 0,
       CLAY: 0,
+      ETHER: 0,
     };
     
     const newParticles: Particle[] = [];
