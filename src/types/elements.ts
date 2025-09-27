@@ -6,7 +6,9 @@ export type ElementName =
   | 'FERTILE_SOIL'
   | 'PEAT'
   | 'CLOUD'
-  | 'CLAY';
+  | 'CLAY'
+  | 'FIRE'
+  | 'ASH';
 
 export type ParticleType = ElementName | 'ETHER';
 
@@ -17,6 +19,7 @@ export interface Element {
   isStatic?: boolean; // Whether the element is static or moves
   lifespan?: number; // For elements that change over time
   alpha?: number; // Optional alpha value for rendering
+  [key: string]: any;
 }
 
 export interface Cell {
@@ -24,26 +27,36 @@ export interface Cell {
   counter?: number; // Optional counter for transformations
 }
 
-export type ConditionType = 'surrounding' | 'environment';
+export type ConditionType = 'surrounding' | 'environment' | 'surroundingAttribute';
 
 export interface BaseCondition {
   type: ConditionType;
-  element: ElementName;
+  element?: ElementName;
 }
 
 export interface SurroundingCondition extends BaseCondition {
   type: 'surrounding';
+  element: ElementName;
   min?: number;
   max?: number;
 }
 
 export interface EnvironmentCondition extends BaseCondition {
   type: 'environment';
+  element: ElementName;
   presence: 'exists' | 'not_exists';
   radius: number;
 }
 
-export type RuleCondition = SurroundingCondition | EnvironmentCondition;
+export interface SurroundingAttributeCondition extends BaseCondition {
+  type: 'surroundingAttribute';
+  attribute: string;
+  value: any;
+  min?: number;
+  max?: number;
+}
+
+export type RuleCondition = SurroundingCondition | EnvironmentCondition | SurroundingAttributeCondition;
 
 export interface TransformationRule {
   from: ElementName;

@@ -26,5 +26,78 @@
         "radius": 2
       }
     ]
+  },
+  {
+    "from": "SOIL",
+    "to": "FIRE",
+    "probability": 0.6,
+    "threshold": 8,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "FIRE",
+        "min": 1
+      }
+    ]
+  },
+  {
+    "from": "FERTILE_SOIL",
+    "to": "FIRE",
+    "probability": 0.8,
+    "threshold": 5,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "FIRE",
+        "min": 1
+      }
+    ]
+  },
+  {
+    "from": "PEAT",
+    "to": "FIRE",
+    "probability": 0.9,
+    "threshold": 3,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "FIRE",
+        "min": 1
+      }
+    ]
+  },
+  {
+    "from": "FIRE",
+    "to": "ASH",
+    "probability": 0.2,
+    "threshold": 50,
+    "conditions": []
+  },
+  {
+    "from": "FIRE",
+    "to": "EMPTY",
+    "probability": 1.0,
+    "threshold": 1,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "WATER",
+        "min": 1
+      }
+    ]
+  },
+  {
+    "from": "PEAT",
+    "to": "FIRE",
+    "probability": 0.001,
+    "threshold": 500,
+    "conditions": [
+      {
+        "type": "surroundingAttribute",
+        "attribute": "isWet",
+        "value": true,
+        "max": 1
+      }
+    ]
   }
 ]

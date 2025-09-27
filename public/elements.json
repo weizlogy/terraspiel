@@ -6,5 +6,7 @@
   { "name": "FERTILE_SOIL", "color": "#5D4037", "density": 4, "isStatic": false, "isWet": false, "isFlammable": true },
   { "name": "PEAT", "color": "#3A2E2B", "density": 4, "isStatic": false, "isWet": true, "isFlammable": true },
   { "name": "CLOUD", "color": "#F0F8FF", "density": 2, "isStatic": false, "alpha": 0.9, "isWet": true, "isFlammable": false },
-  { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false }
+  { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false },
+  { "name": "FIRE", "color": "#FF4500", "density": 1, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true },
+  { "name": "ASH", "color": "#808080", "density": 2, "isStatic": false, "isWet": false, "isFlammable": false }
 ]
