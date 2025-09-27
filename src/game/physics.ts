@@ -3,6 +3,7 @@ import { handleSoil } from "./behaviors/soilBehavior";
 import { handleWater } from "./behaviors/waterBehavior";
 import { handleMud } from "./behaviors/mudBehavior";
 import { handleCloud } from "./behaviors/cloudBehavior";
+import { handleFire } from "./behaviors/fireBehavior";
 import { handleTransformations } from "./transformation";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import useGameStore from "../stores/gameStore";
@@ -34,6 +35,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   MUD: handleMud,
   CLOUD: handleCloud,
   CLAY: handleSoil,
+  FIRE: handleFire,
 };
 
 // Main physics simulation function that handles cells and particles

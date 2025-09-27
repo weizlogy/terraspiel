@@ -53,25 +53,5 @@
         "radius": 2
       }
     ]
-  },
-  {
-    "from": "FIRE",
-    "to": "EMPTY",
-    "probability": 0.1,
-    "threshold": 100,
-    "conditions": []
-  },
-  {
-    "from": "SOIL",
-    "to": "SAND",
-    "probability": 0.2,
-    "threshold": 30,
-    "conditions": [
-      {
-        "type": "surrounding",
-        "element": "FIRE",
-        "min": 1
-      }
-    ]
   }
 ]
