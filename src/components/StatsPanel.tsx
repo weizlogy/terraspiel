@@ -15,8 +15,9 @@ const StatsPanel: React.FC = () => {
     <div className="stats-panel bg-gray-900 text-white p-4 rounded-lg w-48 flex-shrink-0">
       <h3 className="text-lg font-bold mb-2">Statistics</h3>
       <div className="flex flex-col gap-1 text-sm">
-        <div className="stat-item">
-          <span className="font-semibold">FPS:</span> {fps.toFixed(1)}
+        <div className="stat-item flex items-center justify-between">
+          <span className="font-semibold">FPS:</span>
+          <span>{fps.toFixed(1)}</span>
         </div>
         {displayElements.map((element) => {
           const count = stats[element as keyof typeof stats];
@@ -28,13 +29,15 @@ const StatsPanel: React.FC = () => {
           return (
             <div 
               key={element} 
-              className="stat-item flex items-center gap-2"
+              className="stat-item flex items-center justify-between gap-2"
             >
-              <div 
-                className="w-4 h-4 rounded-sm" 
-                style={{ backgroundColor: color }}
-              ></div>
-              <span className="font-semibold">{element}:</span> 
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-4 h-4 rounded-sm flex-shrink-0" 
+                  style={{ backgroundColor: color }}
+                ></div>
+                <span className="font-semibold">{element}:</span>
+              </div>
               <span>{count}</span>
             </div>
           );

@@ -56,11 +56,11 @@ export interface TransformationRule {
 
 export const ELEMENTS = {
   EMPTY: { name: 'EMPTY', color: '#000000', density: 0, isStatic: true },
-  SOIL: { name: 'SOIL', color: '#8B4513', density: 4, isStatic: false },
+  SOIL: { name: 'SOIL', color: '#A0522D', density: 4, isStatic: false }, // Sienna
   WATER: { name: 'WATER', color: '#1E90FF', density: 3, isStatic: false },
-  MUD: { name: 'MUD', color: '#4E342E', density: 3.5, isStatic: false },
-  FERTILE_SOIL: { name: 'FERTILE_SOIL', color: '#5C4033', density: 4, isStatic: false },
-  PEAT: { name: 'PEAT', color: '#3E2723', density: 4, isStatic: false },
+  MUD: { name: 'MUD', color: '#6B4226', density: 3.5, isStatic: false },
+  FERTILE_SOIL: { name: 'FERTILE_SOIL', color: '#5D4037', density: 4, isStatic: false },
+  PEAT: { name: 'PEAT', color: '#3A2E2B', density: 4, isStatic: false },
   CLOUD: { name: 'CLOUD', color: '#F0F8FF', density: 2, isStatic: false, alpha: 0.9 },
   CLAY: { name: 'CLAY', color: '#BCAAA4', density: 4.2, isStatic: false },
 };

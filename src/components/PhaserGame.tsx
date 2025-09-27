@@ -214,27 +214,34 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      let color = '#FFFFFF';
-      let alpha = 1.0;
-      let radius = this.cellSize * 0.5;
-
       if (particleType === 'ETHER') {
-        color = '#FFFFFF';
-        alpha = Math.max(0, particle.life / 150); // Fade out as it dies
-        radius = this.cellSize * (0.2 + (particle.life / 150) * 0.6); // Shrink as it dies
+        const baseAlpha = Math.max(0, particle.life / 150); // Fade out as it dies
+        const baseRadius = this.cellSize * (0.2 + (particle.life / 150) * 0.8);
+        const color = 0xFFFFFF; // White
+
+        // Draw multiple circles to create a soft, glowing effect
+        this.gridGraphics.fillStyle(color, baseAlpha * 0.1);
+        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius);
+
+        this.gridGraphics.fillStyle(color, baseAlpha * 0.2);
+        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.7);
+
+        this.gridGraphics.fillStyle(color, baseAlpha * 0.5);
+        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.4);
+
       } else {
         const element = ELEMENTS[particleType as ElementName];
         if (element) {
-            color = element.color;
+          const color = parseInt(element.color.replace('#', '0x'));
+          const radius = this.cellSize * 0.5;
+          this.gridGraphics.fillStyle(color, 1.0);
+          this.gridGraphics.fillCircle(
+            particle.px * this.cellSize,
+            particle.py * this.cellSize,
+            radius
+          );
         }
       }
-
-      this.gridGraphics.fillStyle(parseInt(color.replace('#', '0x')), alpha);
-      this.gridGraphics.fillCircle(
-        particle.px * this.cellSize,
-        particle.py * this.cellSize,
-        radius
-      );
     }
   }
 }
