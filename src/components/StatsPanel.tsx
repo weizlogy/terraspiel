@@ -8,7 +8,7 @@ const StatsPanel: React.FC = () => {
 
   // Define which elements to show in the stats panel
   const displayElements: (ElementName | 'ETHER')[] = [
-    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'ETHER'
+    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'FIRE', 'SAND', 'ETHER'
   ];
 
   if (Object.keys(elements).length === 0) {
@@ -18,7 +18,7 @@ const StatsPanel: React.FC = () => {
   return (
     <div className="stats-panel bg-gray-900 text-white p-4 rounded-lg w-48 flex-shrink-0">
       <h3 className="text-lg font-bold mb-2">Statistics</h3>
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col gap-1 text-xs">
         <div className="stat-item flex items-center justify-between">
           <span className="font-semibold">FPS:</span>
           <span>{fps.toFixed(1)}</span>

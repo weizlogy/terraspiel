@@ -162,6 +162,8 @@ export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<st
     PEAT: 0,
     CLOUD: 0,
     CLAY: 0,
+    FIRE: 0,
+    SAND: 0,
     ETHER: 0,
   };
 

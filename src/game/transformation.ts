@@ -86,64 +86,67 @@ export const handleTransformations = ({
     return null;
   }
 
-  for (const rule of applicableRules) {
-    const allConditionsMet = rule.conditions.every(cond => checkCondition(cond, grid, x, y, width, height, elements));
+  // Find all rules that meet their conditions
+  const metRules = applicableRules.filter(rule => 
+    rule.conditions.every(cond => checkCondition(cond, grid, x, y, width, height, elements))
+  );
 
-    if (allConditionsMet) {
-      if (Math.random() < rule.probability) {
-        const currentCounter = newGrid[y][x].counter || 0;
-        const newCounter = currentCounter + 1;
+  if (metRules.length > 0) {
+    // Prioritize the first rule that met its conditions
+    const rule = metRules[0];
 
-        if (newCounter >= rule.threshold) {
-          // --- Transformation occurs ---
-          if (rule.consumes) {
-            let consumed = false;
-            const directions = [-1, 0, 1].sort(() => Math.random() - 0.5);
-            for (const j of directions) {
-              for (const i of directions) {
-                if (i === 0 && j === 0) continue;
-                const nx = x + i;
-                const ny = y + j;
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === rule.consumes) {
-                  newGrid[ny][nx] = { type: 'EMPTY' };
-                  consumed = true;
-                  break;
-                }
+    if (Math.random() < rule.probability) {
+      const currentCounter = newGrid[y][x].counter || 0;
+      const newCounter = currentCounter + 1;
+
+      if (newCounter >= rule.threshold) {
+        // --- Transformation occurs ---
+        if (rule.consumes) {
+          let consumed = false;
+          const directions = [-1, 0, 1].sort(() => Math.random() - 0.5);
+          for (const j of directions) {
+            for (const i of directions) {
+              if (i === 0 && j === 0) continue;
+              const nx = x + i;
+              const ny = y + j;
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === rule.consumes) {
+                newGrid[ny][nx] = { type: 'EMPTY' };
+                consumed = true;
+                break;
               }
-              if (consumed) break;
             }
+            if (consumed) break;
           }
-
-          const fromType = grid[y][x].type;
-          newGrid[y][x] = { type: rule.to, counter: 0 };
-
-          const ETHER_SPAWN_CHANCE = 0.005; // Reset to original value
-          if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
-            const vx = (Math.random() - 0.5) * 0.3;
-            const vy = (Math.random() - 0.5) * 0.3;
-            
-            const newParticle: Particle = {
-              id: nextParticleId,
-              px: x + 0.5,
-              py: y + 0.5,
-              vx,
-              vy,
-              type: 'ETHER',
-              life: 150,
-            };
-            useGameStore.setState({ nextParticleId: nextParticleId + 1 });
-            return newParticle;
-          }
-        } else {
-          newGrid[y][x].counter = newCounter;
         }
+
+        const fromType = grid[y][x].type;
+        newGrid[y][x] = { type: rule.to, counter: 0 };
+
+        const ETHER_SPAWN_CHANCE = 0.005;
+        if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
+          const vx = (Math.random() - 0.5) * 0.3;
+          const vy = (Math.random() - 0.5) * 0.3;
+          
+          const newParticle: Particle = {
+            id: nextParticleId,
+            px: x + 0.5,
+            py: y + 0.5,
+            vx,
+            vy,
+            type: 'ETHER',
+            life: 150,
+          };
+          useGameStore.setState({ nextParticleId: nextParticleId + 1 });
+          return newParticle;
+        }
+      } else {
+        newGrid[y][x].counter = newCounter;
       }
-      break; // Stop after the first applicable rule is processed
-    } else {
-      // Conditions not met, reset counter if it was running
-      if (newGrid[y][x].counter && newGrid[y][x].counter > 0) {
-        newGrid[y][x].counter = 0;
-      }
+    }
+  } else {
+    // No rules met conditions, reset counter if it was running
+    if (newGrid[y][x].counter && newGrid[y][x].counter > 0) {
+      newGrid[y][x].counter = 0;
     }
   }
 

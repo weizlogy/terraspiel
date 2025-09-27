@@ -54,7 +54,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     CLOUD: 0,
     CLAY: 0,
     FIRE: 0,
-    ASH: 0,
+    SAND: 0,
     ETHER: 0,
   },
   fps: 0,
@@ -104,7 +104,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLOUD: 0,
       CLAY: 0,
       FIRE: 0,
-      ASH: 0,
+      SAND: 0,
       ETHER: 0,
     };
 
@@ -131,7 +131,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLOUD: 0,
       CLAY: 0,
       FIRE: 0,
-      ASH: 0,
+      SAND: 0,
       ETHER: 0,
     };
 
@@ -161,7 +161,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLOUD: 0,
       CLAY: 0,
       FIRE: 0,
-      ASH: 0,
+      SAND: 0,
       ETHER: 0,
     };
 

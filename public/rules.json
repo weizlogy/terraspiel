@@ -43,14 +43,14 @@
   {
     "from": "PEAT",
     "to": "FIRE",
-    "probability": 0.001,
-    "threshold": 500,
+    "probability": 0.1,
+    "threshold": 200,
     "conditions": [
       {
-        "type": "surroundingAttribute",
-        "attribute": "isWet",
-        "value": true,
-        "max": 1
+        "type": "environment",
+        "element": "WATER",
+        "presence": "not_exists",
+        "radius": 2
       }
     ]
   },
@@ -60,5 +60,18 @@
     "probability": 0.1,
     "threshold": 100,
     "conditions": []
+  },
+  {
+    "from": "SOIL",
+    "to": "SAND",
+    "probability": 0.2,
+    "threshold": 30,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "FIRE",
+        "min": 1
+      }
+    ]
   }
 ]
