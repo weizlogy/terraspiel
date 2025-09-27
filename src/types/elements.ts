@@ -26,6 +26,7 @@ export interface Element {
 export interface Cell {
   type: ElementName;
   counter?: number; // Optional counter for transformations
+  burningProgress?: number; // For combustion progress tracking
 }
 
 export type ConditionType = 'surrounding' | 'environment' | 'surroundingAttribute';
