@@ -1,4 +1,4 @@
-import { type Cell } from "../../types/elements";
+import { type Cell, type ElementName } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
 
 interface BehaviorContext {
@@ -12,7 +12,12 @@ interface BehaviorContext {
   height: number;
 }
 
-const BURN_THRESHOLD = 30; // 30フレームで燃える
+// 燃焼ルール定義
+const COMBUSTION_RULES: Partial<Record<ElementName, { selfTo: ElementName, neighborTo: ElementName, threshold: number }>> = {
+  'SOIL': { selfTo: 'SAND', neighborTo: 'FIRE', threshold: 30 },
+  'CLAY': { selfTo: 'STONE', neighborTo: 'FIRE', threshold: 50 },
+  'MUD':  { selfTo: 'SOIL', neighborTo: 'FIRE', threshold: 20 },
+};
 
 export const handleFire = ({
   grid,
@@ -44,33 +49,39 @@ export const handleFire = ({
     const ny = y + dy;
 
     if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-      if (grid[ny][nx].type === 'SOIL' && !moved[ny][nx]) {
-        
-        const soilCell = newGrid[ny][nx];
-        const currentCounter = soilCell.counter || 0;
+      const neighborType = grid[ny][nx].type;
+
+      // WATERに接触した場合は、燃焼処理を行わず終了
+      if (neighborType === 'WATER') {
+        return; // WATERに触れたので燃焼処理をスキップ
+      }
+
+      const rule = COMBUSTION_RULES[neighborType];
+
+      // 燃焼ルールが存在する場合（カウンターはmovedチェック無しに毎フレーム増やす）
+      if (rule) {
+        const neighborCell = newGrid[ny][nx];
+        const currentCounter = neighborCell.counter || 0;
         const newCounter = currentCounter + 1;
+        neighborCell.counter = newCounter; // カウンターを更新
 
-        if (newCounter >= BURN_THRESHOLD) {
+        // 閾値に達し、かつ隣接セルがまだ動いていない場合、変化を起こす (movedチェックあり)
+        if (newCounter >= rule.threshold && !moved[ny][nx]) {
           // --- COMBUSTION ---
-          // The FIRE's current position becomes SAND
-          newGrid[y][x] = { type: 'SAND' };
-          newColorGrid[y][x] = elements.SAND.color;
+          // The FIRE's current position changes
+          newGrid[y][x] = { type: rule.selfTo };
+          newColorGrid[y][x] = elements[rule.selfTo].color;
 
-          // The SOIL's position becomes FIRE
-          newGrid[ny][nx] = { type: 'FIRE', counter: 0 }; // Reset counter
-          newColorGrid[ny][nx] = elements.FIRE.color;
+          // The neighbor's position becomes FIRE
+          newGrid[ny][nx] = { type: rule.neighborTo, counter: 0 }; // Reset counter
+          newColorGrid[ny][nx] = elements[rule.neighborTo].color;
 
           moved[y][x] = true;
           moved[ny][nx] = true;
 
-          return; // Exit after one reaction
-        } else {
-          // Increment the counter on the SOIL cell
-          soilCell.counter = newCounter;
+          return; // Exit after one reaction (変化が起こったので終了)
         }
-        
-        // We found a SOIL to heat up, so we don't need to check other neighbors
-        return;
+        // カウンターが増えただけの場合は、他の方向もチェックするためreturnしない
       }
     }
   }

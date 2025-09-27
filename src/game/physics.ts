@@ -72,7 +72,7 @@ export const simulateWorld = (
   const moved = Array(height).fill(null).map(() => Array(width).fill(false));
   const xIndices = Array.from(Array(width).keys());
 
-  for (let y = height - 2; y >= 0; y--) {
+  for (let y = height - 1; y >= 0; y--) {
     for (let i = xIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [xIndices[i], xIndices[j]] = [xIndices[j], xIndices[i]];
