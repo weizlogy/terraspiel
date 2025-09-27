@@ -18,7 +18,6 @@ export class GameScene extends Phaser.Scene {
   private cellSize: number = 4; // Fixed cell size
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private isDrawing: boolean = false;
-  private eraseMode: boolean = false;
   private lastSimulationTime: number = 0;
   private simulationInterval: number = 30; // ms - even faster physics updates for smoother movement
   private lastDrawTime: number = 0;
@@ -108,8 +107,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
+    if (pointer.rightButtonDown()) return; // Ignore right-clicks
     this.isDrawing = true;
-    this.eraseMode = pointer.rightButtonDown();
     this.updateAtPointer(pointer.x, pointer.y);
   }
 
@@ -131,35 +130,33 @@ export class GameScene extends Phaser.Scene {
     if (gridX < 0 || gridX >= this.width || gridY < 0 || gridY >= this.height) {
       return;
     }
+
+    // Only allow drawing on empty cells
+    if (this.grid[gridY][gridX].type !== 'EMPTY') {
+      return;
+    }
     
     const state = useGameStore.getState();
     const newGrid = this.grid.map(row => row.map(cell => ({ ...cell })));
     const newColorGrid = [...this.colorGrid.map(row => [...row])];
     
-    if (this.eraseMode) {
-      newGrid[gridY][gridX] = { type: 'EMPTY' };
-      newColorGrid[gridY][gridX] = this.elements.EMPTY.color;
+    const selectedElement = state.selectedElement as ElementName;
+    // If selected element is a particle type, add a particle. Otherwise, update the grid.p
+    if (PARTICLE_ELEMENTS.includes(selectedElement)) {
+      // Add particle with some initial random velocity
+      const vx = (Math.random() - 0.5) * 0.5;
+      const vy = (Math.random() - 0.5) * 0.5;
+      state.addParticle(gridX + 0.5, gridY + 0.5, selectedElement, vx, vy);
+    } else {
+      newGrid[gridY][gridX] = { type: selectedElement };
+      const baseColor = this.elements[selectedElement].color;
+      newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
       state.setGrid(newGrid);
       state.setColorGrid(newColorGrid);
-    } else {
-      const selectedElement = state.selectedElement as ElementName;
-      // If selected element is a particle type, add a particle. Otherwise, update the grid.p
-      if (PARTICLE_ELEMENTS.includes(selectedElement)) {
-        // Add particle with some initial random velocity
-        const vx = (Math.random() - 0.5) * 0.5;
-        const vy = (Math.random() - 0.5) * 0.5;
-        state.addParticle(gridX + 0.5, gridY + 0.5, selectedElement, vx, vy);
-      } else {
-        newGrid[gridY][gridX] = { type: selectedElement };
-        const baseColor = this.elements[selectedElement].color;
-        newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
-        state.setGrid(newGrid);
-        state.setColorGrid(newColorGrid);
-        
-        // Update stats after grid change
-        const stats = calculateStats(newGrid, this.particles);
-        state.updateStats(stats);
-      }
+      
+      // Update stats after grid change
+      const stats = calculateStats(newGrid, this.particles);
+      state.updateStats(stats);
     }
   }
 
