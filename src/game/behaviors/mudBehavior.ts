@@ -1,5 +1,5 @@
-
-import { ELEMENTS, type Cell } from "../../types/elements";
+import { type Cell } from "../../types/elements";
+import useGameStore from "../../stores/gameStore";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -24,6 +24,9 @@ export const handleMud = ({
   width,
   height,
 }: BehaviorContext): void => {
+  const elements = useGameStore.getState().elements;
+  if (Object.keys(elements).length === 0) return;
+
   const color = colorGrid[y][x];
   let hasMoved = false;
 
@@ -37,7 +40,7 @@ export const handleMud = ({
       newColorGrid[y + 1][x] = color;
     } else {
       newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+      newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y + 1][x] = { type: 'MUD' };
       newColorGrid[y + 1][x] = color;
     }
@@ -62,7 +65,7 @@ export const handleMud = ({
           newColorGrid[y + 1][x + dx] = color;
         } else {
           newGrid[y][x] = { type: 'EMPTY' };
-          newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+          newColorGrid[y][x] = elements.EMPTY.color;
           newGrid[y + 1][x + dx] = { type: 'MUD' };
           newColorGrid[y + 1][x + dx] = color;
         }
@@ -83,7 +86,7 @@ export const handleMud = ({
       const nx = x + dx;
       if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && !moved[y][nx]) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y][nx] = { type: 'MUD' };
         newColorGrid[y][nx] = color;
         moved[y][x] = true;

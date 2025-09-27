@@ -1,16 +1,15 @@
-import { useEffect } from 'react';
 import './App.css';
 import PhaserGame from './components/PhaserGame';
 import Toolbar from './components/Toolbar';
 import StatsPanel from './components/StatsPanel';
-import useGameStore from './stores/gameStore';
 
 function App() {
-  const initializeGrid = useGameStore((state) => state.initializeGrid);
+  // initializeGrid is now called within loadElements in gameStore.ts
+  // const initializeGrid = useGameStore((state) => state.initializeGrid);
 
-  useEffect(() => {
-    initializeGrid();
-  }, [initializeGrid]);
+  // useEffect(() => {
+  //   initializeGrid();
+  // }, [initializeGrid]);
 
   return (
     <div className="app">

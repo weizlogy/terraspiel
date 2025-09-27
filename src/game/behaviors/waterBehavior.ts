@@ -1,5 +1,5 @@
-
-import { ELEMENTS, type Cell } from "../../types/elements";
+import { type Cell } from "../../types/elements";
+import useGameStore from "../../stores/gameStore";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -24,6 +24,9 @@ export const handleWater = ({
   width,
   height,
 }: BehaviorContext): void => {
+  const elements = useGameStore.getState().elements;
+  if (Object.keys(elements).length === 0) return;
+
   const color = colorGrid[y][x];
   // Movement priority: down > diagonally down > sideways
   let hasMoved = false;
@@ -31,7 +34,7 @@ export const handleWater = ({
   // 1. Try moving down
   if (!hasMoved && y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
     newGrid[y][x] = { type: 'EMPTY' };
-    newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+    newColorGrid[y][x] = elements.EMPTY.color;
     newGrid[y + 1][x] = { type: 'WATER' };
     newColorGrid[y + 1][x] = color;
     moved[y][x] = true;
@@ -48,7 +51,7 @@ export const handleWater = ({
       if (x + dx >= 0 && x + dx < width &&
           grid[y + 1][x + dx].type === 'EMPTY' && !moved[y + 1][x + dx]) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y + 1][x + dx] = { type: 'WATER' };
         newColorGrid[y + 1][x + dx] = color;
         moved[y][x] = true;
@@ -96,7 +99,7 @@ export const handleWater = ({
       // Move to the side with more open space below, or random if equal
       if (leftOpenSpaces > rightOpenSpaces) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y][leftX] = { type: 'WATER' };
         newColorGrid[y][leftX] = color;
         moved[y][x] = true;
@@ -104,7 +107,7 @@ export const handleWater = ({
         hasMoved = true;
       } else if (rightOpenSpaces > leftOpenSpaces) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y][rightX] = { type: 'WATER' };
         newColorGrid[y][rightX] = color;
         moved[y][x] = true;
@@ -114,7 +117,7 @@ export const handleWater = ({
         // If equal, move in random direction
         const direction = Math.random() > 0.5 ? leftX : rightX;
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y][direction] = { type: 'WATER' };
         newColorGrid[y][direction] = color;
         moved[y][x] = true;
@@ -123,7 +126,7 @@ export const handleWater = ({
       }
     } else if (canGoLeft) {
       newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+      newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y][leftX] = { type: 'WATER' };
       newColorGrid[y][leftX] = color;
       moved[y][x] = true;
@@ -131,7 +134,7 @@ export const handleWater = ({
       hasMoved = true;
     } else if (canGoRight) {
       newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+      newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y][rightX] = { type: 'WATER' };
       newColorGrid[y][rightX] = color;
       moved[y][x] = true;

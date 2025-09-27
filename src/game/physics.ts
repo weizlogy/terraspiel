@@ -1,10 +1,11 @@
-import { ELEMENTS, type ElementName, type MoveDirection, type Cell, type Particle } from "../types/elements";
+import { type ElementName, type MoveDirection, type Cell, type Particle } from "../types/elements";
 import { handleSoil } from "./behaviors/soilBehavior";
 import { handleWater } from "./behaviors/waterBehavior";
 import { handleMud } from "./behaviors/mudBehavior";
 import { handleCloud } from "./behaviors/cloudBehavior";
 import { handleTransformations } from "./transformation";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
+import useGameStore from "../stores/gameStore";
 
 // Define the context for behaviors
 interface BehaviorContext {
@@ -47,8 +48,20 @@ export const simulateWorld = (
   newColorGrid: string[][];
   newParticles: Particle[];
 } => {
+  // Add a guard clause to check if the grid is initialized
+  if (!grid || grid.length === 0 || !grid[0] || grid[0].length === 0) {
+    // Grid not initialized yet, return current state
+    return { newGrid: grid, newLastMoveGrid: lastMoveGrid, newColorGrid: colorGrid, newParticles: particles };
+  }
+
   const height = grid.length;
   const width = grid[0].length;
+  const elements = useGameStore.getState().elements;
+
+  if (Object.keys(elements).length === 0) {
+    // Elements not loaded yet, return current state
+    return { newGrid: grid, newLastMoveGrid: lastMoveGrid, newColorGrid: colorGrid, newParticles: particles };
+  }
 
   // --- PASS 1: MOVEMENT ---
   const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
@@ -110,7 +123,7 @@ export const simulateWorld = (
     for (let x = 0; x < width; x++) {
       if (newGrid[y][x].type !== gridAfterMove[y][x].type) {
         const newType = gridAfterMove[y][x].type;
-        newColorGrid[y][x] = ELEMENTS[newType]?.color || '#000000';
+        newColorGrid[y][x] = elements[newType]?.color || '#000000';
       }
     }
   }
@@ -130,7 +143,7 @@ export const simulateWorld = (
       for (let x = 0; x < width; x++) {
         if (gridAfterMove[y][x].type !== updatedGrid[y][x].type) {
           const newType = updatedGrid[y][x].type;
-          newColorGrid[y][x] = ELEMENTS[newType]?.color || '#000000';
+          newColorGrid[y][x] = elements[newType]?.color || '#000000';
         }
       }
     }

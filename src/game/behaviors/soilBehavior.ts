@@ -1,5 +1,5 @@
-
-import { ELEMENTS, type MoveDirection, type Cell } from "../../types/elements";
+import { type MoveDirection, type Cell } from "../../types/elements";
+import useGameStore from "../../stores/gameStore";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -28,13 +28,16 @@ export const handleSoil = ({
   width,
   height,
 }: BehaviorContext): void => {
+  const elements = useGameStore.getState().elements;
+  if (Object.keys(elements).length === 0) return;
+
   const color = colorGrid[y][x];
   let hasMoved = false;
 
   // 1. Try moving down into empty space
   if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
     newGrid[y][x] = { type: 'EMPTY' };
-    newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+    newColorGrid[y][x] = elements.EMPTY.color;
     newGrid[y + 1][x] = { type: 'SOIL' };
     newColorGrid[y + 1][x] = color;
     moved[y][x] = true;
@@ -76,7 +79,7 @@ export const handleSoil = ({
       if (x + dx >= 0 && x + dx < width &&
           grid[y + 1][x + dx].type === 'EMPTY' && !moved[y + 1][x + dx]) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y + 1][x + dx] = { type: 'SOIL' };
         newColorGrid[y + 1][x + dx] = color;
         moved[y][x] = true;
@@ -96,7 +99,7 @@ export const handleSoil = ({
 
       if (!moved[y][x + slipDirection]) {
         newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = ELEMENTS.EMPTY.color;
+        newColorGrid[y][x] = elements.EMPTY.color;
         newGrid[y][x + slipDirection] = { type: 'SOIL' };
         newColorGrid[y][x + slipDirection] = color;
         moved[y][x] = true;

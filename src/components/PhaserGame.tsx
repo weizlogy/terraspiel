@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import useGameStore from '../stores/gameStore';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell } from '../types/elements';
+import { type ElementName, type Particle, type MoveDirection, type Cell, type Element } from '../types/elements';
 import { simulateWorld, calculateStats } from '../game/physics';
 import { varyColor, blendColors } from '../utils/colors';
 
@@ -12,6 +12,7 @@ export class GameScene extends Phaser.Scene {
   private lastMoveGrid: MoveDirection[][] = [];
   private colorGrid: string[][] = [];
   private particles: Particle[] = []; // Add state for particles
+  private elements: Record<ElementName, Element> = {} as Record<ElementName, Element>;
   private width: number = 160; // Fixed grid width
   private height: number = 90; // Fixed grid height
   private cellSize: number = 4; // Fixed cell size
@@ -34,6 +35,7 @@ export class GameScene extends Phaser.Scene {
     this.lastMoveGrid = state.lastMoveGrid;
     this.colorGrid = state.colorGrid;
     this.particles = state.particles;
+    this.elements = state.elements;
     this.width = state.width;
     this.height = state.height;
   }
@@ -53,6 +55,7 @@ export class GameScene extends Phaser.Scene {
       this.lastMoveGrid = state.lastMoveGrid;
       this.colorGrid = state.colorGrid;
       this.particles = state.particles;
+      this.elements = state.elements;
       this.width = state.width;
       this.height = state.height;
       this.renderAll(); // Re-render whenever state changes
@@ -135,7 +138,7 @@ export class GameScene extends Phaser.Scene {
     
     if (this.eraseMode) {
       newGrid[gridY][gridX] = { type: 'EMPTY' };
-      newColorGrid[gridY][gridX] = ELEMENTS.EMPTY.color;
+      newColorGrid[gridY][gridX] = this.elements.EMPTY.color;
       state.setGrid(newGrid);
       state.setColorGrid(newColorGrid);
     } else {
@@ -148,7 +151,7 @@ export class GameScene extends Phaser.Scene {
         state.addParticle(gridX + 0.5, gridY + 0.5, selectedElement, vx, vy);
       } else {
         newGrid[gridY][gridX] = { type: selectedElement };
-        const baseColor = ELEMENTS[selectedElement].color;
+        const baseColor = this.elements[selectedElement].color;
         newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
         state.setGrid(newGrid);
         state.setColorGrid(newColorGrid);
@@ -161,6 +164,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderAll() {
+    // Add a guard clause to check if the grid is initialized
+    if (!this.grid || this.grid.length === 0 || !this.grid[0] || this.grid[0].length === 0) {
+      return;
+    }
+    if (!this.elements || Object.keys(this.elements).length === 0) return; // Existing guard
     this.gridGraphics.clear();
     
     // 1. Render the grid cells
@@ -230,7 +238,7 @@ export class GameScene extends Phaser.Scene {
         this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.4);
 
       } else {
-        const element = ELEMENTS[particleType as ElementName];
+        const element = this.elements[particleType as ElementName];
         if (element) {
           const color = parseInt(element.color.replace('#', '0x'));
           const radius = this.cellSize * 0.5;
@@ -253,9 +261,6 @@ const PhaserGame: React.FC = () => {
 
   useEffect(() => {
     if (!gameContainerRef.current) return;
-
-    // Load transformation rules before starting the game
-    useGameStore.getState().loadTransformationRules();
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.WEBGL,

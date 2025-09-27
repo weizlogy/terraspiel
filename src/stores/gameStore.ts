@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ELEMENTS, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType, type TransformationRule } from '../types/elements';
+import { type Element, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType, type TransformationRule } from '../types/elements';
 import { varyColor } from '../utils/colors';
 
 interface GameState {
@@ -14,6 +14,7 @@ interface GameState {
   height: number;
   stats: Record<ElementName | 'ETHER', number>;
   fps: number;
+  elements: Record<ElementName, Element>;
   transformationRules: TransformationRule[];
   setSelectedElement: (element: ElementName) => void;
   setGrid: (grid: Cell[][]) => void;
@@ -26,6 +27,7 @@ interface GameState {
   randomizeGrid: () => void;
   updateStats: (stats: Record<ElementName | 'ETHER', number>) => void;
   setFps: (fps: number) => void;
+  loadElements: () => Promise<void>;
   loadTransformationRules: () => Promise<void>;
 }
 
@@ -54,6 +56,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     ETHER: 0,
   },
   fps: 0,
+  elements: {} as Record<ElementName, Element>,
   transformationRules: [],
   setSelectedElement: (element) => set({ selectedElement: element }),
   setGrid: (grid) => set({ grid }),
@@ -79,15 +82,15 @@ const useGameStore = create<GameState>()((set, get) => ({
     const width = FIXED_WIDTH;
     const height = FIXED_HEIGHT;
     const grid: Cell[][] = Array(height)
-      .fill(null)
-      .map(() => Array(width).fill(null).map(() => ({ type: 'EMPTY' })));
+      .fill(0) // Fill with a primitive value to ensure distinct array references
+      .map(() => Array(width).fill(0).map(() => ({ type: 'EMPTY' })));
     const lastMoveGrid: MoveDirection[][] = Array(height)
-      .fill(null)
+      .fill(0)
       .map(() => Array(width).fill('NONE'));
     const colorGrid: string[][] = Array(height)
-      .fill(null)
-      .map(() => Array(width).fill(ELEMENTS.EMPTY.color));
-    
+      .fill(0)
+      .map(() => Array(width).fill(get().elements.EMPTY.color));
+
     // Initialize stats (don't count EMPTY)
     const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0,
@@ -100,20 +103,20 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLAY: 0,
       ETHER: 0,
     };
-    
+
     set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
   },
   clearGrid: () => set((state) => {
     const grid: Cell[][] = Array(state.height)
-      .fill(null)
-      .map(() => Array(state.width).fill(null).map(() => ({ type: 'EMPTY' })));
+      .fill(0)
+      .map(() => Array(state.width).fill(0).map(() => ({ type: 'EMPTY' })));
     const lastMoveGrid: MoveDirection[][] = Array(state.height)
-      .fill(null)
+      .fill(0)
       .map(() => Array(state.width).fill('NONE'));
     const colorGrid: string[][] = Array(state.height)
-      .fill(null)
-      .map(() => Array(state.width).fill(ELEMENTS.EMPTY.color));
-      
+      .fill(0)
+      .map(() => Array(state.width).fill(get().elements.EMPTY.color));
+
     const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0, // Don't count EMPTY
       SOIL: 0,
@@ -125,7 +128,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLAY: 0,
       ETHER: 0,
     };
-    
+
     return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
@@ -133,15 +136,15 @@ const useGameStore = create<GameState>()((set, get) => ({
     const particleElementsForRandom: ParticleType[] = []; // Elements that become particles
 
     const newGrid: Cell[][] = Array(state.height)
-      .fill(null)
-      .map(() => Array(state.width).fill(null).map(() => ({ type: 'EMPTY' })));
+      .fill(0)
+      .map(() => Array(state.width).fill(0).map(() => ({ type: 'EMPTY' })));
     const newLastMoveGrid: MoveDirection[][] = Array(state.height)
-      .fill(null)
+      .fill(0)
       .map(() => Array(state.width).fill('NONE'));
     const newColorGrid: string[][] = Array(state.height)
-      .fill(null)
-      .map(() => Array(state.width).fill(ELEMENTS.EMPTY.color));
-    
+      .fill(0)
+      .map(() => Array(state.width).fill(get().elements.EMPTY.color));
+
     const stats: Record<ElementName | 'ETHER', number> = {
       EMPTY: 0,
       SOIL: 0,
@@ -153,7 +156,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       CLAY: 0,
       ETHER: 0,
     };
-    
+
     const newParticles: Particle[] = [];
     let nextParticleId = 0; // Reset particle IDs for new random grid
 
@@ -171,7 +174,7 @@ const useGameStore = create<GameState>()((set, get) => ({
 
       if (newGrid[randomY][randomX].type === 'EMPTY') { // Only place if cell is empty
         newGrid[randomY][randomX] = { type: randomElement };
-        const baseColor = ELEMENTS[randomElement].color;
+        const baseColor = get().elements[randomElement].color;
         newColorGrid[randomY][randomX] = varyColor(baseColor);
         stats[randomElement]++;
       }
@@ -194,7 +197,7 @@ const useGameStore = create<GameState>()((set, get) => ({
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
         type: randomParticleType,
-        life: (ELEMENTS[randomParticleType as ElementName] as any)?.lifespan || 100,
+        life: (get().elements[randomParticleType as ElementName] as any)?.lifespan || 100,
       });
       // stats[randomParticleType]++; // Update stats for particles
     }
@@ -203,6 +206,28 @@ const useGameStore = create<GameState>()((set, get) => ({
   }),
   updateStats: (stats) => set({ stats }),
   setFps: (fps) => set({ fps }),
+  loadElements: async () => {
+    try {
+      const response = await fetch('/elements.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch elements: ${response.statusText}`);
+      }
+      const elementsArray = await response.json();
+      const elementsMap = elementsArray.reduce((acc: Record<ElementName, Element>, el: Element) => {
+        acc[el.name] = el;
+        return acc;
+      }, {});
+      set({ elements: elementsMap });
+      console.log('Elements loaded successfully.', elementsMap);
+
+      // Now that elements are loaded, initialize the grid
+      get().initializeGrid();
+      // get().randomizeGrid(); // Removed this line
+
+    } catch (error) {
+      console.error("Error loading elements:", error);
+    }
+  },
   loadTransformationRules: async () => {
     try {
       const response = await fetch('/rules.json');

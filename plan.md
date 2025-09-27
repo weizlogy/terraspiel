@@ -69,6 +69,7 @@ http://localhost:5173/
 
 4. 周囲の環境等による物質変化（非錬金術）
     - MUD + 周囲にWATERが存在しない + 時間経過 = CLAY
+    - PEAT + 周囲にWATERが存在しない + 時間経過 = FIRE
 
 5. エーテル(ETHER)の発生と物質深化
 物質が変化するとき、超低確率でエーテルという特別な粒子が生成される。
@@ -82,6 +83,16 @@ ETHERはほかの物質のようにピクセルで配置するのではなく粒
     - ETHER + SOIL = FERTILE_SOIL
     - ETHER + MUD = PEAT
     - ETHER + WATER = CLOUD
+
+6. 燃焼による物質変化
+何かの条件でFIREが発生した場合、周囲の物質によって動きが変わる。
+FIREは周囲に燃えるものがない状況が一定時間続く（確率カウンター）と消える。
+FIREは周囲に燃えるものあるとその物質を確率で燃焼ルールに基づいた別の物質に変換する。
+
+    ** 物質燃焼ルール **
+    - FIRE + SOIL = SAND
+    - FIRE + WATER = STEAM
+    - FIRE + CLAY = STONE
 
 ## セルベースの物理エンジン実装の工夫１
 1. サブセル（fractional position）を持たせる

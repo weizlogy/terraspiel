@@ -1,15 +1,18 @@
-
 import useGameStore from '../stores/gameStore';
-import { ELEMENTS, type ElementName } from '../types/elements';
+import type { ElementName } from '../types/elements';
 
 const Toolbar: React.FC = () => {
   const selectedElement = useGameStore((state) => state.selectedElement);
   const setSelectedElement = useGameStore((state) => state.setSelectedElement);
   const clearGrid = useGameStore((state) => state.clearGrid);
   const randomizeGrid = useGameStore((state) => state.randomizeGrid);
-  const loadTransformationRules = useGameStore((state) => state.loadTransformationRules);
+  const elements = useGameStore((state) => state.elements);
 
   const placeableElements: ElementName[] = ['SOIL', 'WATER'];
+
+  if (Object.keys(elements).length === 0) {
+    return <div className="toolbar bg-gray-900 text-white p-2 shadow-lg border-t border-gray-700">Loading...</div>;
+  }
 
   return (
     <div className="toolbar bg-gray-900 text-white p-2 shadow-lg border-t border-gray-700">
@@ -17,7 +20,7 @@ const Toolbar: React.FC = () => {
         <div className="element-selector flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium mr-2">Elements:</span>
           {placeableElements.map((element) => {
-            const elementData = ELEMENTS[element];
+            const elementData = elements[element];
             return (
               <button
                 key={element}
@@ -47,12 +50,6 @@ const Toolbar: React.FC = () => {
             onClick={clearGrid}
           >
             CLEAR
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 border bg-indigo-800 border-indigo-700 hover:bg-indigo-700 hover:border-indigo-600"
-            onClick={loadTransformationRules}
-          >
-            RELOAD RULES
           </button>
         </div>
       </div>
