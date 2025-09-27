@@ -15,7 +15,7 @@ function App() {
     <div className="app">
       <Toolbar />
       <main className="app-main">
-        <div className="game-area-container flex flex-row h-full w-full">
+        <div className="game-area-container flex flex-row h-full w-full p-4 gap-4">
           <PhaserGame />
           <StatsPanel />
         </div>

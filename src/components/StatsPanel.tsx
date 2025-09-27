@@ -40,7 +40,7 @@ const StatsPanel: React.FC = () => {
                   className="w-4 h-4 rounded-sm flex-shrink-0" 
                   style={{ backgroundColor: color }}
                 ></div>
-                <span className="font-semibold">{element}:</span>
+                <span className="font-semibold">{element === 'FERTILE_SOIL' ? 'FERTILE' : element}:</span>
               </div>
               <span>{count}</span>
             </div>
