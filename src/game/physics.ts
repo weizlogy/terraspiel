@@ -7,6 +7,7 @@ import { handleFire } from "./behaviors/fireBehavior";
 import { handleTransformations } from "./transformation";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import useGameStore from "../stores/gameStore";
+import { varyColor } from "../utils/colors";
 
 // Define the context for behaviors
 interface BehaviorContext {
@@ -36,6 +37,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   CLOUD: handleCloud,
   CLAY: handleSoil,
   FIRE: handleFire,
+  SAND: handleMud, // SAND also behaves like mud (fluid)
 };
 
 // Main physics simulation function that handles cells and particles
@@ -120,12 +122,17 @@ export const simulateWorld = (
     }
   }
 
+  // Define elements that should have color variation
+  const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Add as needed
+
   // Update color grid after transformations
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (newGrid[y][x].type !== gridAfterMove[y][x].type) {
-        const newType = gridAfterMove[y][x].type;
-        newColorGrid[y][x] = elements[newType]?.color || '#000000';
+        const newType = newGrid[y][x].type; // Fix: Use newGrid instead of gridAfterMove
+        const baseColor = elements[newType]?.color || '#000000';
+        // Use varyColor for all elements that should have variation
+        newColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
       }
     }
   }
@@ -141,11 +148,15 @@ export const simulateWorld = (
 
   // If particles changed the grid, we need to update the color grid accordingly
   if (gridChanged) {
+    // Reuse the same variation list defined above, or define here if not accessible
+    const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Add as needed
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         if (gridAfterMove[y][x].type !== updatedGrid[y][x].type) {
           const newType = updatedGrid[y][x].type;
-          newColorGrid[y][x] = elements[newType]?.color || '#000000';
+          const baseColor = elements[newType]?.color || '#000000';
+          // Use varyColor for all elements that should have variation
+          newColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
         }
       }
     }
@@ -166,6 +177,7 @@ export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<st
     CLAY: 0,
     FIRE: 0,
     SAND: 0,
+    STONE: 0,
     ETHER: 0,
   };
 
