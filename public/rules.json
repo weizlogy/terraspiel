@@ -28,52 +28,6 @@
     ]
   },
   {
-    "from": "SOIL",
-    "to": "FIRE",
-    "probability": 0.6,
-    "threshold": 8,
-    "conditions": [
-      {
-        "type": "surrounding",
-        "element": "FIRE",
-        "min": 1
-      }
-    ]
-  },
-  {
-    "from": "FERTILE_SOIL",
-    "to": "FIRE",
-    "probability": 0.8,
-    "threshold": 5,
-    "conditions": [
-      {
-        "type": "surrounding",
-        "element": "FIRE",
-        "min": 1
-      }
-    ]
-  },
-  {
-    "from": "PEAT",
-    "to": "FIRE",
-    "probability": 0.9,
-    "threshold": 3,
-    "conditions": [
-      {
-        "type": "surrounding",
-        "element": "FIRE",
-        "min": 1
-      }
-    ]
-  },
-  {
-    "from": "FIRE",
-    "to": "ASH",
-    "probability": 0.2,
-    "threshold": 50,
-    "conditions": []
-  },
-  {
     "from": "FIRE",
     "to": "EMPTY",
     "probability": 1.0,
@@ -99,5 +53,12 @@
         "max": 1
       }
     ]
+  },
+  {
+    "from": "FIRE",
+    "to": "EMPTY",
+    "probability": 0.1,
+    "threshold": 100,
+    "conditions": []
   }
 ]
