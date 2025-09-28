@@ -8,7 +8,7 @@ const StatsPanel: React.FC = () => {
 
   // Define which elements to show in the stats panel
   const displayElements: (ElementName | 'ETHER')[] = [
-    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'FIRE', 'SAND', 'ETHER'
+    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'FIRE', 'SAND', 'STONE', 'ETHER'
   ];
 
   if (Object.keys(elements).length === 0) {
