@@ -77,23 +77,83 @@ export const handleMud = ({
     }
   }
 
-  // 3. Try moving sideways
+  // 3. Try moving sideways with horizontal stability in mind (adapted from handleWater)
   if (!hasMoved) {
-    const directions = [-1, 1];
-    if (Math.random() > 0.5) directions.reverse();
+    const leftX = x - 1;
+    const rightX = x + 1;
 
-    for (const dx of directions) {
-      const nx = x + dx;
-      if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && !moved[y][nx]) {
+    // Check availability of left and right positions
+    const canGoLeft = leftX >= 0 && grid[y][leftX].type === 'EMPTY' && !moved[y][leftX];
+    const canGoRight = rightX < width && grid[y][rightX].type === 'EMPTY' && !moved[y][rightX];
+
+    if (canGoLeft && canGoRight) {
+      // When both sides are available, check which side has more empty space below
+      // to spread mud more evenly and maintain horizontal level
+      let leftOpenSpaces = 0;
+      let rightOpenSpaces = 0;
+
+      // Count empty spaces below the potential left position
+      for (let testY = y; testY < height; testY++) {
+        if (grid[testY][leftX].type === 'EMPTY') {
+          leftOpenSpaces++;
+        } else {
+          break;
+        }
+      }
+
+      // Count empty spaces below the potential right position
+      for (let testY = y; testY < height; testY++) {
+        if (grid[testY][rightX].type === 'EMPTY') {
+          rightOpenSpaces++;
+        } else {
+          break;
+        }
+      }
+
+      // Move to the side with more open space below, or random if equal
+      if (leftOpenSpaces > rightOpenSpaces) {
         newGrid[y][x] = { type: 'EMPTY' };
         newColorGrid[y][x] = elements.EMPTY.color;
-        newGrid[y][nx] = { type: 'MUD' };
-        newColorGrid[y][nx] = color;
+        newGrid[y][leftX] = { type: 'MUD' };
+        newColorGrid[y][leftX] = color;
         moved[y][x] = true;
-        moved[y][nx] = true;
+        moved[y][leftX] = true;
         hasMoved = true;
-        break;
+      } else if (rightOpenSpaces > leftOpenSpaces) {
+        newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+        newGrid[y][rightX] = { type: 'MUD' };
+        newColorGrid[y][rightX] = color;
+        moved[y][x] = true;
+        moved[y][rightX] = true;
+        hasMoved = true;
+      } else {
+        // If equal, move in random direction
+        const direction = Math.random() > 0.5 ? leftX : rightX;
+        newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+        newGrid[y][direction] = { type: 'MUD' };
+        newColorGrid[y][direction] = color;
+        moved[y][x] = true;
+        moved[y][direction] = true;
+        hasMoved = true;
       }
+    } else if (canGoLeft) {
+      newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+        newGrid[y][leftX] = { type: 'MUD' };
+        newColorGrid[y][leftX] = color;
+        moved[y][x] = true;
+        moved[y][leftX] = true;
+        hasMoved = true;
+    } else if (canGoRight) {
+      newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+        newGrid[y][rightX] = { type: 'MUD' };
+        newColorGrid[y][rightX] = color;
+        moved[y][x] = true;
+        moved[y][rightX] = true;
+        hasMoved = true;
     }
   }
 };
