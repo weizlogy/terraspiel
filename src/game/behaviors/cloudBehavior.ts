@@ -22,24 +22,106 @@ export const handleCloud = ({
   x,
   y,
   width,
-  // height,
+  height,
 }: BehaviorContext): void => {
   const elements = useGameStore.getState().elements;
   if (Object.keys(elements).length === 0) return;
 
+  const cell = grid[y][x];
   const color = colorGrid[y][x];
   let hasMoved = false;
+
+  let rainCounter = cell.rainCounter ?? 0;
+  let chargeCounter = cell.chargeCounter ?? 0;
+  let decayCounter = cell.decayCounter ?? 0;
+
+  // --- Cloud Interaction Logic ---
+  let isTouchingCloud = false;
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      if (i === 0 && j === 0) continue;
+      const nx = x + j;
+      const ny = y + i;
+      if (ny >= 0 && ny < height && nx >= 0 && nx < width && grid[ny][nx].type === 'CLOUD') {
+        isTouchingCloud = true;
+        break;
+      }
+    }
+    if (isTouchingCloud) break;
+  }
+
+  if (isTouchingCloud) {
+    decayCounter = 0; // Reset decay counter
+    rainCounter += 1; // Increase rain counter
+    chargeCounter += 1; // Increase charge counter
+  }
+  // --- End Cloud Interaction Logic ---
+
+  // --- Decay Logic ---
+  const decayChance = 0.005;
+  const decayThreshold = 100;
+
+  if (Math.random() < decayChance) {
+    decayCounter++;
+  }
+
+  if (decayCounter >= decayThreshold) {
+    newGrid[y][x] = { type: 'EMPTY' };
+    newColorGrid[y][x] = elements.EMPTY.color;
+    moved[y][x] = true;
+    return; // Cloud disappears, no further action needed
+  }
+  // --- End Decay Logic ---
+
+  // --- Rain Logic ---
+  const rainChance = 0.05;
+  const rainThreshold = 100;
+
+  if (Math.random() < rainChance) {
+    rainCounter++;
+  }
+
+  if (rainCounter >= rainThreshold) {
+    // Try to rain below
+    if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
+      newGrid[y + 1][x] = { type: 'WATER' };
+      newColorGrid[y + 1][x] = elements.WATER.color;
+      moved[y + 1][x] = true;
+      rainCounter = 0; // Reset counter
+    }
+  }
+  // --- End Rain Logic ---
+
+  // --- Charge Logic ---
+  const chargeChance = 0.01;
+  const chargeThreshold = 200;
+
+  if (Math.random() < chargeChance) {
+    chargeCounter++;
+  }
+
+  if (chargeCounter >= chargeThreshold) {
+    console.log(`Thunder at (${x}, ${y})!`); // Placeholder for THUNDER generation
+    chargeCounter = 0; // Reset counter
+  }
+  // --- End Charge Logic ---
+
 
   // Movement priority: up > diagonally up > sideways, with some randomness
   const upwardChance = 0.7; // High chance to move up
   const spreadChance = 0.5; // Moderate chance to spread
+
+  // Get the new cell state after potential changes
+  const currentCell = newGrid[y][x].type !== 'EMPTY' ? newGrid[y][x] : grid[y][x];
+  const updatedCounters = { rainCounter, chargeCounter, decayCounter };
+
 
   // 1. Try moving up
   if (y > 0 && !hasMoved && Math.random() < upwardChance) {
     if (grid[y - 1][x].type === 'EMPTY' && !moved[y - 1][x]) {
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y - 1][x] = { type: 'CLOUD' };
+      newGrid[y - 1][x] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
       newColorGrid[y - 1][x] = color;
       moved[y][x] = true;
       moved[y - 1][x] = true;
@@ -57,7 +139,7 @@ export const handleCloud = ({
       if (nx >= 0 && nx < width && grid[y - 1][nx].type === 'EMPTY' && !moved[y - 1][nx]) {
         newGrid[y][x] = { type: 'EMPTY' };
         newColorGrid[y][x] = elements.EMPTY.color;
-        newGrid[y - 1][nx] = { type: 'CLOUD' };
+        newGrid[y - 1][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
         newColorGrid[y - 1][nx] = color;
         moved[y][x] = true;
         moved[y - 1][nx] = true;
@@ -77,7 +159,7 @@ export const handleCloud = ({
       if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && !moved[y][nx]) {
         newGrid[y][x] = { type: 'EMPTY' };
         newColorGrid[y][x] = elements.EMPTY.color;
-        newGrid[y][nx] = { type: 'CLOUD' };
+        newGrid[y][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
         newColorGrid[y][nx] = color;
         moved[y][x] = true;
         moved[y][nx] = true;
@@ -85,5 +167,11 @@ export const handleCloud = ({
         break;
       }
     }
+  }
+
+  // If the cloud hasn't moved, update its counter in the new grid
+  if (!hasMoved) {
+    newGrid[y][x] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
+    newColorGrid[y][x] = color;
   }
 };

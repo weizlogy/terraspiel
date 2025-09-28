@@ -25,6 +25,9 @@ export interface Element {
 
 export interface Cell {
   type: ElementName;
+  rainCounter?: number; // for CLOUD
+  chargeCounter?: number; // for CLOUD
+  decayCounter?: number; // for CLOUD
   counter?: number; // Optional counter for transformations
   burningProgress?: number; // For combustion progress tracking
 }
