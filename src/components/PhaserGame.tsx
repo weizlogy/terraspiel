@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   private simulationInterval: number = 30; // ms - even faster physics updates for smoother movement
   private lastDrawTime: number = 0;
   private drawInterval: number = 30; // ms - more responsive drawing when holding mouse
+  private frameCount: number = 0;
 
   constructor() {
     super('GameScene');
@@ -110,10 +111,12 @@ export class GameScene extends Phaser.Scene {
       this.lastMoveGrids[writeBufferIndex],
       this.colorGrids[writeBufferIndex],
       this.particles,
+      this.frameCount
     );
 
     // Swap buffers for the next frame
     this.activeBufferIndex = writeBufferIndex as 0 | 1;
+    this.frameCount++;
 
     // The write buffers are now the new read buffers. We can update the store.
     const state = useGameStore.getState();

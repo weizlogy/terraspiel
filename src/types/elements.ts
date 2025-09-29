@@ -20,6 +20,10 @@ export interface Element {
   isStatic?: boolean; // Whether the element is static or moves
   lifespan?: number; // For elements that change over time
   alpha?: number; // Optional alpha value for rendering
+  fluidity?: {
+    resistance: number; // Chance to resist diagonal movement (0-1)
+    spread: number;     // Chance to spread horizontally (0-1)
+  };
   [key: string]: any;
 }
 

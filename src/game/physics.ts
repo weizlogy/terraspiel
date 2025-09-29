@@ -1,7 +1,5 @@
 import { type ElementName, type MoveDirection, type Cell, type Particle } from "../types/elements";
-import { handleSoil } from "./behaviors/soilBehavior";
-import { handleWater } from "./behaviors/waterBehavior";
-import { handleMud } from "./behaviors/mudBehavior";
+import { handleGranular } from "./behaviors/granularBehavior";
 import { handleCloud } from "./behaviors/cloudBehavior";
 import { handleFire } from "./behaviors/fireBehavior";
 import { handleTransformations } from "./transformation";
@@ -22,6 +20,7 @@ interface BehaviorContext {
   y: number;
   width: number;
   height: number;
+  scanRight: boolean;
 }
 
 // Define the behavior function type
@@ -29,15 +28,16 @@ type ElementBehavior = (context: BehaviorContext) => void;
 
 // Map elements to their behavior handlers
 const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
-  SOIL: handleSoil,
-  FERTILE_SOIL: handleSoil,
-  PEAT: handleSoil,
-  WATER: handleWater,
-  MUD: handleMud,
+  SOIL: handleGranular,
+  FERTILE_SOIL: handleGranular,
+  PEAT: handleGranular,
+  WATER: handleGranular,
+  MUD: handleGranular,
   CLOUD: handleCloud,
-  CLAY: handleSoil,
+  CLAY: handleGranular,
   FIRE: handleFire,
-  SAND: handleMud, // SAND also behaves like mud (fluid)
+  SAND: handleGranular,
+  STONE: handleGranular, // Will be handled by the guard clause in handleGranular
 };
 
 // Main physics simulation function that handles cells and particles
@@ -49,6 +49,7 @@ export const simulateWorld = (
   writeLastMoveGrid: MoveDirection[][],
   writeColorGrid: string[][],
   particles: Particle[],
+  frameCount: number,
 ): {
   newParticles: Particle[];
 } => {
@@ -68,17 +69,13 @@ export const simulateWorld = (
   }
 
   // --- PASS 1: MOVEMENT ---
-  // Directly modify the write buffers instead of creating copies
   const moved = Array(height).fill(null).map(() => Array(width).fill(false));
-  const xIndices = Array.from(Array(width).keys());
+  const scanRight = frameCount % 2 === 0;
 
   for (let y = height - 1; y >= 0; y--) {
-    for (let i = xIndices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [xIndices[i], xIndices[j]] = [xIndices[j], xIndices[i]];
-    }
+    for (let i = 0; i < width; i++) {
+      const x = scanRight ? i : width - 1 - i;
 
-    for (const x of xIndices) {
       if (moved[y][x]) continue;
 
       const element = readGrid[y][x].type;
@@ -102,6 +99,7 @@ export const simulateWorld = (
           y,
           width,
           height,
+          scanRight,
         });
       } else {
         // If no behavior, the element stays in place
@@ -115,10 +113,12 @@ export const simulateWorld = (
   const spawnedParticles: Particle[] = [];
 
   for (let y = height - 1; y >= 0; y--) {
-    for (const x of xIndices) {
+    for (let i = 0; i < width; i++) {
+      const x = scanRight ? i : width - 1 - i;
       const newParticle = handleTransformations({
         grid: writeGrid, // Read from and write to the same grid
         newGrid: writeGrid, // Pass it as newGrid as well
+        newColorGrid: writeColorGrid,
         x, y, width, height,
       });
       if (newParticle) {

@@ -1,9 +1,11 @@
 import { type Cell, type RuleCondition, type SurroundingCondition, type EnvironmentCondition, type Particle, type Element, type ElementName, type SurroundingAttributeCondition } from "../types/elements";
 import useGameStore from "../stores/gameStore";
+import { varyColor } from "../utils/colors";
 
 interface BehaviorContext {
   grid: Cell[][];
   newGrid: Cell[][];
+  newColorGrid: string[][];
   x: number;
   y: number;
   width: number;
@@ -73,6 +75,7 @@ const checkCondition = (condition: RuleCondition, grid: Cell[][], x: number, y: 
 export const handleTransformations = ({
   grid,
   newGrid,
+  newColorGrid,
   x,
   y,
   width,
@@ -111,6 +114,8 @@ export const handleTransformations = ({
               const ny = y + j;
               if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].type === rule.consumes) {
                 newGrid[ny][nx] = { type: 'EMPTY' };
+                // Also update color of consumed cell
+                newColorGrid[ny][nx] = elements.EMPTY.color;
                 consumed = true;
                 break;
               }
@@ -121,6 +126,12 @@ export const handleTransformations = ({
 
         const fromType = grid[y][x].type;
         newGrid[y][x] = { type: rule.to, counter: 0 };
+        
+        // Also update the color
+        const newElement = elements[rule.to];
+        if (newElement) {
+          newColorGrid[y][x] = varyColor(newElement.color);
+        }
 
         const ETHER_SPAWN_CHANCE = 0.005;
         if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
