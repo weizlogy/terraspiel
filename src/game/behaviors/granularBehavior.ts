@@ -36,9 +36,7 @@ export const handleGranular = ({
   const elementType = grid[y][x].type;
   const elementDef = elements[elementType];
 
-  // Exit if the element is not fluid
   if (!elementDef?.fluidity) {
-    // If it hasn't moved, copy original state to new grid
     newGrid[y][x] = grid[y][x];
     newColorGrid[y][x] = colorGrid[y][x];
     newLastMoveGrid[y][x] = lastMoveGrid[y][x];
@@ -46,50 +44,74 @@ export const handleGranular = ({
   }
 
   const { resistance, spread } = elementDef.fluidity;
-  const color = colorGrid[y][x];
+  const myColor = colorGrid[y][x];
 
-  // 1. Try moving down
-  if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
-    newGrid[y][x] = { type: 'EMPTY' };
-    newColorGrid[y][x] = elements.EMPTY.color;
-    newGrid[y + 1][x] = { type: elementType };
-    newColorGrid[y + 1][x] = color;
-    moved[y][x] = true;
-    moved[y + 1][x] = true;
-    newLastMoveGrid[y + 1][x] = 'NONE';
-    return;
+  // 1. Try moving down (or swapping with a less dense element)
+  const downY = y + 1;
+  if (downY < height && !moved[y + 1][x]) {
+    const targetCell = grid[downY][x];
+    const targetElementDef = elements[targetCell.type];
+
+    if (targetCell.type === 'EMPTY') {
+      newGrid[y][x] = { type: 'EMPTY' };
+      newColorGrid[y][x] = elements.EMPTY.color;
+      newGrid[downY][x] = { type: elementType };
+      newColorGrid[downY][x] = myColor;
+      moved[y][x] = true;
+      moved[downY][x] = true;
+      newLastMoveGrid[downY][x] = 'NONE';
+      return;
+    } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
+      // Swap with the less dense element
+      const targetColor = colorGrid[downY][x];
+      newGrid[y][x] = { type: targetCell.type };
+      newColorGrid[y][x] = targetColor;
+      newGrid[downY][x] = { type: elementType };
+      newColorGrid[downY][x] = myColor;
+      moved[y][x] = true;
+      moved[downY][x] = true;
+      newLastMoveGrid[y][x] = lastMoveGrid[downY][x]; // Inherit inertia from swapped element
+      newLastMoveGrid[downY][x] = 'NONE';
+      return;
+    }
   }
 
-  // 2. Try moving diagonally down (with inertia and resistance)
+  // 2. Try moving diagonally down (with inertia, resistance, and swapping)
   if (y + 1 < height) {
     const lastMove = lastMoveGrid[y][x];
     const initialDir = scanRight ? 1 : -1;
     const dir = lastMove === 'LEFT' ? -1 : (lastMove === 'RIGHT' ? 1 : initialDir);
 
-    // Check preferred direction
-    let dx = dir;
-    if (x + dx >= 0 && x + dx < width && grid[y + 1][x + dx].type === 'EMPTY' && !moved[y + 1][x + dx] && Math.random() > resistance) {
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y + 1][x + dx] = { type: elementType };
-      newColorGrid[y + 1][x + dx] = color;
-      moved[y][x] = true;
-      moved[y + 1][x + dx] = true;
-      newLastMoveGrid[y + 1][x + dx] = dx === -1 ? 'LEFT' : 'RIGHT';
-      return;
-    }
+    for (let i = 0; i < 2; i++) {
+      const dx = i === 0 ? dir : -dir;
+      const targetX = x + dx;
 
-    // Check other direction as a fallback
-    dx = -dir;
-    if (x + dx >= 0 && x + dx < width && grid[y + 1][x + dx].type === 'EMPTY' && !moved[y + 1][x + dx] && Math.random() > resistance) {
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y + 1][x + dx] = { type: elementType };
-      newColorGrid[y + 1][x + dx] = color;
-      moved[y][x] = true;
-      moved[y + 1][x + dx] = true;
-      newLastMoveGrid[y + 1][x + dx] = dx === -1 ? 'LEFT' : 'RIGHT';
-      return;
+      if (targetX >= 0 && targetX < width && !moved[y + 1][targetX] && Math.random() > resistance) {
+        const targetCell = grid[y + 1][targetX];
+        const targetElementDef = elements[targetCell.type];
+
+        if (targetCell.type === 'EMPTY') {
+          newGrid[y][x] = { type: 'EMPTY' };
+          newColorGrid[y][x] = elements.EMPTY.color;
+          newGrid[y + 1][targetX] = { type: elementType };
+          newColorGrid[y + 1][targetX] = myColor;
+          moved[y][x] = true;
+          moved[y + 1][targetX] = true;
+          newLastMoveGrid[y + 1][targetX] = dx === -1 ? 'LEFT' : 'RIGHT';
+          return;
+        } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
+          const targetColor = colorGrid[y + 1][targetX];
+          newGrid[y][x] = { type: targetCell.type };
+          newColorGrid[y][x] = targetColor;
+          newGrid[y + 1][targetX] = { type: elementType };
+          newColorGrid[y + 1][targetX] = myColor;
+          moved[y][x] = true;
+          moved[y + 1][targetX] = true;
+          newLastMoveGrid[y][x] = lastMoveGrid[y + 1][targetX];
+          newLastMoveGrid[y + 1][targetX] = dx === -1 ? 'LEFT' : 'RIGHT';
+          return;
+        }
+      }
     }
   }
 
@@ -123,17 +145,16 @@ export const handleGranular = ({
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y][targetX] = { type: elementType };
-      newColorGrid[y][targetX] = color;
+      newColorGrid[y][targetX] = myColor;
       moved[y][x] = true;
       moved[y][targetX] = true;
       newLastMoveGrid[y][targetX] = moveDir === -1 ? 'LEFT' : 'RIGHT';
       return;
-      
     } else if (canGoLeft) {
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y][leftX] = { type: elementType };
-      newColorGrid[y][leftX] = color;
+      newColorGrid[y][leftX] = myColor;
       moved[y][x] = true;
       moved[y][leftX] = true;
       newLastMoveGrid[y][leftX] = 'LEFT';
@@ -142,7 +163,7 @@ export const handleGranular = ({
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
       newGrid[y][rightX] = { type: elementType };
-      newColorGrid[y][rightX] = color;
+      newColorGrid[y][rightX] = myColor;
       moved[y][x] = true;
       moved[y][rightX] = true;
       newLastMoveGrid[y][rightX] = 'RIGHT';
