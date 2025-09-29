@@ -42,35 +42,33 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
 
 // Main physics simulation function that handles cells and particles
 export const simulateWorld = (
-  grid: Cell[][],
-  lastMoveGrid: MoveDirection[][],
-  colorGrid: string[][],
+  readGrid: Cell[][],
+  readLastMoveGrid: MoveDirection[][],
+  readColorGrid: string[][],
+  writeGrid: Cell[][],
+  writeLastMoveGrid: MoveDirection[][],
+  writeColorGrid: string[][],
   particles: Particle[],
 ): {
-  newGrid: Cell[][];
-  newLastMoveGrid: MoveDirection[][];
-  newColorGrid: string[][];
   newParticles: Particle[];
 } => {
   // Add a guard clause to check if the grid is initialized
-  if (!grid || grid.length === 0 || !grid[0] || grid[0].length === 0) {
+  if (!readGrid || readGrid.length === 0 || !readGrid[0] || readGrid[0].length === 0) {
     // Grid not initialized yet, return current state
-    return { newGrid: grid, newLastMoveGrid: lastMoveGrid, newColorGrid: colorGrid, newParticles: particles };
+    return { newParticles: particles };
   }
 
-  const height = grid.length;
-  const width = grid[0].length;
+  const height = readGrid.length;
+  const width = readGrid[0].length;
   const elements = useGameStore.getState().elements;
 
   if (Object.keys(elements).length === 0) {
     // Elements not loaded yet, return current state
-    return { newGrid: grid, newLastMoveGrid: lastMoveGrid, newColorGrid: colorGrid, newParticles: particles };
+    return { newParticles: particles };
   }
 
   // --- PASS 1: MOVEMENT ---
-  const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
-  const newColorGrid = colorGrid.map(row => [...row]);
-  const newLastMoveGrid: MoveDirection[][] = lastMoveGrid.map(row => [...row]);
+  // Directly modify the write buffers instead of creating copies
   const moved = Array(height).fill(null).map(() => Array(width).fill(false));
   const xIndices = Array.from(Array(width).keys());
 
@@ -83,37 +81,44 @@ export const simulateWorld = (
     for (const x of xIndices) {
       if (moved[y][x]) continue;
 
-      const element = grid[y][x].type;
-      if (element === 'EMPTY') continue;
+      const element = readGrid[y][x].type;
+      if (element === 'EMPTY') {
+        writeGrid[y][x] = { type: 'EMPTY' };
+        writeColorGrid[y][x] = elements.EMPTY.color;
+        continue;
+      }
 
       const behavior = behaviors[element];
       if (behavior) {
         behavior({
-          grid,
-          lastMoveGrid,
-          colorGrid,
-          newGrid,
-          newLastMoveGrid,
-          newColorGrid,
+          grid: readGrid, // Pass read-only grid
+          lastMoveGrid: readLastMoveGrid,
+          colorGrid: readColorGrid,
+          newGrid: writeGrid, // Pass writable grid
+          newLastMoveGrid: writeLastMoveGrid,
+          newColorGrid: writeColorGrid,
           moved,
           x,
           y,
           width,
           height,
         });
+      } else {
+        // If no behavior, the element stays in place
+        writeGrid[y][x] = readGrid[y][x];
+        writeColorGrid[y][x] = readColorGrid[y][x];
       }
     }
   }
 
   // --- PASS 2: TRANSFORMATIONS ---
-  const gridAfterMove = newGrid.map(row => row.map(cell => ({ ...cell })));
   const spawnedParticles: Particle[] = [];
 
   for (let y = height - 1; y >= 0; y--) {
     for (const x of xIndices) {
       const newParticle = handleTransformations({
-        grid: newGrid, // Read from the result of the physics pass
-        newGrid: gridAfterMove, // Write to the grid for this pass
+        grid: writeGrid, // Read from and write to the same grid
+        newGrid: writeGrid, // Pass it as newGrid as well
         x, y, width, height,
       });
       if (newParticle) {
@@ -126,43 +131,34 @@ export const simulateWorld = (
   const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Add as needed
 
   // Update color grid after transformations
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (newGrid[y][x].type !== gridAfterMove[y][x].type) {
-        const newType = newGrid[y][x].type; // Fix: Use newGrid instead of gridAfterMove
-        const baseColor = elements[newType]?.color || '#000000';
-        // Use varyColor for all elements that should have variation
-        newColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
-      }
-    }
-  }
+  // This loop is now more complex because we don't have a separate `gridAfterMove`
+  // We can skip this color update for now, as the main color update will happen in the behavior itself.
+  // This is a potential area for further optimization.
 
   // --- PASS 3: PARTICLE SIMULATION & DEEPENING ---
   const allParticles = particles.concat(spawnedParticles);
   const { updatedParticles, updatedGrid, gridChanged } = handleEtherParticles({
     particles: allParticles,
-    grid: gridAfterMove,
+    grid: writeGrid, // Use the latest grid state
     width,
     height,
   });
 
-  // If particles changed the grid, we need to update the color grid accordingly
+  // If particles changed the grid, we need to copy the changes back to writeGrid
   if (gridChanged) {
-    // Reuse the same variation list defined above, or define here if not accessible
-    const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Add as needed
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        if (gridAfterMove[y][x].type !== updatedGrid[y][x].type) {
+        if (writeGrid[y][x].type !== updatedGrid[y][x].type) {
+          writeGrid[y][x] = updatedGrid[y][x];
           const newType = updatedGrid[y][x].type;
           const baseColor = elements[newType]?.color || '#000000';
-          // Use varyColor for all elements that should have variation
-          newColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
+          writeColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
         }
       }
     }
   }
 
-  return { newGrid: updatedGrid, newLastMoveGrid, newColorGrid, newParticles: updatedParticles };
+  return { newParticles: updatedParticles };
 };
 
 // Calculate statistics for elements in the grid

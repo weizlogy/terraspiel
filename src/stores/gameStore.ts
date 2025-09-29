@@ -21,6 +21,12 @@ interface GameState {
   setLastMoveGrid: (lastMoveGrid: MoveDirection[][]) => void;
   setColorGrid: (colorGrid: string[][]) => void;
   setParticles: (particles: Particle[]) => void;
+  setSimulationResult: (data: {
+    newGrid: Cell[][];
+    newLastMoveGrid: MoveDirection[][];
+    newColorGrid: string[][];
+    newParticles: Particle[];
+  }) => void;
   addParticle: (x: number, y: number, type: ParticleType, vx?: number, vy?: number) => void;
   initializeGrid: () => void;
   clearGrid: () => void;
@@ -66,6 +72,12 @@ const useGameStore = create<GameState>()((set, get) => ({
   setLastMoveGrid: (lastMoveGrid) => set({ lastMoveGrid }),
   setColorGrid: (colorGrid) => set({ colorGrid }),
   setParticles: (particles) => set({ particles }),
+  setSimulationResult: (data) => set({
+    grid: data.newGrid,
+    lastMoveGrid: data.newLastMoveGrid,
+    colorGrid: data.newColorGrid,
+    particles: data.newParticles,
+  }),
   addParticle: (x, y, type, vx = 0, vy = 0) => {
     const newParticle: Particle = {
       id: get().nextParticleId,

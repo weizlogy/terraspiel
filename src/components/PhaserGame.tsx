@@ -8,9 +8,11 @@ import { varyColor, blendColors } from '../utils/colors';
 const PARTICLE_ELEMENTS: ElementName[] = [];
 
 export class GameScene extends Phaser.Scene {
-  private grid: Cell[][] = [];
-  private lastMoveGrid: MoveDirection[][] = [];
-  private colorGrid: string[][] = [];
+  private grids: [Cell[][], Cell[][]] = [[], []];
+  private lastMoveGrids: [MoveDirection[][], MoveDirection[][]] = [[], []];
+  private colorGrids: [string[][], string[][]] = [[], []];
+  private activeBufferIndex: 0 | 1 = 0;
+
   private particles: Particle[] = []; // Add state for particles
   private elements: Record<ElementName, Element> = {} as Record<ElementName, Element>;
   private width: number = 160; // Fixed grid width
@@ -30,9 +32,14 @@ export class GameScene extends Phaser.Scene {
   init() {
     // Get initial state from store
     const state = useGameStore.getState();
-    this.grid = state.grid;
-    this.lastMoveGrid = state.lastMoveGrid;
-    this.colorGrid = state.colorGrid;
+    // Initialize both buffers
+    this.grids[0] = state.grid.map(row => row.map(cell => ({ ...cell })));
+    this.grids[1] = state.grid.map(row => row.map(cell => ({ ...cell })));
+    this.lastMoveGrids[0] = state.lastMoveGrid.map(row => [...row]);
+    this.lastMoveGrids[1] = state.lastMoveGrid.map(row => [...row]);
+    this.colorGrids[0] = state.colorGrid.map(row => [...row]);
+    this.colorGrids[1] = state.colorGrid.map(row => [...row]);
+
     this.particles = state.particles;
     this.elements = state.elements;
     this.width = state.width;
@@ -50,9 +57,14 @@ export class GameScene extends Phaser.Scene {
     
     // Subscribe to store updates for grid and particles
     useGameStore.subscribe((state) => {
-      this.grid = state.grid;
-      this.lastMoveGrid = state.lastMoveGrid;
-      this.colorGrid = state.colorGrid;
+      // Update both buffers when the store changes (e.g., from UI interaction)
+      this.grids[0] = state.grid.map(row => row.map(cell => ({ ...cell })));
+      this.grids[1] = state.grid.map(row => row.map(cell => ({ ...cell })));
+      this.lastMoveGrids[0] = state.lastMoveGrid.map(row => [...row]);
+      this.lastMoveGrids[1] = state.lastMoveGrid.map(row => [...row]);
+      this.colorGrids[0] = state.colorGrid.map(row => [...row]);
+      this.colorGrids[1] = state.colorGrid.map(row => [...row]);
+
       this.particles = state.particles;
       this.elements = state.elements;
       this.width = state.width;
@@ -86,23 +98,34 @@ export class GameScene extends Phaser.Scene {
   }
 
   private runSimulation() {
-    // Simulate grid and particles together
-    const { newGrid, newLastMoveGrid, newColorGrid, newParticles } = simulateWorld(
-      this.grid,
-      this.lastMoveGrid,
-      this.colorGrid,
-      this.particles
+    const readBufferIndex = this.activeBufferIndex;
+    const writeBufferIndex = 1 - this.activeBufferIndex;
+
+    // Simulate grid and particles together, writing to the back buffer
+    const { newParticles } = simulateWorld(
+      this.grids[readBufferIndex],
+      this.lastMoveGrids[readBufferIndex],
+      this.colorGrids[readBufferIndex],
+      this.grids[writeBufferIndex],
+      this.lastMoveGrids[writeBufferIndex],
+      this.colorGrids[writeBufferIndex],
+      this.particles,
     );
 
-    // Update store with new states
+    // Swap buffers for the next frame
+    this.activeBufferIndex = writeBufferIndex as 0 | 1;
+
+    // The write buffers are now the new read buffers. We can update the store.
     const state = useGameStore.getState();
-    state.setGrid(newGrid);
-    state.setLastMoveGrid(newLastMoveGrid);
-    state.setColorGrid(newColorGrid);
-    state.setParticles(newParticles);
+    state.setSimulationResult({
+      newGrid: this.grids[this.activeBufferIndex],
+      newLastMoveGrid: this.lastMoveGrids[this.activeBufferIndex],
+      newColorGrid: this.colorGrids[this.activeBufferIndex],
+      newParticles: newParticles,
+    });
     
-    // Update stats from grid and particles
-    const stats = calculateStats(newGrid, newParticles);
+    // Update stats from the new grid and particles
+    const stats = calculateStats(this.grids[this.activeBufferIndex], newParticles);
     state.updateStats(stats);
   }
 
@@ -131,14 +154,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const readBuffer = this.grids[this.activeBufferIndex];
+
     // Only allow drawing on empty cells
-    if (this.grid[gridY][gridX].type !== 'EMPTY') {
+    if (readBuffer[gridY][gridX].type !== 'EMPTY') {
       return;
     }
     
     const state = useGameStore.getState();
-    const newGrid = this.grid.map(row => row.map(cell => ({ ...cell })));
-    const newColorGrid = [...this.colorGrid.map(row => [...row])];
+    const newGrid = readBuffer.map(row => row.map(cell => ({ ...cell })));
+    const newColorGrid = this.colorGrids[this.activeBufferIndex].map(row => [...row]);
     
     const selectedElement = state.selectedElement as ElementName;
     // If selected element is a particle type, add a particle. Otherwise, update the grid.p
@@ -161,8 +186,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderAll() {
+    const readGrid = this.grids[this.activeBufferIndex];
+    const readColorGrid = this.colorGrids[this.activeBufferIndex];
+
     // Add a guard clause to check if the grid is initialized
-    if (!this.grid || this.grid.length === 0 || !this.grid[0] || this.grid[0].length === 0) {
+    if (!readGrid || readGrid.length === 0 || !readGrid[0] || readGrid[0].length === 0) {
       return;
     }
     if (!this.elements || Object.keys(this.elements).length === 0) return; // Existing guard
@@ -171,9 +199,9 @@ export class GameScene extends Phaser.Scene {
     // 1. Render the grid cells
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        const elementName = this.grid[y][x].type;
+        const elementName = readGrid[y][x].type;
         if (elementName !== 'EMPTY') {
-          let displayColor = this.colorGrid[y][x];
+          let displayColor = readColorGrid[y][x];
 
           // Special rendering for WATER: blend with neighbors
           if (elementName === 'WATER') {
@@ -189,9 +217,9 @@ export class GameScene extends Phaser.Scene {
                 const ny = y + dy;
 
                 if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                  const neighborElement = this.grid[ny][nx].type;
+                  const neighborElement = readGrid[ny][nx].type;
                   if (neighborElement !== 'EMPTY' && neighborElement !== 'WATER') { // Blend with non-empty, non-water neighbors
-                    const neighborColor = this.colorGrid[ny][nx];
+                    const neighborColor = readColorGrid[ny][nx];
                     blendedColor = blendColors(blendedColor, neighborColor, 0.9); // Small weight for neighbor
                     blendCount++;
                   }
