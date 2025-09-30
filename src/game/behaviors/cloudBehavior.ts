@@ -1,5 +1,6 @@
 import { type Cell } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
+import { varyColor } from "../../utils/colors";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -51,14 +52,13 @@ export const handleCloud = ({
   }
 
   if (isTouchingCloud) {
-    decayCounter = 0; // Reset decay counter
     rainCounter += 1; // Increase rain counter
     chargeCounter += 1; // Increase charge counter
   }
   // --- End Cloud Interaction Logic ---
 
   // --- Decay Logic ---
-  const decayChance = 0.005;
+  const decayChance = 0.02;
   const decayThreshold = 100;
 
   if (Math.random() < decayChance) {
@@ -85,9 +85,10 @@ export const handleCloud = ({
     // Try to rain below
     if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
       newGrid[y + 1][x] = { type: 'WATER' };
-      newColorGrid[y + 1][x] = elements.WATER.color;
+      newColorGrid[y + 1][x] = varyColor(elements.WATER.color);
       moved[y + 1][x] = true;
       rainCounter = 0; // Reset counter
+      decayCounter += 10; // Increment decay counter on rain
     }
   }
   // --- End Rain Logic ---
