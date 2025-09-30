@@ -38,6 +38,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   FIRE: handleFire,
   SAND: handleGranular,
   STONE: handleGranular, // Will be handled by the guard clause in handleGranular
+  SEED: handleGranular,
 };
 
 // Main physics simulation function that handles cells and particles
