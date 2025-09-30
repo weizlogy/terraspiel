@@ -138,7 +138,8 @@ const useGameStore = create<GameState>()((set, get) => ({
     return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER', number>, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
-    const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
+    const allElements = Object.keys(get().elements) as ElementName[];
+    const gridElements = allElements.filter(el => el !== 'EMPTY'); // Elements that go into the grid
     const particleElementsForRandom: ParticleType[] = []; // Elements that become particles
 
     const newGrid: Cell[][] = Array(state.height)
