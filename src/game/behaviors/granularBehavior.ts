@@ -1,4 +1,4 @@
-import { type Cell, type MoveDirection, type ElementName } from "../../types/elements";
+import { type Cell, type MoveDirection } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
 
 interface BehaviorContext {

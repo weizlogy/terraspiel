@@ -8,7 +8,9 @@ const Toolbar: React.FC = () => {
   const randomizeGrid = useGameStore((state) => state.randomizeGrid);
   const elements = useGameStore((state) => state.elements);
 
-  const placeableElements: ElementName[] = ['SOIL', 'WATER'];
+  const placeableElements = Object.values(elements)
+    .filter(el => el.isPlaceable)
+    .map(el => el.name as ElementName);
 
   if (Object.keys(elements).length === 0) {
     return <div className="toolbar bg-gray-900 text-white p-2 shadow-lg border-t border-gray-700">Loading...</div>;

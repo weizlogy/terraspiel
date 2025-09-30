@@ -127,8 +127,7 @@ export const simulateWorld = (
     }
   }
 
-  // Define elements that should have color variation
-  const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Add as needed
+  // Color variation is now handled by the hasColorVariation property in elements.json
 
   // Update color grid after transformations
   // This loop is now more complex because we don't have a separate `gridAfterMove`
@@ -152,7 +151,7 @@ export const simulateWorld = (
           writeGrid[y][x] = updatedGrid[y][x];
           const newType = updatedGrid[y][x].type;
           const baseColor = elements[newType]?.color || '#000000';
-          writeColorGrid[y][x] = elementsWithVariation.includes(newType) ? varyColor(baseColor) : baseColor;
+          writeColorGrid[y][x] = elements[newType]?.hasColorVariation ? varyColor(baseColor) : baseColor;
         }
       }
     }
@@ -162,34 +161,29 @@ export const simulateWorld = (
 };
 
 // Calculate statistics for elements in the grid
-export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<string, number> => {
-  const stats: Record<string, number> = {
-    SOIL: 0,
-    WATER: 0,
-    MUD: 0,
-    FERTILE_SOIL: 0,
-    PEAT: 0,
-    CLOUD: 0,
-    CLAY: 0,
-    FIRE: 0,
-    SAND: 0,
-    STONE: 0,
-    SEED: 0,
-    ETHER: 0,
-  };
+export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<ElementName | "ETHER", number> => {
+  // Get the current stats object from the store to ensure all elements are present
+  const stats = useGameStore.getState().stats;
 
+  // Reset all counts to zero
+  for (const key in stats) {
+    stats[key as keyof typeof stats] = 0;
+  }
+
+  // Recalculate counts from the grid
   for (let y = 0; y < grid.length; y++) {
     for (let x = 0; x < grid[y].length; x++) {
       const element = grid[y][x].type;
-      if (element in stats) {
+      if (element in stats && element !== 'EMPTY') { // Do not count EMPTY
         stats[element]++;
       }
     }
   }
 
+  // Recalculate counts from particles
   for (const particle of particles) {
-    if (particle.type === 'ETHER') {
-      stats.ETHER++;
+    if (particle.type in stats) {
+      stats[particle.type]++;
     }
   }
 

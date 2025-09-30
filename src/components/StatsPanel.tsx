@@ -6,10 +6,8 @@ const StatsPanel: React.FC = () => {
   const fps = useGameStore((state) => state.fps);
   const elements = useGameStore((state) => state.elements);
 
-  // Define which elements to show in the stats panel
-  const displayElements: (ElementName | 'ETHER')[] = [
-    'SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLOUD', 'CLAY', 'FIRE', 'SAND', 'STONE', 'SEED', 'ETHER'
-  ];
+  // Get elements to display from the stats object keys, then sort them
+  const displayElements = Object.keys(stats).sort() as (ElementName | 'ETHER')[];
 
   if (Object.keys(elements).length === 0) {
     return <div className="stats-panel bg-gray-900 text-white p-4 rounded-lg w-48 flex-shrink-0">Loading...</div>; // Or some other placeholder
@@ -40,7 +38,7 @@ const StatsPanel: React.FC = () => {
                   className="w-4 h-4 rounded-sm flex-shrink-0" 
                   style={{ backgroundColor: color }}
                 ></div>
-                <span className="font-semibold">{element === 'FERTILE_SOIL' ? 'FERTILE' : element}:</span>
+                <span className="font-semibold">{(elementData?.displayName || element)}:</span>
               </div>
               <span>{count}</span>
             </div>

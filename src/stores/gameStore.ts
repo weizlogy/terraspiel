@@ -107,24 +107,15 @@ const useGameStore = create<GameState>()((set, get) => ({
       .fill(0)
       .map(() => Array(width).fill(get().elements.EMPTY.color));
 
-    // Initialize stats (don't count EMPTY)
-    const stats: Record<ElementName | 'ETHER', number> = {
-      EMPTY: 0,
-      SOIL: 0,
-      WATER: 0,
-      MUD: 0,
-      FERTILE_SOIL: 0,
-      PEAT: 0,
-      CLOUD: 0,
-      CLAY: 0,
-      FIRE: 0,
-      SAND: 0,
-      STONE: 0,
-      SEED: 0,
-      ETHER: 0,
-    };
+    // Initialize stats dynamically from loaded elements
+    const elements = get().elements;
+    const stats: Record<string, number> = {};
+    Object.keys(elements).forEach(name => {
+      stats[name] = 0;
+    });
+    stats.ETHER = 0; // Add ETHER separately as it's a particle
 
-    set({ grid, lastMoveGrid, colorGrid, width, height, stats, particles: [], nextParticleId: 0 });
+    set({ grid, lastMoveGrid, colorGrid, width, height, stats: stats as Record<ElementName | 'ETHER', number>, particles: [], nextParticleId: 0 });
   },
   clearGrid: () => set((state) => {
     const grid: Cell[][] = Array(state.height)
@@ -137,23 +128,14 @@ const useGameStore = create<GameState>()((set, get) => ({
       .fill(0)
       .map(() => Array(state.width).fill(get().elements.EMPTY.color));
 
-    const stats: Record<ElementName | 'ETHER', number> = {
-      EMPTY: 0, // Don't count EMPTY
-      SOIL: 0,
-      WATER: 0,
-      MUD: 0,
-      FERTILE_SOIL: 0,
-      PEAT: 0,
-      CLOUD: 0,
-      CLAY: 0,
-      FIRE: 0,
-      SAND: 0,
-      STONE: 0,
-      SEED: 0,
-      ETHER: 0,
-    };
+    const elements = get().elements;
+    const stats: Record<string, number> = {};
+    Object.keys(elements).forEach(name => {
+      stats[name] = 0;
+    });
+    stats.ETHER = 0; // Add ETHER separately as it's a particle
 
-    return { grid, lastMoveGrid, colorGrid, stats, particles: [], nextParticleId: 0 };
+    return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER', number>, particles: [], nextParticleId: 0 };
   }),
   randomizeGrid: () => set((state) => {
     const gridElements: ElementName[] = ['SOIL', 'WATER']; // Elements that go into the grid
@@ -169,21 +151,12 @@ const useGameStore = create<GameState>()((set, get) => ({
       .fill(0)
       .map(() => Array(state.width).fill(get().elements.EMPTY.color));
 
-    const stats: Record<ElementName | 'ETHER', number> = {
-      EMPTY: 0,
-      SOIL: 0,
-      WATER: 0,
-      MUD: 0,
-      FERTILE_SOIL: 0,
-      PEAT: 0,
-      CLOUD: 0,
-      CLAY: 0,
-      FIRE: 0,
-      SAND: 0,
-      STONE: 0,
-      SEED: 0,
-      ETHER: 0,
-    };
+    const elements = get().elements;
+    const stats: Record<string, number> = {};
+    Object.keys(elements).forEach(name => {
+      stats[name] = 0;
+    });
+    stats.ETHER = 0; // Add ETHER separately as it's a particle
 
     const newParticles: Particle[] = [];
     let nextParticleId = 0; // Reset particle IDs for new random grid

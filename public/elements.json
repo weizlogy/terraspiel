@@ -1,14 +1,14 @@
 [
-  { "name": "EMPTY", "color": "#000000", "density": 0, "isStatic": true, "isWet": false, "isFlammable": false },
-  { "name": "SOIL", "color": "#A0522D", "density": 4, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 } },
-  { "name": "WATER", "color": "#1E90FF", "density": 3, "isStatic": false, "isWet": true, "isFlammable": false, "fluidity": { "resistance": 0.05, "spread": 0.7 } },
-  { "name": "MUD", "color": "#6B4226", "density": 3.5, "isStatic": false, "isWet": true, "isFlammable": false, "fluidity": { "resistance": 0.2, "spread": 0.2 } },
-  { "name": "FERTILE_SOIL", "color": "#5D4037", "density": 4, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 } },
-  { "name": "PEAT", "color": "#3A2E2B", "density": 4, "isStatic": false, "isWet": true, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 } },
-  { "name": "CLOUD", "color": "#F0F8FF", "density": 2, "isStatic": false, "alpha": 0.9, "isWet": true, "isFlammable": false },
-  { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.8, "spread": 0.05 } },
-  { "name": "FIRE", "color": "#FF4500", "density": 1, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true },
-  { "name": "SAND", "color": "#F4A460", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 } },
-  { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false },
-  { "name": "SEED", "color": "#8B4513", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 } }
+  { "name": "EMPTY", "color": "#000000", "density": 0, "isStatic": true, "isWet": false, "isFlammable": false, "isPlaceable": false, "hasColorVariation": false },
+  { "name": "SOIL", "color": "#A0522D", "density": 4, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": true, "hasColorVariation": true },
+  { "name": "WATER", "color": "#1E90FF", "density": 3, "isStatic": false, "isWet": true, "isFlammable": false, "fluidity": { "resistance": 0.05, "spread": 0.7 }, "isPlaceable": true, "hasColorVariation": true },
+  { "name": "MUD", "color": "#6B4226", "density": 3.5, "isStatic": false, "isWet": true, "isFlammable": false, "fluidity": { "resistance": 0.2, "spread": 0.2 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "FERTILE_SOIL", "displayName": "FERTILE", "color": "#5D4037", "density": 4, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "PEAT", "color": "#3A2E2B", "density": 4, "isStatic": false, "isWet": true, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "CLOUD", "color": "#F0F8FF", "density": 2, "isStatic": false, "alpha": 0.9, "isWet": true, "isFlammable": false, "isPlaceable": false, "hasColorVariation": false },
+  { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.8, "spread": 0.05 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "FIRE", "color": "#FF4500", "density": 1, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true, "isPlaceable": false, "hasColorVariation": false },
+  { "name": "SAND", "color": "#F4A460", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "SEED", "color": "#8B4513", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": false }
 ]

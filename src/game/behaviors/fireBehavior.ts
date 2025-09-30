@@ -20,8 +20,7 @@ const COMBUSTION_RULES: Partial<Record<ElementName, { selfTo: ElementName, neigh
   'MUD':  { selfTo: 'SOIL', neighborTo: 'FIRE', threshold: 20 },
 };
 
-// Define elements that should have color variation
-const elementsWithVariation: Array<ElementName> = ['SOIL', 'WATER', 'MUD', 'FERTILE_SOIL', 'PEAT', 'CLAY', 'SAND', 'STONE']; // Reuse from physics.ts if possible, or define here
+// Color variation is now handled by the hasColorVariation property in elements.json
 
 export const handleFire = ({
   grid,
@@ -77,11 +76,11 @@ export const handleFire = ({
           // --- COMBUSTION ---
           // The FIRE's current position changes
           newGrid[y][x] = { type: rule.selfTo };
-          newColorGrid[y][x] = elementsWithVariation.includes(rule.selfTo) ? varyColor(elements[rule.selfTo].color) : elements[rule.selfTo].color;
+          newColorGrid[y][x] = elements[rule.selfTo]?.hasColorVariation ? varyColor(elements[rule.selfTo].color) : elements[rule.selfTo].color;
 
           // The neighbor's position becomes FIRE
           newGrid[ny][nx] = { type: rule.neighborTo, burningProgress: 0 }; // Reset burningProgress
-          newColorGrid[ny][nx] = elementsWithVariation.includes(rule.neighborTo) ? varyColor(elements[rule.neighborTo].color) : elements[rule.neighborTo].color;
+          newColorGrid[ny][nx] = elements[rule.neighborTo]?.hasColorVariation ? varyColor(elements[rule.neighborTo].color) : elements[rule.neighborTo].color;
 
           // movedフラグを設定して、そのフレームで他の処理が入らないようにする
           moved[y][x] = true;
