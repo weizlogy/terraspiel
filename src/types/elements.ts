@@ -9,7 +9,8 @@ export type ElementName =
   | 'CLAY'
   | 'FIRE'
   | 'SAND'
-  | 'STONE';
+  | 'STONE'
+  | 'SEED';
 
 export type ParticleType = ElementName | 'ETHER';
 

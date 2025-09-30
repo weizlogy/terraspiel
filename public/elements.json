@@ -9,5 +9,6 @@
   { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.8, "spread": 0.05 } },
   { "name": "FIRE", "color": "#FF4500", "density": 1, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true },
   { "name": "SAND", "color": "#F4A460", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 } },
-  { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false }
+  { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false },
+  { "name": "SEED", "color": "#8B4513", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 } }
 ]

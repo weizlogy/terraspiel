@@ -90,9 +90,8 @@ http://localhost:5173/
         THUNDERがほかの物質に接触すると消滅する。
 
     ## 植物
-    - FERTILE_SOIL + 周囲にWATERが存在する + 時間経過 = SEED
-    - SEED + 周囲にWATERが存在する + 時間経過 = PLANT
-    - SEED + 周囲にWATERが存在しない + 時間経過 = WITHERED_PLANT
+    - FERTILE_SOIL 時間経過 = SEED
+    - SEED + 時間経過 = PLANT
     - PLANT + 時間経過 = WITHERED_PLANT
     - WITHERED_PLANT + 時間経過 = OIL
 

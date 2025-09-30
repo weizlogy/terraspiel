@@ -53,5 +53,12 @@
         "radius": 2
       }
     ]
+  },
+  {
+    "from": "FERTILE_SOIL",
+    "to": "SEED",
+    "probability": 0.1,
+    "threshold": 100,
+    "conditions": []
   }
 ]

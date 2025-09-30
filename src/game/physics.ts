@@ -174,6 +174,7 @@ export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<st
     FIRE: 0,
     SAND: 0,
     STONE: 0,
+    SEED: 0,
     ETHER: 0,
   };
 
