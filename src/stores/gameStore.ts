@@ -63,6 +63,8 @@ const useGameStore = create<GameState>()((set, get) => ({
     SAND: 0,
     STONE: 0,
     SEED: 0,
+    PLANT: 0,
+    WITHERED_PLANT: 0,
     ETHER: 0,
   },
   fps: 0,

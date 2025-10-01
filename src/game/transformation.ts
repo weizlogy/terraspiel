@@ -126,6 +126,15 @@ export const handleTransformations = ({
 
         const fromType = grid[y][x].type;
         newGrid[y][x] = { type: rule.to, counter: 0 };
+
+        // Set plant mode on creation
+        if (rule.to === 'PLANT') {
+          const ny = y - 1;
+          const plantMode: 'stem' | 'ground_cover' = (ny >= 0 && grid[ny][x].type === 'EMPTY') ? 'ground_cover' : 'stem';
+          newGrid[y][x].plantMode = plantMode;
+          newGrid[y][x].counter = 0; // Reset counter for growth
+          newGrid[y][x].decayCounter = 0;
+        }
         
         // Also update the color
         const newElement = elements[rule.to];

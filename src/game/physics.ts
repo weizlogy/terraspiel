@@ -3,6 +3,7 @@ import { handleGranular } from "./behaviors/granularBehavior";
 import { handleCloud } from "./behaviors/cloudBehavior";
 import { handleFire } from "./behaviors/fireBehavior";
 import { handleTransformations } from "./transformation";
+import { handlePlantGrowth } from "./behaviors/plantGrowthBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import useGameStore from "../stores/gameStore";
 import { varyColor } from "../utils/colors";
@@ -127,6 +128,9 @@ export const simulateWorld = (
       }
     }
   }
+
+  // --- PASS 2.5: PLANT GROWTH ---
+  handlePlantGrowth(writeGrid, writeGrid, writeColorGrid, width, height);
 
   // Color variation is now handled by the hasColorVariation property in elements.json
 
