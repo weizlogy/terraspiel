@@ -64,7 +64,6 @@ const useGameStore = create<GameState>()((set, get) => ({
     STONE: 0,
     SEED: 0,
     PLANT: 0,
-    WITHERED_PLANT: 0,
     ETHER: 0,
   },
   fps: 0,

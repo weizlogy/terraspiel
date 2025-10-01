@@ -2,7 +2,7 @@ import { type Cell } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
 import { varyColor } from "../../utils/colors";
 
-const DECAY_THRESHOLD = 500;
+const DECAY_THRESHOLD = 2000; // Increased from 500
 const GROWTH_THRESHOLD = 100;
 const STEM_GROW_CHANCE = 0.1;
 const LEAF_GROW_CHANCE = 0.2;
@@ -18,27 +18,28 @@ export const handlePlantGrowth = (
 ) => {
   const elements = useGameStore.getState().elements;
   const plantElement = elements.PLANT;
-  if (!plantElement || !plantElement.partColors) return; // Guard against missing data
+  if (!plantElement || !plantElement.partColors) return;
 
   const leafColor = plantElement.partColors.leaf;
   const flowerColor = plantElement.partColors.flower;
+  const witheredColor = plantElement.partColors.withered;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const cell = grid[y][x];
       const newCell = newGrid[y][x];
 
-      if (cell.type !== 'PLANT') {
+      if (cell.type !== 'PLANT' || cell.plantMode === 'withered') {
         continue;
       }
 
-      // --- 1. Decay Logic ---
       // Only body parts (stem, ground_cover) decay and grow
       if (newCell.plantMode === 'stem' || newCell.plantMode === 'ground_cover') {
+        // --- 1. Decay Logic ---
         const decayCounter = (newCell.decayCounter || 0) + 1;
         if (decayCounter > DECAY_THRESHOLD * (0.8 + Math.random() * 0.4)) {
-          newGrid[y][x] = { type: 'WITHERED_PLANT' };
-          newColorGrid[y][x] = varyColor(elements.WITHERED_PLANT.color);
+          newGrid[y][x] = { type: 'PLANT', plantMode: 'withered' };
+          newColorGrid[y][x] = varyColor(witheredColor);
           continue;
         }
         newGrid[y][x].decayCounter = decayCounter;

@@ -11,8 +11,7 @@ export type ElementName =
   | 'SAND'
   | 'STONE'
   | 'SEED'
-  | 'PLANT'
-  | 'WITHERED_PLANT';
+  | 'PLANT';
 
 export type ParticleType = ElementName | 'ETHER';
 
@@ -37,7 +36,7 @@ export interface Cell {
   decayCounter?: number; // for CLOUD & PLANT
   counter?: number; // Optional counter for transformations & growth
   burningProgress?: number; // For combustion progress tracking
-  plantMode?: 'stem' | 'ground_cover' | 'leaf' | 'flower'; // for PLANT
+  plantMode?: 'stem' | 'ground_cover' | 'leaf' | 'flower' | 'withered'; // for PLANT
 }
 
 export type ConditionType = 'surrounding' | 'environment' | 'surroundingAttribute';
