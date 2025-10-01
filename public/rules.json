@@ -60,5 +60,12 @@
     "probability": 0.1,
     "threshold": 100,
     "conditions": []
+  },
+  {
+    "from": "SEED",
+    "to": "PLANT",
+    "probability": 0.1,
+    "threshold": 100,
+    "conditions": []
   }
 ]
