@@ -6,6 +6,7 @@ import { handleTransformations } from "./transformation";
 import { handlePlantGrowth } from "./behaviors/plantGrowthBehavior";
 import { handlePlant } from "./behaviors/plantBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
+import { handleOil } from "./behaviors/oilBehavior";
 import useGameStore from "../stores/gameStore";
 import { varyColor } from "../utils/colors";
 
@@ -28,6 +29,14 @@ interface BehaviorContext {
 // Define the behavior function type
 type ElementBehavior = (context: BehaviorContext) => void;
 
+const handleOilBehavior: ElementBehavior = (context) => {
+  handleOil(context);
+  // If the cell hasn't been moved by handleOil, apply granular behavior
+  if (!context.moved[context.y][context.x]) {
+    handleGranular(context);
+  }
+};
+
 // Map elements to their behavior handlers
 const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SOIL: handleGranular,
@@ -41,7 +50,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SAND: handleGranular,
   STONE: handleGranular, // Will be handled by the guard clause in handleGranular
   SEED: handleGranular,
-  OIL: handleGranular,
+  OIL: handleOilBehavior,
   PLANT: handlePlant,
 };
 

@@ -18,6 +18,7 @@ const COMBUSTION_RULES: Partial<Record<ElementName, { selfTo: ElementName, neigh
   'SOIL': { selfTo: 'SAND', neighborTo: 'FIRE', threshold: 30 },
   'CLAY': { selfTo: 'STONE', neighborTo: 'FIRE', threshold: 50 },
   'MUD':  { selfTo: 'SOIL', neighborTo: 'FIRE', threshold: 20 },
+  'OIL': { selfTo: 'FIRE', neighborTo: 'FIRE', threshold: 1 },
 };
 
 // Color variation is now handled by the hasColorVariation property in elements.json
