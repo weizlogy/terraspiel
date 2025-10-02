@@ -4,6 +4,7 @@ import { handleCloud } from "./behaviors/cloudBehavior";
 import { handleFire } from "./behaviors/fireBehavior";
 import { handleTransformations } from "./transformation";
 import { handlePlantGrowth } from "./behaviors/plantGrowthBehavior";
+import { handlePlant } from "./behaviors/plantBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import useGameStore from "../stores/gameStore";
 import { varyColor } from "../utils/colors";
@@ -40,6 +41,8 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SAND: handleGranular,
   STONE: handleGranular, // Will be handled by the guard clause in handleGranular
   SEED: handleGranular,
+  OIL: handleGranular,
+  PLANT: handlePlant,
 };
 
 // Main physics simulation function that handles cells and particles
