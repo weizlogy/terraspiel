@@ -39,6 +39,7 @@ export interface Cell {
   burningProgress?: number; // For combustion progress tracking
   plantMode?: 'stem' | 'ground_cover' | 'leaf' | 'flower' | 'withered'; // for PLANT
   oilCounter?: number; // for withered PLANT to turn into OIL
+  life?: number; // for FIRE
 }
 
 export type ConditionType = 'surrounding' | 'environment' | 'surroundingAttribute';

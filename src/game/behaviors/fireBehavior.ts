@@ -6,6 +6,7 @@ interface BehaviorContext {
   grid: Cell[][];
   newGrid: Cell[][];
   newColorGrid: string[][];
+  colorGrid: string[][];
   moved: boolean[][];
   x: number;
   y: number;
@@ -13,12 +14,15 @@ interface BehaviorContext {
   height: number;
 }
 
+const FIRE_LIFESPAN = 100; // Fire's lifespan in frames
+
 // 燃焼ルール定義
 const COMBUSTION_RULES: Partial<Record<ElementName, { selfTo: ElementName, neighborTo: ElementName, threshold: number }>> = {
   'SOIL': { selfTo: 'SAND', neighborTo: 'FIRE', threshold: 30 },
   'CLAY': { selfTo: 'STONE', neighborTo: 'FIRE', threshold: 50 },
   'MUD':  { selfTo: 'SOIL', neighborTo: 'FIRE', threshold: 20 },
   'OIL': { selfTo: 'FIRE', neighborTo: 'FIRE', threshold: 1 },
+  'PLANT': { selfTo: 'FIRE', neighborTo: 'FIRE', threshold: 5 },
 };
 
 // Color variation is now handled by the hasColorVariation property in elements.json
@@ -27,6 +31,7 @@ export const handleFire = ({
   grid,
   newGrid,
   newColorGrid,
+  colorGrid,
   moved,
   x,
   y,
@@ -35,6 +40,8 @@ export const handleFire = ({
 }: BehaviorContext): void => {
   const elements = useGameStore.getState().elements;
   if (Object.keys(elements).length === 0) return;
+
+  let hasBurnedSomething = false;
 
   // 隣接セルをチェックする前に、WATER接触をチェックする (ルール6)
   const directions = [
@@ -57,9 +64,12 @@ export const handleFire = ({
     if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
       const neighborType = grid[ny][nx].type;
 
-      // WATERに接触した場合は、燃焼処理を行わず終了 (WATERは燃焼対象でもルールにない)
+      // WATERに接触した場合は、消火
       if (neighborType === 'WATER') {
-        return; // WATERに触れたので燃焼処理をスキップ
+        newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+        moved[y][x] = true;
+        return;
       }
 
       const rule = COMBUSTION_RULES[neighborType];
@@ -76,25 +86,38 @@ export const handleFire = ({
         if (newProgress >= rule.threshold) {
           // --- COMBUSTION ---
           // The FIRE's current position changes
-          newGrid[y][x] = { type: rule.selfTo };
+          newGrid[y][x] = { type: rule.selfTo, life: FIRE_LIFESPAN };
           newColorGrid[y][x] = elements[rule.selfTo]?.hasColorVariation ? varyColor(elements[rule.selfTo].color) : elements[rule.selfTo].color;
 
           // The neighbor's position becomes FIRE
-          newGrid[ny][nx] = { type: rule.neighborTo, burningProgress: 0 }; // Reset burningProgress
+          newGrid[ny][nx] = { type: rule.neighborTo, burningProgress: 0, life: FIRE_LIFESPAN }; // Reset burningProgress
           newColorGrid[ny][nx] = elements[rule.neighborTo]?.hasColorVariation ? varyColor(elements[rule.neighborTo].color) : elements[rule.neighborTo].color;
 
           // movedフラグを設定して、そのフレームで他の処理が入らないようにする
           moved[y][x] = true;
           moved[ny][nx] = true;
+          
+          hasBurnedSomething = true;
 
           // 1つの変化が起こったら終了 (他の方向はチェックしない)
-          return; // Exit after one reaction (変化が起こったので終了)
+          return;
         }
-        // 閾値に達していなければ、他の方向もチェックする
-        // (以前はカウンター更新後もreturnしていたが、変化が起こらなければ続ける)
       }
-      // ルールがなければ、他の方向をチェックする
     }
   }
-  // 全方向チェックしても変化がなければ終了
+
+  // 燃やすものがなかった場合、lifeを減らす
+  if (!hasBurnedSomething) {
+    const currentLife = grid[y][x].life ?? FIRE_LIFESPAN;
+    const newLife = currentLife - 1;
+
+    if (newLife <= 0) {
+      newGrid[y][x] = { type: 'EMPTY' };
+      newColorGrid[y][x] = elements.EMPTY.color;
+    } else {
+      newGrid[y][x] = { ...grid[y][x], life: newLife };
+      newColorGrid[y][x] = colorGrid[y][x]; // Keep the same color
+    }
+    moved[y][x] = true;
+  }
 };
