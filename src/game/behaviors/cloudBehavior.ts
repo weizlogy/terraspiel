@@ -95,8 +95,8 @@ export const handleCloud = ({
   // --- End Rain Logic ---
 
   // --- Charge Logic ---
-  const chargeChance = 0.3;
-  const chargeThreshold = 200;
+  const chargeChance = 0.05;
+  const chargeThreshold = 800;
 
   if (Math.random() < chargeChance) {
     chargeCounter++;
