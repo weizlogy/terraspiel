@@ -110,7 +110,7 @@ export const handleCloud = ({
       vx: Math.random() - 0.5,
       vy: Math.random() * 2 + 2,
       type: 'THUNDER',
-      life: 20,
+      life: 60,
     };
     chargeCounter = 0; // Reset counter
   }

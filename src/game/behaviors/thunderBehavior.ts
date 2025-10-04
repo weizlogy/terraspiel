@@ -6,6 +6,8 @@ interface ThunderBehaviorContext {
   grid: Cell[][];
   width: number;
   height: number;
+  spawnedParticles: Particle[];
+  nextParticleId: number;
 }
 
 const ZAP_CHANCE = 0.5; // Chance for a particle to transform a cell on contact
@@ -19,15 +21,66 @@ const zapRules: Partial<Record<ElementName, ElementName>> = {
   SOIL: 'FIRE',
 };
 
+// Elements that can be turned into particles by an explosion
+const AFFECTED_BY_EXPLOSION: ElementName[] = ['SOIL', 'SAND', 'WATER', 'MUD', 'PEAT', 'FERTILE_SOIL', 'CLAY', 'FIRE', 'PLANT', 'SEED', 'OIL'];
+
+const createExplosion = (
+  grid: Cell[][],
+  cx: number, 
+  cy: number, 
+  radius: number, 
+  width: number, 
+  height: number, 
+  spawnedParticles: Particle[], 
+  nextParticleId: number
+): number => {
+  let currentParticleId = nextParticleId;
+  for (let j = -radius; j <= radius; j++) {
+    for (let i = -radius; i <= radius; i++) {
+      const nx = cx + i;
+      const ny = cy + j;
+
+      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+        const distance = Math.sqrt(i * i + j * j);
+        if (distance <= radius) {
+          const cellType = grid[ny][nx].type;
+          
+          if (AFFECTED_BY_EXPLOSION.includes(cellType)) {
+            const probability = 1.0 - (distance / radius);
+            if (Math.random() < probability) {
+              const power = (1.0 - (distance / radius)) * 2.0; // Explosion power decreases with distance
+              const particle: Particle = {
+                id: currentParticleId++,
+                type: cellType,
+                px: nx + 0.5,
+                py: ny + 0.5,
+                vx: i * power * 0.5, // Directional velocity
+                vy: j * power * 0.5,
+                life: 100, // Give it some life to fall back down
+              };
+              spawnedParticles.push(particle);
+              grid[ny][nx] = { type: 'EMPTY' }; // Clear the original cell
+            }
+          }
+        }
+      }
+    }
+  }
+  return currentParticleId;
+};
+
 export const handleThunderParticles = ({
   particles,
   grid,
   width,
   height,
-}: ThunderBehaviorContext): { updatedParticles: Particle[], updatedGrid: Cell[][], gridChanged: boolean } => {
+  spawnedParticles,
+  nextParticleId,
+}: ThunderBehaviorContext): { updatedParticles: Particle[], updatedGrid: Cell[][], gridChanged: boolean, nextParticleId: number } => {
   const elements = useGameStore.getState().elements;
   const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
   let gridChanged = false;
+  let currentParticleId = nextParticleId;
 
   // Filter out dead particles first
   const livingParticles = particles.filter(p => p.life > 0);
@@ -73,6 +126,9 @@ export const handleThunderParticles = ({
 
       // Disappear in water
       if (cellType === 'WATER') {
+        const radius = Math.floor(Math.random() * 2) + 1; // Random radius 1-2
+        currentParticleId = createExplosion(newGrid, cx, cy, radius, width, height, spawnedParticles, currentParticleId);
+        gridChanged = true;
         newParticle.life = 0;
         return null;
       }
@@ -89,6 +145,8 @@ export const handleThunderParticles = ({
       // If the particle is over a flammable cell, try to ignite it
       if (targetType && element?.isFlammable && Math.random() < ZAP_CHANCE) {
         newGrid[cy][cx] = { type: targetType };
+        const radius = Math.floor(Math.random() * 3) + 1; // Random radius 1-3
+        currentParticleId = createExplosion(newGrid, cx, cy, radius, width, height, spawnedParticles, currentParticleId);
         gridChanged = true;
         newParticle.life = 0; // Consume the particle upon transformation
       }
@@ -97,5 +155,5 @@ export const handleThunderParticles = ({
     return newParticle;
   }).filter(p => p !== null) as Particle[];
 
-  return { updatedParticles, updatedGrid: newGrid, gridChanged };
+  return { updatedParticles, updatedGrid: newGrid, gridChanged, nextParticleId: currentParticleId };
 };

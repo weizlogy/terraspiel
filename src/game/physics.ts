@@ -162,7 +162,6 @@ export const simulateWorld = (
       p.id = nextParticleId++;
     }
   }
-  useGameStore.setState({ nextParticleId });
 
   const allParticles = particles.concat(spawnedParticles);
 
@@ -180,7 +179,13 @@ export const simulateWorld = (
     grid: etherResult.updatedGrid, // Use the grid potentially modified by Ether
     width,
     height,
+    spawnedParticles, // Pass the array to be populated
+    nextParticleId,   // Pass the current ID counter
   });
+
+  // Update the counter with the value returned from thunder behavior and set it in the store
+  nextParticleId = thunderResult.nextParticleId;
+  useGameStore.setState({ nextParticleId });
 
   // If either simulation changed the grid, we need to copy the changes back
   if (etherResult.gridChanged || thunderResult.gridChanged) {
