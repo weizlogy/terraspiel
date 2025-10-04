@@ -12,10 +12,11 @@ interface GameState {
   nextParticleId: number;
   width: number;
   height: number;
-  stats: Record<ElementName | 'ETHER', number>;
+  stats: Record<ElementName | 'ETHER' | 'THUNDER', number>;
   fps: number;
   elements: Record<ElementName, Element>;
   transformationRules: TransformationRule[];
+  updateSource?: 'ui' | 'simulation'; // Add this line
   setSelectedElement: (element: ElementName) => void;
   setGrid: (grid: Cell[][]) => void;
   setLastMoveGrid: (lastMoveGrid: MoveDirection[][]) => void;
@@ -31,7 +32,7 @@ interface GameState {
   initializeGrid: () => void;
   clearGrid: () => void;
   randomizeGrid: () => void;
-  updateStats: (stats: Record<ElementName | 'ETHER', number>) => void;
+  updateStats: (stats: Record<ElementName | 'ETHER' | 'THUNDER', number>) => void;
   setFps: (fps: number) => void;
   loadElements: () => Promise<void>;
   loadTransformationRules: () => Promise<void>;
@@ -66,12 +67,13 @@ const useGameStore = create<GameState>()((set, get) => ({
     PLANT: 0,
     OIL: 0,
     ETHER: 0,
+    THUNDER: 0,
   },
   fps: 0,
   elements: {} as Record<ElementName, Element>,
   transformationRules: [],
   setSelectedElement: (element) => set({ selectedElement: element }),
-  setGrid: (grid) => set({ grid }),
+  setGrid: (grid) => set({ grid, updateSource: 'ui' }),
   setLastMoveGrid: (lastMoveGrid) => set({ lastMoveGrid }),
   setColorGrid: (colorGrid) => set({ colorGrid }),
   setParticles: (particles) => set({ particles }),
@@ -80,8 +82,14 @@ const useGameStore = create<GameState>()((set, get) => ({
     lastMoveGrid: data.newLastMoveGrid,
     colorGrid: data.newColorGrid,
     particles: data.newParticles,
+    updateSource: 'simulation',
   }),
   addParticle: (x, y, type, vx = 0, vy = 0) => {
+    let life = 150; // Default for ETHER
+    if (type === 'THUNDER') {
+      life = 20; // Specific lifespan for THUNDER
+    }
+
     const newParticle: Particle = {
       id: get().nextParticleId,
       px: x,
@@ -89,7 +97,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       vx,
       vy,
       type,
-      life: 150, // Default lifespan for ETHER
+      life: life,
     };
     set((state) => ({
       particles: [...state.particles, newParticle],
@@ -116,8 +124,9 @@ const useGameStore = create<GameState>()((set, get) => ({
       stats[name] = 0;
     });
     stats.ETHER = 0; // Add ETHER separately as it's a particle
+    stats.THUNDER = 0; // Add THUNDER separately as it's a particle
 
-    set({ grid, lastMoveGrid, colorGrid, width, height, stats: stats as Record<ElementName | 'ETHER', number>, particles: [], nextParticleId: 0 });
+    set({ grid, lastMoveGrid, colorGrid, width, height, stats: stats as Record<ElementName | 'ETHER' | 'THUNDER', number>, particles: [], nextParticleId: 0, updateSource: 'ui' });
   },
   clearGrid: () => set((state) => {
     const grid: Cell[][] = Array(state.height)
@@ -136,8 +145,9 @@ const useGameStore = create<GameState>()((set, get) => ({
       stats[name] = 0;
     });
     stats.ETHER = 0; // Add ETHER separately as it's a particle
+    stats.THUNDER = 0; // Add THUNDER separately as it's a particle
 
-    return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER', number>, particles: [], nextParticleId: 0 };
+    return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER' | 'THUNDER', number>, particles: [], nextParticleId: 0, updateSource: 'ui' };
   }),
   randomizeGrid: () => set((state) => {
     const allElements = Object.keys(get().elements) as ElementName[];
@@ -160,6 +170,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       stats[name] = 0;
     });
     stats.ETHER = 0; // Add ETHER separately as it's a particle
+    stats.THUNDER = 0; // Add THUNDER separately as it's a particle
 
     const newParticles: Particle[] = [];
     let nextParticleId = 0; // Reset particle IDs for new random grid
@@ -206,7 +217,7 @@ const useGameStore = create<GameState>()((set, get) => ({
       // stats[randomParticleType]++; // Update stats for particles
     }
 
-    return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats, particles: newParticles, nextParticleId };
+    return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats, particles: newParticles, nextParticleId, updateSource: 'ui' };
   }),
   updateStats: (stats) => set({ stats }),
   setFps: (fps) => set({ fps }),

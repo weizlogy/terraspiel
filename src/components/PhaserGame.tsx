@@ -58,13 +58,15 @@ export class GameScene extends Phaser.Scene {
     
     // Subscribe to store updates for grid and particles
     useGameStore.subscribe((state) => {
-      // Update both buffers when the store changes (e.g., from UI interaction)
-      this.grids[0] = state.grid.map(row => row.map(cell => ({ ...cell })));
-      this.grids[1] = state.grid.map(row => row.map(cell => ({ ...cell })));
-      this.lastMoveGrids[0] = state.lastMoveGrid.map(row => [...row]);
-      this.lastMoveGrids[1] = state.lastMoveGrid.map(row => [...row]);
-      this.colorGrids[0] = state.colorGrid.map(row => [...row]);
-      this.colorGrids[1] = state.colorGrid.map(row => [...row]);
+      // Only sync grid data if the update is NOT from the simulation loop
+      if (state.updateSource !== 'simulation') {
+        this.grids[0] = state.grid.map(row => row.map(cell => ({ ...cell })));
+        this.grids[1] = state.grid.map(row => row.map(cell => ({ ...cell })));
+        this.lastMoveGrids[0] = state.lastMoveGrid.map(row => [...row]);
+        this.lastMoveGrids[1] = state.lastMoveGrid.map(row => [...row]);
+        this.colorGrids[0] = state.colorGrid.map(row => [...row]);
+        this.colorGrids[1] = state.colorGrid.map(row => [...row]);
+      }
 
       this.particles = state.particles;
       this.elements = state.elements;
@@ -113,6 +115,8 @@ export class GameScene extends Phaser.Scene {
       this.particles,
       this.frameCount
     );
+
+    this.particles = newParticles;
 
     // Swap buffers for the next frame
     this.activeBufferIndex = writeBufferIndex as 0 | 1;
@@ -176,6 +180,12 @@ export class GameScene extends Phaser.Scene {
       const vy = (Math.random() - 0.5) * 0.5;
       state.addParticle(gridX + 0.5, gridY + 0.5, selectedElement, vx, vy);
     } else {
+      // Add a guard to check if selectedElement exists in this.elements
+      if (!this.elements[selectedElement]) {
+        console.error(`Selected element '${selectedElement}' does not exist in elements dictionary`);
+        return;
+      }
+      
       newGrid[gridY][gridX] = { type: selectedElement };
       const baseColor = this.elements[selectedElement].color;
       newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
@@ -206,7 +216,7 @@ export class GameScene extends Phaser.Scene {
         if (elementName !== 'EMPTY') {
           let displayColor = readColorGrid[y][x];
 
-          // Special rendering for WATER: blend with neighbors
+          // Special rendering for Water: blend with neighbors
           if (elementName === 'WATER') {
             let blendedColor = displayColor;
             let blendCount = 1; // Start with self color
@@ -265,6 +275,17 @@ export class GameScene extends Phaser.Scene {
         this.gridGraphics.fillStyle(color, baseAlpha * 0.5);
         this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.4);
 
+      } else if (particleType === 'THUNDER') {
+        const baseAlpha = Math.max(0, particle.life / 20); // Fade out as it dies
+        const radius = this.cellSize * 0.5;
+        const color = 0xFFFF00; // Yellow
+
+        this.gridGraphics.fillStyle(color, baseAlpha);
+        this.gridGraphics.fillCircle(
+          particle.px * this.cellSize,
+          particle.py * this.cellSize,
+          radius
+        );
       } else {
         const element = this.elements[particleType as ElementName];
         if (element) {

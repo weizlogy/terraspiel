@@ -14,7 +14,7 @@ export type ElementName =
   | 'PLANT'
   | 'OIL';
 
-export type ParticleType = ElementName | 'ETHER';
+export type ParticleType = ElementName | 'ETHER' | 'THUNDER';
 
 export interface Element {
   name: ElementName;

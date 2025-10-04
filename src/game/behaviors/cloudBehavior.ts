@@ -24,13 +24,14 @@ export const handleCloud = ({
   y,
   width,
   height,
-}: BehaviorContext): void => {
+}: BehaviorContext): Particle | null => {
   const elements = useGameStore.getState().elements;
-  if (Object.keys(elements).length === 0) return;
+  if (Object.keys(elements).length === 0) return null;
 
   const cell = grid[y][x];
   const color = colorGrid[y][x];
   let hasMoved = false;
+  let spawnedParticle: Particle | null = null;
 
   let rainCounter = cell.rainCounter ?? 0;
   let chargeCounter = cell.chargeCounter ?? 0;
@@ -69,7 +70,7 @@ export const handleCloud = ({
     newGrid[y][x] = { type: 'EMPTY' };
     newColorGrid[y][x] = elements.EMPTY.color;
     moved[y][x] = true;
-    return; // Cloud disappears, no further action needed
+    return null; // Cloud disappears, no further action needed
   }
   // --- End Decay Logic ---
 
@@ -94,7 +95,7 @@ export const handleCloud = ({
   // --- End Rain Logic ---
 
   // --- Charge Logic ---
-  const chargeChance = 0.01;
+  const chargeChance = 0.3;
   const chargeThreshold = 200;
 
   if (Math.random() < chargeChance) {
@@ -102,7 +103,15 @@ export const handleCloud = ({
   }
 
   if (chargeCounter >= chargeThreshold) {
-    console.log(`Thunder at (${x}, ${y})!`); // Placeholder for THUNDER generation
+    spawnedParticle = {
+      id: -1, // Temporary ID, will be assigned in physics engine
+      px: x + 0.5,
+      py: y + 0.5,
+      vx: Math.random() - 0.5,
+      vy: Math.random() * 2 + 2,
+      type: 'THUNDER',
+      life: 20,
+    };
     chargeCounter = 0; // Reset counter
   }
   // --- End Charge Logic ---
@@ -175,4 +184,6 @@ export const handleCloud = ({
     newGrid[y][x] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
     newColorGrid[y][x] = color;
   }
+
+  return spawnedParticle;
 };

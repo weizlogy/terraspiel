@@ -6,6 +6,7 @@ import { handleTransformations } from "./transformation";
 import { handlePlantGrowth } from "./behaviors/plantGrowthBehavior";
 import { handlePlant } from "./behaviors/plantBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
+import { handleThunderParticles } from "./behaviors/thunderBehavior";
 import { handleOil } from "./behaviors/oilBehavior";
 import useGameStore from "../stores/gameStore";
 import { varyColor } from "../utils/colors";
@@ -27,7 +28,7 @@ interface BehaviorContext {
 }
 
 // Define the behavior function type
-type ElementBehavior = (context: BehaviorContext) => void;
+type ElementBehavior = (context: BehaviorContext) => void | Particle | null;
 
 const handleOilBehavior: ElementBehavior = (context) => {
   handleOil(context);
@@ -82,6 +83,8 @@ export const simulateWorld = (
     return { newParticles: particles };
   }
 
+  const spawnedParticles: Particle[] = [];
+
   // --- PASS 1: MOVEMENT ---
   const moved = Array(height).fill(null).map(() => Array(width).fill(false));
   const scanRight = frameCount % 2 === 0;
@@ -101,7 +104,7 @@ export const simulateWorld = (
 
       const behavior = behaviors[element];
       if (behavior) {
-        behavior({
+        const newParticle = behavior({
           grid: readGrid, // Pass read-only grid
           lastMoveGrid: readLastMoveGrid,
           colorGrid: readColorGrid,
@@ -115,6 +118,9 @@ export const simulateWorld = (
           height,
           scanRight,
         });
+        if (newParticle) {
+          spawnedParticles.push(newParticle);
+        }
       } else {
         // If no behavior, the element stays in place
         writeGrid[y][x] = readGrid[y][x];
@@ -124,8 +130,6 @@ export const simulateWorld = (
   }
 
   // --- PASS 2: TRANSFORMATIONS ---
-  const spawnedParticles: Particle[] = [];
-
   for (let y = height - 1; y >= 0; y--) {
     for (let i = 0; i < width; i++) {
       const x = scanRight ? i : width - 1 - i;
@@ -152,21 +156,40 @@ export const simulateWorld = (
   // This is a potential area for further optimization.
 
   // --- PASS 3: PARTICLE SIMULATION & DEEPENING ---
+  let nextParticleId = useGameStore.getState().nextParticleId;
+  for (const p of spawnedParticles) {
+    if (p.id === -1) {
+      p.id = nextParticleId++;
+    }
+  }
+  useGameStore.setState({ nextParticleId });
+
   const allParticles = particles.concat(spawnedParticles);
-  const { updatedParticles, updatedGrid, gridChanged } = handleEtherParticles({
+
+  // Handle Ether particles first
+  const etherResult = handleEtherParticles({
     particles: allParticles,
     grid: writeGrid, // Use the latest grid state
     width,
     height,
   });
 
-  // If particles changed the grid, we need to copy the changes back to writeGrid
-  if (gridChanged) {
+  // Then, handle Thunder particles with the result from the Ether simulation
+  const thunderResult = handleThunderParticles({
+    particles: etherResult.updatedParticles,
+    grid: etherResult.updatedGrid, // Use the grid potentially modified by Ether
+    width,
+    height,
+  });
+
+  // If either simulation changed the grid, we need to copy the changes back
+  if (etherResult.gridChanged || thunderResult.gridChanged) {
+    const finalGrid = thunderResult.gridChanged ? thunderResult.updatedGrid : etherResult.updatedGrid;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        if (writeGrid[y][x].type !== updatedGrid[y][x].type) {
-          writeGrid[y][x] = updatedGrid[y][x];
-          const newType = updatedGrid[y][x].type;
+        if (writeGrid[y][x].type !== finalGrid[y][x].type) {
+          writeGrid[y][x] = finalGrid[y][x];
+          const newType = finalGrid[y][x].type;
           const baseColor = elements[newType]?.color || '#000000';
           writeColorGrid[y][x] = elements[newType]?.hasColorVariation ? varyColor(baseColor) : baseColor;
         }
@@ -174,11 +197,11 @@ export const simulateWorld = (
     }
   }
 
-  return { newParticles: updatedParticles };
+  return { newParticles: thunderResult.updatedParticles };
 };
 
 // Calculate statistics for elements in the grid
-export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<ElementName | "ETHER", number> => {
+export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<ElementName | "ETHER" | "THUNDER", number> => {
   // Get the current stats object from the store to ensure all elements are present
   const stats = useGameStore.getState().stats;
 
@@ -200,7 +223,7 @@ export const calculateStats = (grid: Cell[][], particles: Particle[]): Record<El
   // Recalculate counts from particles
   for (const particle of particles) {
     if (particle.type in stats) {
-      stats[particle.type]++;
+      stats[particle.type as keyof typeof stats]++;
     }
   }
 
