@@ -67,5 +67,33 @@
     "probability": 0.1,
     "threshold": 100,
     "conditions": []
+  },
+  {
+    "from": "STONE",
+    "to": "MAGMA",
+    "probability": 1.0,
+    "threshold": 1,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "FIRE",
+        "min": 1
+      }
+    ],
+    "consumes": "FIRE"
+  },
+  {
+    "from": "MAGMA",
+    "to": "STONE",
+    "probability": 1.0,
+    "threshold": 1,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "WATER",
+        "min": 1
+      }
+    ],
+    "consumes": "WATER"
   }
 ]
