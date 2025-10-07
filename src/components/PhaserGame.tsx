@@ -169,9 +169,6 @@ export class GameScene extends Phaser.Scene {
     }
     
     const state = useGameStore.getState();
-    const newGrid = readBuffer.map(row => row.map(cell => ({ ...cell })));
-    const newColorGrid = this.colorGrids[this.activeBufferIndex].map(row => [...row]);
-    
     const selectedElement = state.selectedElement as ElementName;
     // If selected element is a particle type, add a particle. Otherwise, update the grid.p
     if (PARTICLE_ELEMENTS.includes(selectedElement)) {
@@ -186,15 +183,18 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       
-      newGrid[gridY][gridX] = { type: selectedElement };
+      const newCell = { type: selectedElement };
       const baseColor = this.elements[selectedElement].color;
-      newColorGrid[gridY][gridX] = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
-      state.setGrid(newGrid);
-      state.setColorGrid(newColorGrid);
-      
-      // Update stats after grid change
-      const stats = calculateStats(newGrid, this.particles);
-      state.updateStats(stats);
+      const newColor = selectedElement !== 'EMPTY' ? varyColor(baseColor) : baseColor;
+
+      // Directly modify both buffers to ensure consistency
+      // This prevents the simulation from overwriting the new particle immediately
+      this.grids[0][gridY][gridX] = newCell;
+      this.grids[1][gridY][gridX] = newCell;
+      this.colorGrids[0][gridY][gridX] = newColor;
+      this.colorGrids[1][gridY][gridX] = newColor;
+
+      // We don't need to update stats here anymore because the simulation loop will do it
     }
   }
 
