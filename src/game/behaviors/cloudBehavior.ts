@@ -1,4 +1,4 @@
-import { type Cell } from "../../types/elements";
+import { type Cell, type Particle } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
 import { varyColor } from "../../utils/colors";
 

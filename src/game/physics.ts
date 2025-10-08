@@ -77,6 +77,7 @@ export const simulateWorld = (
   const height = readGrid.length;
   const width = readGrid[0].length;
   const elements = useGameStore.getState().elements;
+  const particleInteractionRules = useGameStore.getState().particleInteractionRules;
 
   if (Object.keys(elements).length === 0) {
     // Elements not loaded yet, return current state
@@ -171,6 +172,7 @@ export const simulateWorld = (
     grid: writeGrid, // Use the latest grid state
     width,
     height,
+    rules: particleInteractionRules,
   });
 
   // Then, handle Thunder particles with the result from the Ether simulation

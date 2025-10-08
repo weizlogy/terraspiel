@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { type Element, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType, type TransformationRule } from '../types/elements';
+import { type ParticleInteractionRule } from '../game/behaviors/etherBehavior';
 import { varyColor } from '../utils/colors';
 
 interface GameState {
@@ -16,6 +17,7 @@ interface GameState {
   fps: number;
   elements: Record<ElementName, Element>;
   transformationRules: TransformationRule[];
+  particleInteractionRules: ParticleInteractionRule[];
   updateSource?: 'ui' | 'simulation'; // Add this line
   setSelectedElement: (element: ElementName) => void;
   setGrid: (grid: Cell[][]) => void;
@@ -35,7 +37,7 @@ interface GameState {
   updateStats: (stats: Record<ElementName | 'ETHER' | 'THUNDER', number>) => void;
   setFps: (fps: number) => void;
   loadElements: () => Promise<void>;
-  loadTransformationRules: () => Promise<void>;
+  loadRules: () => Promise<void>;
 }
 
 const FIXED_WIDTH = 320;
@@ -72,6 +74,7 @@ const useGameStore = create<GameState>()((set, get) => ({
   fps: 0,
   elements: {} as Record<ElementName, Element>,
   transformationRules: [],
+  particleInteractionRules: [],
   setSelectedElement: (element) => set({ selectedElement: element }),
   setGrid: (grid) => set({ grid, updateSource: 'ui' }),
   setLastMoveGrid: (lastMoveGrid) => set({ lastMoveGrid }),
@@ -243,17 +246,25 @@ const useGameStore = create<GameState>()((set, get) => ({
       console.error("Error loading elements:", error);
     }
   },
-  loadTransformationRules: async () => {
+  loadRules: async () => {
     try {
       const response = await fetch('/rules.json');
       if (!response.ok) {
         throw new Error(`Failed to fetch rules: ${response.statusText}`);
       }
       const rules = await response.json();
-      set({ transformationRules: rules });
-      console.log('Transformation rules loaded successfully.', rules);
+      
+      const transformationRules = rules.filter((r: any) => r.type !== 'particle_interaction');
+      const particleInteractionRules = rules.filter((r: any) => r.type === 'particle_interaction');
+
+      set({ 
+        transformationRules: transformationRules,
+        particleInteractionRules: particleInteractionRules 
+      });
+      console.log('Transformation rules loaded:', transformationRules);
+      console.log('Particle interaction rules loaded:', particleInteractionRules);
     } catch (error) {
-      console.error("Error loading transformation rules:", error);
+      console.error("Error loading rules:", error);
     }
   },
 }));

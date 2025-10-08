@@ -94,11 +94,11 @@ export const handlePlantGrowth = (
         } else if (newCell.plantMode === 'ground_cover') {
           const dir = Math.random() < 0.5 ? -1 : 1;
           const nx = x + dir;
-          if (nx >= 0 && nx < width && grid[nx][y].type === 'EMPTY' && Math.random() < GROUND_COVER_SPREAD_CHANCE) {
+          if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && Math.random() < GROUND_COVER_SPREAD_CHANCE) {
               const belowY = y + 1;
               if (belowY < height && grid[belowY][nx].type !== 'EMPTY' && elements[grid[belowY][nx].type]?.isStatic === false) {
-                   newGrid[nx][y] = { type: 'PLANT', plantMode: 'ground_cover', counter: 0, decayCounter: 0 };
-                   newColorGrid[nx][y] = varyColor(plantElement.color);
+                   newGrid[y][nx] = { type: 'PLANT', plantMode: 'ground_cover', counter: 0, decayCounter: 0 };
+                   newColorGrid[y][nx] = varyColor(plantElement.color);
               }
           }
         }

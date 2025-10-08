@@ -67,6 +67,11 @@ http://localhost:5173/
         -   `STONE`: SOILと同様だが、崩れない。
         -   `PEAT`: SOILと同様。
         -   `FERTILE_SOIL`: SOILと同様。
+        -   `PLANT`: 詳細は４にて
+        -   `OIL`: WATERより流動性がある。
+        -   `MAGMA`: ほぼ流動性のない。
+        -   `CRYSTAL`: 重力に従って下に落ちる。
+
 
 3. 接触による物質変化（錬金術）
     - SOIL - WATER = MUD
@@ -123,6 +128,8 @@ ETHERはほかの物質のようにピクセルで配置するのではなく粒
     - ETHER + SOIL = FERTILE_SOIL
     - ETHER + MUD = PEAT
     - ETHER + WATER = CLOUD
+    - ETHER + STONE = CRYSTAL
+        CRYSTAL は ETHER を微弱に放出する。
 
 6. 燃焼による物質変化
 何かの条件でFIREが発生した場合、周囲の物質によって動きが変わる。

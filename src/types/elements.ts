@@ -12,9 +12,11 @@ export type ElementName =
   | 'STONE'
   | 'SEED'
   | 'PLANT'
-  | 'OIL';
+  | 'OIL'
+  | 'ETHER'
+  | 'THUNDER';
 
-export type ParticleType = ElementName | 'ETHER' | 'THUNDER';
+export type ParticleType = ElementName;
 
 export interface Element {
   name: ElementName;

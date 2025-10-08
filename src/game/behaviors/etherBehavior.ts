@@ -1,30 +1,40 @@
 import { type Particle, type Cell, type ElementName } from "../../types/elements";
 
+// Define the structure of a particle interaction rule
+export interface ParticleInteractionRule {
+  type: 'particle_interaction';
+  particle: ElementName;
+  from: ElementName;
+  to: ElementName;
+  probability: number;
+}
+
 interface EtherBehaviorContext {
   particles: Particle[];
   grid: Cell[][];
   width: number;
   height: number;
+  rules: ParticleInteractionRule[]; // Pass rules as an argument
 }
-
-const DEEPENING_CHANCE = 0.15; // Chance for a particle to transform a cell on contact
-
-// Rules for ETHER transforming other elements
-const deepeningRules: Partial<Record<ElementName, ElementName>> = {
-  SOIL: 'FERTILE_SOIL',
-  WATER: 'CLOUD',
-  MUD: 'PEAT',
-};
 
 export const handleEtherParticles = ({
   particles,
   grid,
   width,
   height,
+  rules, // Get rules from context
 }: EtherBehaviorContext): { updatedParticles: Particle[], updatedGrid: Cell[][], gridChanged: boolean } => {
 
   const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
   let gridChanged = false;
+
+  // Create a map for quick rule lookup
+  const etherRules = new Map<ElementName, { to: ElementName; probability: number }>();
+  rules.forEach(rule => {
+    if (rule.particle === 'ETHER') {
+      etherRules.set(rule.from, { to: rule.to, probability: rule.probability });
+    }
+  });
 
   // Filter out dead particles first
   const livingParticles = particles.filter(p => p.life > 0);
@@ -67,11 +77,11 @@ export const handleEtherParticles = ({
 
     if (cx >= 0 && cx < width && cy >= 0 && cy < height) {
       const cellType = newGrid[cy][cx].type;
-      const targetType = deepeningRules[cellType];
+      const rule = etherRules.get(cellType);
 
       // If the particle is over a transformable cell, try to deepen it
-      if (targetType && Math.random() < DEEPENING_CHANCE) {
-        newGrid[cy][cx] = { type: targetType };
+      if (rule && Math.random() < rule.probability) {
+        newGrid[cy][cx] = { type: rule.to };
         gridChanged = true;
         newParticle.life = 0; // Consume the particle upon transformation
       }

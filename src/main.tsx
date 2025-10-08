@@ -7,7 +7,7 @@ import useGameStore from './stores/gameStore'
 // Initialize the game
 async function init() {
   await useGameStore.getState().loadElements(); // This will now also initialize and randomize the grid
-  await useGameStore.getState().loadTransformationRules();
+  await useGameStore.getState().loadRules();
 }
 
 createRoot(document.getElementById('root')!).render(

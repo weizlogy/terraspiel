@@ -95,5 +95,26 @@
       }
     ],
     "consumes": "WATER"
+  },
+  {
+    "type": "particle_interaction",
+    "particle": "ETHER",
+    "from": "SOIL",
+    "to": "FERTILE_SOIL",
+    "probability": 0.15
+  },
+  {
+    "type": "particle_interaction",
+    "particle": "ETHER",
+    "from": "WATER",
+    "to": "CLOUD",
+    "probability": 0.15
+  },
+  {
+    "type": "particle_interaction",
+    "particle": "ETHER",
+    "from": "MUD",
+    "to": "PEAT",
+    "probability": 0.15
   }
 ]
