@@ -13,6 +13,7 @@ export type ElementName =
   | 'SEED'
   | 'PLANT'
   | 'OIL'
+  | 'CRYSTAL'
   | 'ETHER'
   | 'THUNDER';
 

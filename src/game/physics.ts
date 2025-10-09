@@ -8,6 +8,7 @@ import { handlePlant } from "./behaviors/plantBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import { handleThunderParticles } from "./behaviors/thunderBehavior";
 import { handleOil } from "./behaviors/oilBehavior";
+import { handleCrystal } from "./behaviors/crystalBehavior";
 import useGameStore from "../stores/gameStore";
 import { varyColor } from "../utils/colors";
 
@@ -38,6 +39,19 @@ const handleOilBehavior: ElementBehavior = (context) => {
   }
 };
 
+const handleCrystalBehavior: ElementBehavior = (context) => {
+  // First, handle the unique behavior of Crystal (emitting ETHER)
+  const spawnedParticle = handleCrystal(context);
+
+  // Then, apply granular behavior for falling, if it hasn't been moved by another behavior
+  if (!context.moved[context.y][context.x]) {
+    handleGranular(context);
+  }
+
+  // Return any particle that was spawned
+  return spawnedParticle;
+};
+
 // Map elements to their behavior handlers
 const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SOIL: handleGranular,
@@ -53,6 +67,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SEED: handleGranular,
   OIL: handleOilBehavior,
   PLANT: handlePlant,
+  CRYSTAL: handleCrystalBehavior,
 };
 
 // Main physics simulation function that handles cells and particles

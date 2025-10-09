@@ -116,5 +116,12 @@
     "from": "MUD",
     "to": "PEAT",
     "probability": 0.15
+  },
+  {
+    "type": "particle_interaction",
+    "particle": "ETHER",
+    "from": "STONE",
+    "to": "CRYSTAL",
+    "probability": 0.1
   }
 ]

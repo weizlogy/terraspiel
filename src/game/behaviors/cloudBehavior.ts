@@ -128,13 +128,24 @@ export const handleCloud = ({
 
   // 1. Try moving up
   if (y > 0 && !hasMoved && Math.random() < upwardChance) {
-    if (grid[y - 1][x].type === 'EMPTY' && !moved[y - 1][x]) {
-      newGrid[y][x] = { type: 'EMPTY' };
-      newColorGrid[y][x] = elements.EMPTY.color;
+    const targetCell = grid[y - 1][x];
+    if ((targetCell.type === 'EMPTY' || targetCell.type === 'WATER') && !moved[y - 1][x]) {
+      const isTargetWater = targetCell.type === 'WATER';
+
+      // Move CLOUD up
       newGrid[y - 1][x] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
       newColorGrid[y - 1][x] = color;
-      moved[y][x] = true;
       moved[y - 1][x] = true;
+
+      // Replace original position
+      if (isTargetWater) {
+        newGrid[y][x] = targetCell; // Move WATER down
+        newColorGrid[y][x] = colorGrid[y - 1][x];
+      } else {
+        newGrid[y][x] = { type: 'EMPTY' };
+        newColorGrid[y][x] = elements.EMPTY.color;
+      }
+      moved[y][x] = true;
       hasMoved = true;
     }
   }
@@ -146,15 +157,28 @@ export const handleCloud = ({
 
     for (const dx of diagonalDirections) {
       const nx = x + dx;
-      if (nx >= 0 && nx < width && grid[y - 1][nx].type === 'EMPTY' && !moved[y - 1][nx]) {
-        newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = elements.EMPTY.color;
-        newGrid[y - 1][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
-        newColorGrid[y - 1][nx] = color;
-        moved[y][x] = true;
-        moved[y - 1][nx] = true;
-        hasMoved = true;
-        break;
+      if (nx >= 0 && nx < width) {
+        const targetCell = grid[y - 1][nx];
+        if ((targetCell.type === 'EMPTY' || targetCell.type === 'WATER') && !moved[y - 1][nx]) {
+          const isTargetWater = targetCell.type === 'WATER';
+
+          // Move CLOUD up-diagonally
+          newGrid[y - 1][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
+          newColorGrid[y - 1][nx] = color;
+          moved[y - 1][nx] = true;
+
+          // Replace original position
+          if (isTargetWater) {
+            newGrid[y][x] = targetCell; // Move WATER to original spot
+            newColorGrid[y][x] = colorGrid[y - 1][nx];
+          } else {
+            newGrid[y][x] = { type: 'EMPTY' };
+            newColorGrid[y][x] = elements.EMPTY.color;
+          }
+          moved[y][x] = true;
+          hasMoved = true;
+          break;
+        }
       }
     }
   }
@@ -166,15 +190,28 @@ export const handleCloud = ({
 
     for (const dx of directions) {
       const nx = x + dx;
-      if (nx >= 0 && nx < width && grid[y][nx].type === 'EMPTY' && !moved[y][nx]) {
-        newGrid[y][x] = { type: 'EMPTY' };
-        newColorGrid[y][x] = elements.EMPTY.color;
-        newGrid[y][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
-        newColorGrid[y][nx] = color;
-        moved[y][x] = true;
-        moved[y][nx] = true;
-        hasMoved = true;
-        break;
+      if (nx >= 0 && nx < width) {
+        const targetCell = grid[y][nx];
+        if ((targetCell.type === 'EMPTY' || targetCell.type === 'WATER') && !moved[y][nx]) {
+          const isTargetWater = targetCell.type === 'WATER';
+
+          // Move CLOUD sideways
+          newGrid[y][nx] = { ...currentCell, type: 'CLOUD', ...updatedCounters };
+          newColorGrid[y][nx] = color;
+          moved[y][nx] = true;
+
+          // Replace original position
+          if (isTargetWater) {
+            newGrid[y][x] = targetCell; // Move WATER to original spot
+            newColorGrid[y][x] = colorGrid[y][nx];
+          } else {
+            newGrid[y][x] = { type: 'EMPTY' };
+            newColorGrid[y][x] = elements.EMPTY.color;
+          }
+          moved[y][x] = true;
+          hasMoved = true;
+          break;
+        }
       }
     }
   }
