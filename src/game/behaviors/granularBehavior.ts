@@ -14,6 +14,7 @@ interface BehaviorContext {
   width: number;
   height: number;
   scanRight: boolean;
+  isChained?: boolean;
 }
 
 export const handleGranular = ({
@@ -29,17 +30,21 @@ export const handleGranular = ({
   width,
   height,
   scanRight,
+  isChained,
 }: BehaviorContext): void => {
   const elements = useGameStore.getState().elements;
   if (Object.keys(elements).length === 0) return;
 
-  const elementType = grid[y][x].type;
+  const currentCell = grid[y][x];
+  const elementType = currentCell.type;
   const elementDef = elements[elementType];
 
   if (!elementDef?.fluidity) {
-    newGrid[y][x] = grid[y][x];
-    newColorGrid[y][x] = colorGrid[y][x];
-    newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+    if (!isChained) {
+      newGrid[y][x] = currentCell;
+      newColorGrid[y][x] = colorGrid[y][x];
+      newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+    }
     return;
   }
 
@@ -55,9 +60,11 @@ export const handleGranular = ({
     if (belowCell.type !== 'EMPTY' && (!belowElementDef.fluidity || belowElementDef.density > elementDef.density)) {
       // Greatly reduce the chance of checking for horizontal or diagonal moves
       if (Math.random() > 0.1) { // 90% chance to skip further checks
-        newGrid[y][x] = grid[y][x];
-        newColorGrid[y][x] = colorGrid[y][x];
-        newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+        if (!isChained) {
+          newGrid[y][x] = currentCell;
+          newColorGrid[y][x] = colorGrid[y][x];
+          newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+        }
         return;
       }
     }
@@ -71,7 +78,7 @@ export const handleGranular = ({
     if (targetCell.type === 'EMPTY') {
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[downY][x] = { type: elementType };
+      newGrid[downY][x] = currentCell; // Preserve properties
       newColorGrid[downY][x] = myColor;
       moved[y][x] = true;
       moved[downY][x] = true;
@@ -80,9 +87,9 @@ export const handleGranular = ({
     } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
       // Swap with the less dense element
       const targetColor = colorGrid[downY][x];
-      newGrid[y][x] = { type: targetCell.type };
-      newColorGrid[y][x] = targetColor;
-      newGrid[downY][x] = { type: elementType };
+      newGrid[y][x] = targetCell; // Preserve properties
+      newColorGrid[y][x] = colorGrid[downY][x];
+      newGrid[downY][x] = currentCell; // Preserve properties
       newColorGrid[downY][x] = myColor;
       moved[y][x] = true;
       moved[downY][x] = true;
@@ -109,7 +116,7 @@ export const handleGranular = ({
         if (targetCell.type === 'EMPTY') {
           newGrid[y][x] = { type: 'EMPTY' };
           newColorGrid[y][x] = elements.EMPTY.color;
-          newGrid[y + 1][targetX] = { type: elementType };
+          newGrid[y + 1][targetX] = currentCell; // Preserve properties
           newColorGrid[y + 1][targetX] = myColor;
           moved[y][x] = true;
           moved[y + 1][targetX] = true;
@@ -117,9 +124,9 @@ export const handleGranular = ({
           return;
         } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
           const targetColor = colorGrid[y + 1][targetX];
-          newGrid[y][x] = { type: targetCell.type };
-          newColorGrid[y][x] = targetColor;
-          newGrid[y + 1][targetX] = { type: elementType };
+          newGrid[y][x] = targetCell; // Preserve properties
+          newColorGrid[y][x] = colorGrid[y + 1][targetX];
+          newGrid[y + 1][targetX] = currentCell; // Preserve properties
           newColorGrid[y + 1][targetX] = myColor;
           moved[y][x] = true;
           moved[y + 1][targetX] = true;
@@ -160,7 +167,7 @@ export const handleGranular = ({
       const targetX = x + moveDir;
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y][targetX] = { type: elementType };
+      newGrid[y][targetX] = currentCell; // Preserve properties
       newColorGrid[y][targetX] = myColor;
       moved[y][x] = true;
       moved[y][targetX] = true;
@@ -169,7 +176,7 @@ export const handleGranular = ({
     } else if (canGoLeft) {
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y][leftX] = { type: elementType };
+      newGrid[y][leftX] = currentCell; // Preserve properties
       newColorGrid[y][leftX] = myColor;
       moved[y][x] = true;
       moved[y][leftX] = true;
@@ -178,7 +185,7 @@ export const handleGranular = ({
     } else if (canGoRight) {
       newGrid[y][x] = { type: 'EMPTY' };
       newColorGrid[y][x] = elements.EMPTY.color;
-      newGrid[y][rightX] = { type: elementType };
+      newGrid[y][rightX] = currentCell; // Preserve properties
       newColorGrid[y][rightX] = myColor;
       moved[y][x] = true;
       moved[y][rightX] = true;
@@ -187,8 +194,10 @@ export const handleGranular = ({
     }
   }
 
-  // If it hasn't moved, copy original state to new grid
-  newGrid[y][x] = grid[y][x];
-  newColorGrid[y][x] = colorGrid[y][x];
-  newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+  // If it hasn't moved, copy original state to new grid, unless chained
+  if (!isChained) {
+    newGrid[y][x] = currentCell;
+    newColorGrid[y][x] = colorGrid[y][x];
+    newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+  }
 };

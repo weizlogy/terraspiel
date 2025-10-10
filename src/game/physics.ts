@@ -26,6 +26,7 @@ interface BehaviorContext {
   width: number;
   height: number;
   scanRight: boolean;
+  isChained?: boolean; // Flag for composing behaviors
 }
 
 // Define the behavior function type
@@ -40,15 +41,19 @@ const handleOilBehavior: ElementBehavior = (context) => {
 };
 
 const handleCrystalBehavior: ElementBehavior = (context) => {
-  // First, handle the unique behavior of Crystal (emitting ETHER)
+  // 1. Run crystal's unique logic first.
   const spawnedParticle = handleCrystal(context);
 
-  // Then, apply granular behavior for falling, if it hasn't been moved by another behavior
-  if (!context.moved[context.y][context.x]) {
-    handleGranular(context);
+  // 2. If the crystal was destroyed, we're done.
+  if (context.newGrid[context.y][context.x].type === 'EMPTY') {
+    return spawnedParticle;
   }
 
-  // Return any particle that was spawned
+  // 3. Apply granular logic, chaining it after the crystal logic.
+  context.isChained = true;
+  handleGranular(context);
+  delete context.isChained; // Clean up the flag
+
   return spawnedParticle;
 };
 

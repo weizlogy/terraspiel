@@ -261,19 +261,13 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (particleType === 'ETHER') {
-        const baseAlpha = Math.max(0, particle.life / 150); // Fade out as it dies
-        const baseRadius = this.cellSize * (0.2 + (particle.life / 150) * 0.8);
+        const baseAlpha = Math.max(0, particle.life / 150) * 0.5; // More transparent
+        const radius = this.cellSize * 0.5; // Larger radius
         const color = 0xFFFFFF; // White
 
-        // Draw multiple circles to create a soft, glowing effect
-        this.gridGraphics.fillStyle(color, baseAlpha * 0.1);
-        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius);
-
-        this.gridGraphics.fillStyle(color, baseAlpha * 0.2);
-        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.7);
-
-        this.gridGraphics.fillStyle(color, baseAlpha * 0.5);
-        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, baseRadius * 0.4);
+        // Draw a single circle for performance
+        this.gridGraphics.fillStyle(color, baseAlpha);
+        this.gridGraphics.fillCircle(particle.px * this.cellSize, particle.py * this.cellSize, radius);
 
       } else if (particleType === 'THUNDER') {
         const baseAlpha = Math.max(0, particle.life / 20); // Fade out as it dies

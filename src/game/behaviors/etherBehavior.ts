@@ -81,7 +81,13 @@ export const handleEtherParticles = ({
 
       // If the particle is over a transformable cell, try to deepen it
       if (rule && Math.random() < rule.probability) {
-        newGrid[cy][cx] = { type: rule.to };
+        if (rule.to === 'CRYSTAL') {
+          // Simplified logic: Initialize storage to 1 without searching for neighbors
+          newGrid[cy][cx] = { type: 'CRYSTAL', etherStorage: 1 };
+        } else {
+          newGrid[cy][cx] = { type: rule.to };
+        }
+        
         gridChanged = true;
         newParticle.life = 0; // Consume the particle upon transformation
       }

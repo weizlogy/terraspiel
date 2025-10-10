@@ -129,7 +129,11 @@ ETHERはほかの物質のようにピクセルで配置するのではなく粒
     - ETHER + MUD = PEAT
     - ETHER + WATER = CLOUD
     - ETHER + STONE = CRYSTAL
-        CRYSTAL は ETHER を微弱に放出する。
+        CRYSTALが発生するときに、発生に使われたETHER1つ分と、
+        その周囲にETHERがあればそれらを自身が保有するETHER量にする。
+        CRYSTAL は ETHER を低確率で放出する。さらに低確率でETHERを消費しない。
+        すべてのETHERを放出すると破壊される。
+    - ETHER + MAGMA = METAL
 
 6. 燃焼による物質変化
 何かの条件でFIREが発生した場合、周囲の物質によって動きが変わる。
