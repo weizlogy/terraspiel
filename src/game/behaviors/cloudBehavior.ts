@@ -33,9 +33,21 @@ export const handleCloud = ({
   let hasMoved = false;
   let spawnedParticle: Particle | null = null;
 
-  let rainCounter = cell.rainCounter ?? 0;
-  let chargeCounter = cell.chargeCounter ?? 0;
-  let decayCounter = cell.decayCounter ?? 0;
+  let { 
+    rainCounter = 0, 
+    chargeCounter = 0, 
+    decayCounter = 0, 
+    rainThreshold, 
+    chargeThreshold 
+  } = cell;
+
+  // Initialize random thresholds if they don't exist
+  if (rainThreshold === undefined) {
+    rainThreshold = 100 + Math.floor(Math.random() * 40) - 20; // 80-120
+  }
+  if (chargeThreshold === undefined) {
+    chargeThreshold = 800 + Math.floor(Math.random() * 400) - 200; // 600-1000
+  }
 
   // --- Cloud Interaction Logic ---
   let isTouchingCloud = false;
@@ -75,8 +87,7 @@ export const handleCloud = ({
   // --- End Decay Logic ---
 
   // --- Rain Logic ---
-  const rainChance = 0.05;
-  const rainThreshold = 100;
+  const rainChance = 0.02; // Lowered from 0.05
 
   if (Math.random() < rainChance) {
     rainCounter++;
@@ -96,7 +107,6 @@ export const handleCloud = ({
 
   // --- Charge Logic ---
   const chargeChance = 0.05;
-  const chargeThreshold = 800;
 
   if (Math.random() < chargeChance) {
     chargeCounter++;
@@ -123,7 +133,7 @@ export const handleCloud = ({
 
   // Get the new cell state after potential changes
   const currentCell = newGrid[y][x].type !== 'EMPTY' ? newGrid[y][x] : grid[y][x];
-  const updatedCounters = { rainCounter, chargeCounter, decayCounter };
+  const updatedCounters = { rainCounter, chargeCounter, decayCounter, rainThreshold, chargeThreshold };
 
 
   // 1. Try moving up

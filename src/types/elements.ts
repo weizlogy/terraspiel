@@ -38,6 +38,8 @@ export interface Cell {
   rainCounter?: number; // for CLOUD
   chargeCounter?: number; // for CLOUD
   decayCounter?: number; // for CLOUD & PLANT
+  rainThreshold?: number; // for CLOUD
+  chargeThreshold?: number; // for CLOUD
   counter?: number; // Optional counter for transformations & growth
   burningProgress?: number; // For combustion progress tracking
   plantMode?: 'stem' | 'ground_cover' | 'leaf' | 'flower' | 'withered'; // for PLANT
