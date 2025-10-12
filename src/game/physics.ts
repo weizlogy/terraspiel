@@ -74,6 +74,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SAND: handleGranular,
   STONE: handleGranular, // Will be handled by the guard clause in handleGranular
   BASALT: handleGranular,
+  OBSIDIAN: handleGranular,
   SEED: handleGranular,
   OIL: handleOilBehavior,
   PLANT: handlePlant,

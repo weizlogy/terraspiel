@@ -71,7 +71,12 @@ http://localhost:5173/
         -   `OIL`: WATERより流動性がある。
         -   `MAGMA`: 少し流動性があり、重力でゆっくり落ちる。
         -   `CRYSTAL`: 重力に従って下に落ちる。
-
+            CRYSTAL + THUNDER → ELECTRUM（雷を閉じ込めた鉱石）
+            CRYSTAL + FIRE → RUBY
+            CRYSTAL + WATER → SAPPHIRE
+            CRYSTAL + MUD → AMETHYST
+            CRYSTAL + CLAY → GARNET
+            CRYSTAL + PLANT → EMERALD
 
 3. 接触による物質変化（錬金術）
     - SOIL - WATER = MUD
@@ -133,7 +138,7 @@ ETHERはほかの物質のようにピクセルで配置するのではなく粒
         その周囲にETHERがあればそれらを自身が保有するETHER量にする。
         CRYSTAL は ETHER を低確率で放出する。さらに低確率でETHERを消費しない。
         すべてのETHERを放出すると破壊される。
-    - ETHER + MAGMA = METAL
+    - BASALT + ETHER = OBSIDIAN
 
 6. 燃焼による物質変化
 何かの条件でFIREが発生した場合、その場に留まるパーティクルとして生成される。

@@ -11,6 +11,7 @@
   { "name": "SAND", "color": "#F4A460", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": true },
   { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
   { "name": "BASALT", "color": "#36454F", "density": 5.2, "isStatic": false, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
+  { "name": "OBSIDIAN", "displayName": "OBSIDIAN", "color": "#1A1A1D", "density": 5.3, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.8, "spread": 0.05 }, "isPlaceable": false, "hasColorVariation": true, "emissive": true },
   { "name": "SEED", "color": "#8B4513", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": false },
   { "name": "PLANT", "color": "#228B22", "density": 4, "isStatic": true, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true, "partColors": { "leaf": "#006400", "flower": "#FF69B4", "withered": "#8B4513" } },
   { "name": "OIL", "color": "#1C1C1C", "density": 2.8, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.1, "spread": 0.6 }, "isPlaceable": false, "hasColorVariation": true },

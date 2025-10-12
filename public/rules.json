@@ -111,5 +111,12 @@
     "from": "STONE",
     "to": "CRYSTAL",
     "probability": 0.1
+  },
+  {
+    "type": "particle_interaction",
+    "particle": "ETHER",
+    "from": "BASALT",
+    "to": "OBSIDIAN",
+    "probability": 0.1
   }
 ]

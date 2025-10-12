@@ -11,6 +11,7 @@ export type ElementName =
   | 'SAND'
   | 'STONE'
   | 'BASALT'
+  | 'OBSIDIAN'
   | 'SEED'
   | 'PLANT'
   | 'OIL'
