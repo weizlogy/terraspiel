@@ -86,6 +86,7 @@ export interface TransformationRule {
   threshold: number;
   conditions: RuleCondition[];
   consumes?: ElementName; // Optional: The element to consume from a neighbor upon transformation
+  spawnParticle?: ElementName; // Optional: The particle to spawn upon transformation
 }
 
 

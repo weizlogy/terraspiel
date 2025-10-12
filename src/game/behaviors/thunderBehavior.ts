@@ -22,7 +22,7 @@ const zapRules: Partial<Record<ElementName, ElementName>> = {
 };
 
 // Elements that can be turned into particles by an explosion
-const AFFECTED_BY_EXPLOSION: ElementName[] = ['SOIL', 'SAND', 'WATER', 'MUD', 'PEAT', 'FERTILE_SOIL', 'CLAY', 'FIRE', 'PLANT', 'SEED', 'OIL'];
+const AFFECTED_BY_EXPLOSION: ElementName[] = ['SOIL', 'SAND', 'WATER', 'MUD', 'PEAT', 'FERTILE_SOIL', 'CLAY', 'PLANT', 'SEED', 'OIL'];
 
 const createExplosion = (
   grid: Cell[][],
@@ -144,7 +144,21 @@ export const handleThunderParticles = ({
 
       // If the particle is over a flammable cell, try to ignite it
       if (targetType && element?.isFlammable && Math.random() < ZAP_CHANCE) {
-        newGrid[cy][cx] = { type: targetType };
+        // Instead of creating a FIRE cell, spawn FIRE particles
+        newGrid[cy][cx] = { type: 'EMPTY' };
+        const fireCount = Math.floor(Math.random() * 3) + 3; // Spawn 3-5 fire particles
+        for (let i = 0; i < fireCount; i++) {
+          spawnedParticles.push({
+            id: currentParticleId++,
+            type: 'FIRE',
+            px: cx + 0.5,
+            py: cy + 0.5,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5 - 1,
+            life: Math.floor(Math.random() * 20) + 40, // Lifespan of 40-60 frames
+          });
+        }
+
         const radius = Math.floor(Math.random() * 3) + 1; // Random radius 1-3
         currentParticleId = createExplosion(newGrid, cx, cy, radius, width, height, spawnedParticles, currentParticleId);
         gridChanged = true;

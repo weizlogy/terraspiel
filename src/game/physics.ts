@@ -1,12 +1,13 @@
 import { type ElementName, type MoveDirection, type Cell, type Particle } from "../types/elements";
 import { handleGranular } from "./behaviors/granularBehavior";
 import { handleCloud } from "./behaviors/cloudBehavior";
-import { handleFire } from "./behaviors/fireBehavior";
+
 import { handleTransformations } from "./transformation";
 import { handlePlantGrowth } from "./behaviors/plantGrowthBehavior";
 import { handlePlant } from "./behaviors/plantBehavior";
 import { handleEtherParticles } from "./behaviors/etherBehavior";
 import { handleThunderParticles } from "./behaviors/thunderBehavior";
+import { handleFireParticles } from "./behaviors/fireParticleBehavior";
 import { handleOil } from "./behaviors/oilBehavior";
 import { handleCrystal } from "./behaviors/crystalBehavior";
 import useGameStore from "../stores/gameStore";
@@ -33,7 +34,11 @@ interface BehaviorContext {
 type ElementBehavior = (context: BehaviorContext) => void | Particle | null;
 
 const handleOilBehavior: ElementBehavior = (context) => {
-  handleOil(context);
+  const newParticle = handleOil(context);
+  if (newParticle) {
+    return newParticle;
+  }
+
   // If the cell hasn't been moved by handleOil, apply granular behavior
   if (!context.moved[context.y][context.x]) {
     handleGranular(context);
@@ -66,13 +71,13 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   MUD: handleGranular,
   CLOUD: handleCloud,
   CLAY: handleGranular,
-  FIRE: handleFire,
   SAND: handleGranular,
   STONE: handleGranular, // Will be handled by the guard clause in handleGranular
   SEED: handleGranular,
   OIL: handleOilBehavior,
   PLANT: handlePlant,
   CRYSTAL: handleCrystalBehavior,
+  MAGMA: handleGranular,
 };
 
 // Main physics simulation function that handles cells and particles
@@ -195,7 +200,6 @@ export const simulateWorld = (
     rules: particleInteractionRules,
   });
 
-  // Then, handle Thunder particles with the result from the Ether simulation
   const thunderResult = handleThunderParticles({
     particles: etherResult.updatedParticles,
     grid: etherResult.updatedGrid, // Use the grid potentially modified by Ether
@@ -205,13 +209,23 @@ export const simulateWorld = (
     nextParticleId,   // Pass the current ID counter
   });
 
-  // Update the counter with the value returned from thunder behavior and set it in the store
-  nextParticleId = thunderResult.nextParticleId;
+  // Then, handle Fire particles with the result from the Thunder simulation
+  const fireResult = handleFireParticles({
+    particles: thunderResult.updatedParticles,
+    grid: thunderResult.updatedGrid, // Use the grid potentially modified by Thunder
+    width,
+    height,
+    spawnedParticles,
+    nextParticleId: thunderResult.nextParticleId, // Pass the updated ID counter
+  });
+
+  // Update the counter with the value returned from fire behavior and set it in the store
+  nextParticleId = fireResult.nextParticleId;
   useGameStore.setState({ nextParticleId });
 
-  // If either simulation changed the grid, we need to copy the changes back
-  if (etherResult.gridChanged || thunderResult.gridChanged) {
-    const finalGrid = thunderResult.gridChanged ? thunderResult.updatedGrid : etherResult.updatedGrid;
+  // If any simulation changed the grid, we need to copy the changes back
+  if (etherResult.gridChanged || thunderResult.gridChanged || fireResult.gridChanged) {
+    const finalGrid = fireResult.gridChanged ? fireResult.updatedGrid : (thunderResult.gridChanged ? thunderResult.updatedGrid : etherResult.updatedGrid);
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         if (writeGrid[y][x].type !== finalGrid[y][x].type) {
@@ -224,7 +238,7 @@ export const simulateWorld = (
     }
   }
 
-  return { newParticles: thunderResult.updatedParticles };
+  return { newParticles: fireResult.updatedParticles };
 };
 
 // Calculate statistics for elements in the grid

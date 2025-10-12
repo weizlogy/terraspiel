@@ -280,6 +280,31 @@ export class GameScene extends Phaser.Scene {
           particle.py * this.cellSize,
           radius
         );
+      } else if (particleType === 'FIRE') {
+        const element = this.elements.FIRE;
+        if (element) {
+          // 1. Color variation (from orange to yellow)
+          const baseColor = Phaser.Display.Color.ValueToColor(element.color);
+          const yellowColor = Phaser.Display.Color.ValueToColor('#FFFF00');
+          const blended = Phaser.Display.Color.Interpolate.ColorWithColor(baseColor, yellowColor, 100, Math.floor(Math.random() * 70));
+          const color = Phaser.Display.Color.GetColor(blended.r, blended.g, blended.b);
+
+          // 2. Transparency based on life (fades out)
+          const alpha = Math.min(0.9, Math.max(0.1, particle.life / 90));
+
+          // 3. Flicker/Wobble effect
+          const wobbleX = (Math.random() - 0.5) * 0.5; // small random offset
+          const wobbleY = (Math.random() - 0.5) * 0.5; // small random offset
+          
+          const radius = this.cellSize * (0.5 + Math.random() * 0.2); // Varying radius
+
+          this.gridGraphics.fillStyle(color, alpha);
+          this.gridGraphics.fillCircle(
+            (particle.px + wobbleX) * this.cellSize,
+            (particle.py + wobbleY) * this.cellSize,
+            radius
+          );
+        }
       } else {
         const element = this.elements[particleType as ElementName];
         if (element) {

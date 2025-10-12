@@ -28,21 +28,8 @@
     ]
   },
   {
-    "from": "FIRE",
-    "to": "EMPTY",
-    "probability": 1.0,
-    "threshold": 1,
-    "conditions": [
-      {
-        "type": "surrounding",
-        "element": "WATER",
-        "min": 1
-      }
-    ]
-  },
-  {
     "from": "PEAT",
-    "to": "FIRE",
+    "to": "EMPTY",
     "probability": 0.1,
     "threshold": 200,
     "conditions": [
@@ -52,7 +39,8 @@
         "presence": "not_exists",
         "radius": 2
       }
-    ]
+    ],
+    "spawnParticle": "FIRE"
   },
   {
     "from": "FERTILE_SOIL",

@@ -86,7 +86,6 @@ export const handleGranular = ({
       return;
     } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
       // Swap with the less dense element
-      const targetColor = colorGrid[downY][x];
       newGrid[y][x] = targetCell; // Preserve properties
       newColorGrid[y][x] = colorGrid[downY][x];
       newGrid[downY][x] = currentCell; // Preserve properties
@@ -123,7 +122,6 @@ export const handleGranular = ({
           newLastMoveGrid[y + 1][targetX] = dx === -1 ? 'LEFT' : 'RIGHT';
           return;
         } else if (targetElementDef?.fluidity && elementDef.density > targetElementDef.density) {
-          const targetColor = colorGrid[y + 1][targetX];
           newGrid[y][x] = targetCell; // Preserve properties
           newColorGrid[y][x] = colorGrid[y + 1][targetX];
           newGrid[y + 1][targetX] = currentCell; // Preserve properties

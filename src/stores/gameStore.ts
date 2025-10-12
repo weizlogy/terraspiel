@@ -68,6 +68,8 @@ const useGameStore = create<GameState>()((set, get) => ({
     SEED: 0,
     PLANT: 0,
     OIL: 0,
+    MAGMA: 0,
+    CRYSTAL: 0,
     ETHER: 0,
     THUNDER: 0,
   },
@@ -154,7 +156,7 @@ const useGameStore = create<GameState>()((set, get) => ({
   }),
   randomizeGrid: () => set((state) => {
     const allElements = Object.keys(get().elements) as ElementName[];
-    const gridElements = allElements.filter(el => el !== 'EMPTY'); // Elements that go into the grid
+    const gridElements = allElements.filter(el => el !== 'EMPTY' && el !== 'FIRE' && el !== 'THUNDER' && el !== 'ETHER'); // Exclude particle-only elements
     const particleElementsForRandom: ParticleType[] = []; // Elements that become particles
 
     const newGrid: Cell[][] = Array(state.height)

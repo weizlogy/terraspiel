@@ -7,12 +7,12 @@
   { "name": "PEAT", "color": "#3A2E2B", "density": 4, "isStatic": false, "isWet": true, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
   { "name": "CLOUD", "color": "#F0F8FF", "density": 2, "isStatic": false, "alpha": 0.9, "isWet": true, "isFlammable": false, "isPlaceable": false, "hasColorVariation": false },
   { "name": "CLAY", "color": "#BCAAA4", "density": 4.2, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.8, "spread": 0.05 }, "isPlaceable": false, "hasColorVariation": true },
-  { "name": "FIRE", "color": "#FF4500", "density": 1, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true, "isPlaceable": false, "hasColorVariation": false },
+  { "name": "FIRE", "color": "#FF4500", "isWet": false, "isFlammable": false, "emissive": true, "isPlaceable": false, "hasColorVariation": false },
   { "name": "SAND", "color": "#F4A460", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": true },
   { "name": "STONE", "color": "#808080", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true },
   { "name": "SEED", "color": "#8B4513", "density": 4, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.1, "spread": 0.3 }, "isPlaceable": false, "hasColorVariation": false },
   { "name": "PLANT", "color": "#228B22", "density": 4, "isStatic": true, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true, "partColors": { "leaf": "#006400", "flower": "#FF69B4", "withered": "#8B4513" } },
   { "name": "OIL", "color": "#1C1C1C", "density": 2.8, "isStatic": false, "isWet": false, "isFlammable": true, "fluidity": { "resistance": 0.1, "spread": 0.6 }, "isPlaceable": false, "hasColorVariation": true },
-  { "name": "MAGMA", "color": "#FF4500", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.05 }, "isPlaceable": false, "hasColorVariation": true, "emissive": true },
+  { "name": "MAGMA", "color": "#FF4500", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.7, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true, "emissive": true },
   { "name": "CRYSTAL", "color": "#AFEEEE", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "emissive": true, "isPlaceable": false, "hasColorVariation": true, "fluidity": { "resistance": 0.6, "spread": 0.1 } }
 ]

@@ -39,6 +39,18 @@ export const handleEtherParticles = ({
   // Filter out dead particles first
   const livingParticles = particles.filter(p => p.life > 0);
 
+  // Build a spatial hash grid for efficient neighbor lookup
+  const particleGrid = new Map<string, Particle[]>();
+  for (const p of livingParticles) {
+    if (p.type === 'ETHER') { // We only need to grid ETHER particles
+      const key = `${Math.floor(p.px)},${Math.floor(p.py)}`;
+      if (!particleGrid.has(key)) {
+        particleGrid.set(key, []);
+      }
+      particleGrid.get(key)!.push(p);
+    }
+  }
+
   const updatedParticles = livingParticles.map(p => {
     const newParticle = { ...p };
 
@@ -82,8 +94,27 @@ export const handleEtherParticles = ({
       // If the particle is over a transformable cell, try to deepen it
       if (rule && Math.random() < rule.probability) {
         if (rule.to === 'CRYSTAL') {
-          // Simplified logic: Initialize storage to 1 without searching for neighbors
-          newGrid[cy][cx] = { type: 'CRYSTAL', etherStorage: 1 };
+          let etherStorage = 1; // Start with the current particle's ether
+
+          // Efficiently check for and consume neighboring ETHER particles
+          for (let j = -1; j <= 1; j++) {
+            for (let i = -1; i <= 1; i++) {
+              if (i === 0 && j === 0) continue;
+              const key = `${cx + i},${cy + j}`;
+              if (particleGrid.has(key)) {
+                const neighbors = particleGrid.get(key)!;
+                for (const neighbor of neighbors) {
+                  // Ensure we don't consume the particle that is causing the transformation
+                  if (neighbor.id !== newParticle.id) {
+                    etherStorage++;
+                    neighbor.life = 0; // Consume the nearby particle
+                  }
+                }
+              }
+            }
+          }
+
+          newGrid[cy][cx] = { type: 'CRYSTAL', etherStorage };
         } else {
           newGrid[cy][cx] = { type: rule.to };
         }

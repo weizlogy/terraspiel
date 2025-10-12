@@ -124,7 +124,6 @@ export const handleTransformations = ({
           }
         }
 
-        const fromType = grid[y][x].type;
         newGrid[y][x] = { type: rule.to, counter: 0 };
 
         // Set plant mode on creation
@@ -142,10 +141,10 @@ export const handleTransformations = ({
           newColorGrid[y][x] = varyColor(newElement.color);
         }
 
-        const ETHER_SPAWN_CHANCE = 0.005;
-        if (fromType !== rule.to && Math.random() < ETHER_SPAWN_CHANCE) {
-          const vx = (Math.random() - 0.5) * 0.3;
-          const vy = (Math.random() - 0.5) * 0.3;
+        // Spawn a particle if the rule specifies it
+        if (rule.spawnParticle) {
+          const vx = (Math.random() - 0.5) * 0.5;
+          const vy = (Math.random() - 0.5) * 0.5;
           
           const newParticle: Particle = {
             id: nextParticleId,
@@ -153,8 +152,8 @@ export const handleTransformations = ({
             py: y + 0.5,
             vx,
             vy,
-            type: 'ETHER',
-            life: 150,
+            type: rule.spawnParticle,
+            life: 150, // Generic lifespan
           };
           useGameStore.setState({ nextParticleId: nextParticleId + 1 });
           return newParticle;
