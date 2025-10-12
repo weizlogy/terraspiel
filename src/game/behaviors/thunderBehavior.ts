@@ -124,6 +124,14 @@ export const handleThunderParticles = ({
     if (cx >= 0 && cx < width && cy >= 0 && cy < height) {
       const cellType = newGrid[cy][cx].type;
 
+      // Special interaction with CRYSTAL to create ELECTRUM
+      if (cellType === 'CRYSTAL') {
+        newGrid[cy][cx] = { type: 'ELECTRUM' };
+        gridChanged = true;
+        newParticle.life = 0; // Consume the thunder particle
+        return null;
+      }
+
       // Disappear in water
       if (cellType === 'WATER') {
         const radius = Math.floor(Math.random() * 2) + 1; // Random radius 1-2

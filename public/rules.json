@@ -118,5 +118,36 @@
     "from": "BASALT",
     "to": "OBSIDIAN",
     "probability": 0.1
+  },
+  {
+    "from": "CRYSTAL",
+    "to": "SAPPHIRE",
+    "probability": 0.2,
+    "threshold": 1,
+    "conditions": [ { "type": "surrounding", "element": "WATER", "min": 1 } ],
+    "consumes": "WATER"
+  },
+  {
+    "from": "CRYSTAL",
+    "to": "AMETHYST",
+    "probability": 0.2,
+    "threshold": 1,
+    "conditions": [ { "type": "surrounding", "element": "MUD", "min": 1 } ],
+    "consumes": "MUD"
+  },
+  {
+    "from": "CRYSTAL",
+    "to": "GARNET",
+    "probability": 0.2,
+    "threshold": 1,
+    "conditions": [ { "type": "surrounding", "element": "CLAY", "min": 1 } ],
+    "consumes": "CLAY"
+  },
+  {
+    "from": "CRYSTAL",
+    "to": "EMERALD",
+    "probability": 0.2,
+    "threshold": 1,
+    "conditions": [ { "type": "surrounding", "element": "PLANT", "min": 1 } ]
   }
 ]

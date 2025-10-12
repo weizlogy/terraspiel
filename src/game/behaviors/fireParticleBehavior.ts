@@ -47,7 +47,28 @@ export const handleFireParticles = ({
     const cx = Math.floor(newParticle.px);
     const cy = Math.floor(newParticle.py);
 
-    // 1. Check for immediate extinguishment by water
+    // 1a. Check for contact with CRYSTAL, which transforms it and extinguishes the fire
+    for (let j = -1; j <= 1; j++) {
+      for (let i = -1; i <= 1; i++) {
+        if (i === 0 && j === 0) continue;
+        const nx = cx + i;
+        const ny = cy + j;
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height && newGrid[ny][nx].type === 'CRYSTAL') {
+          newGrid[ny][nx] = { type: 'RUBY' }; // Transform CRYSTAL to RUBY
+          gridChanged = true;
+          newParticle.life = 0; // Extinguish the fire particle
+          break;
+        }
+      }
+      if (newParticle.life <= 0) break;
+    }
+
+    // If extinguished by touching crystal, filter it out immediately
+    if (newParticle.life <= 0) {
+      return null;
+    }
+
+    // 1b. Check for immediate extinguishment by water
     for (let j = -1; j <= 1; j++) {
       for (let i = -1; i <= 1; i++) {
         const nx = cx + i;

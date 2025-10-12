@@ -17,7 +17,7 @@ interface BehaviorContext {
   scanRight: boolean;
 }
 
-const ETHER_SPAWN_CHANCE = 0.01; // Low chance to emit ETHER
+const ETHER_SPAWN_CHANCE = 0.001; // Low chance to emit ETHER
 const NO_CONSUME_CHANCE = 0.05; // Even lower chance to not consume ETHER on emission
 
 export const handleCrystal = (context: BehaviorContext): Particle | null => {

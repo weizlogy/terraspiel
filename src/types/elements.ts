@@ -16,6 +16,12 @@ export type ElementName =
   | 'PLANT'
   | 'OIL'
   | 'CRYSTAL'
+  | 'ELECTRUM'
+  | 'RUBY'
+  | 'SAPPHIRE'
+  | 'AMETHYST'
+  | 'GARNET'
+  | 'EMERALD'
   | 'ETHER'
   | 'THUNDER';
 
@@ -25,6 +31,7 @@ export interface Element {
   name: ElementName;
   color: string;
   density: number; // For physics simulation
+  state?: 'solid' | 'liquid';
   isStatic?: boolean; // Whether the element is static or moves
   lifespan?: number; // For elements that change over time
   alpha?: number; // Optional alpha value for rendering

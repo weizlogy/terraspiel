@@ -71,15 +71,15 @@ http://localhost:5173/
         -   `OIL`: WATERより流動性がある。
         -   `MAGMA`: 少し流動性があり、重力でゆっくり落ちる。
         -   `CRYSTAL`: 重力に従って下に落ちる。
-            CRYSTAL + THUNDER → ELECTRUM（雷を閉じ込めた鉱石）
-            CRYSTAL + FIRE → RUBY
-            CRYSTAL + WATER → SAPPHIRE
-            CRYSTAL + MUD → AMETHYST
-            CRYSTAL + CLAY → GARNET
-            CRYSTAL + PLANT → EMERALD
 
 3. 接触による物質変化（錬金術）
     - SOIL - WATER = MUD
+    CRYSTAL + THUNDER → ELECTRUM（雷を閉じ込めた鉱石）
+    CRYSTAL + FIRE → RUBY
+    CRYSTAL + WATER → SAPPHIRE
+    CRYSTAL + MUD → AMETHYST
+    CRYSTAL + CLAY → GARNET
+    CRYSTAL + PLANT → EMERALD
 
 4. 周囲の環境等による物質変化（非錬金術）
     ## 土壌

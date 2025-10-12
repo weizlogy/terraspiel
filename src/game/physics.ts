@@ -79,6 +79,12 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   OIL: handleOilBehavior,
   PLANT: handlePlant,
   CRYSTAL: handleCrystalBehavior,
+  ELECTRUM: handleGranular,
+  RUBY: handleGranular,
+  SAPPHIRE: handleGranular,
+  AMETHYST: handleGranular,
+  GARNET: handleGranular,
+  EMERALD: handleGranular,
   MAGMA: handleGranular,
 };
 
