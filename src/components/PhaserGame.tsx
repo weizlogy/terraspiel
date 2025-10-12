@@ -338,7 +338,7 @@ const PhaserGame: React.FC = () => {
       backgroundColor: '#000000',
       scene: GameScene,
       scale: {
-        mode: Phaser.Scale.FIT,
+        // mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
         parent: gameContainerRef.current
       }
