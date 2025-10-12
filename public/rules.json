@@ -72,7 +72,7 @@
   },
   {
     "from": "MAGMA",
-    "to": "STONE",
+    "to": "BASALT",
     "probability": 1.0,
     "threshold": 1,
     "conditions": [

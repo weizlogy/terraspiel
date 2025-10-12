@@ -10,6 +10,7 @@ export type ElementName =
   | 'FIRE'
   | 'SAND'
   | 'STONE'
+  | 'BASALT'
   | 'SEED'
   | 'PLANT'
   | 'OIL'
