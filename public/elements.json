@@ -22,5 +22,6 @@
   { "name": "SAPPHIRE", "displayName": "SAPPHIRE", "color": "#0F52BA", "density": 5.4, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.01 }, "isPlaceable": false, "hasColorVariation": true, "emissive": false, "state": "solid" },
   { "name": "AMETHYST", "displayName": "AMETHYST", "color": "#9966CC", "density": 5.3, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.01 }, "isPlaceable": false, "hasColorVariation": true, "emissive": false, "state": "solid" },
   { "name": "GARNET", "displayName": "GARNET", "color": "#9A2A2A", "density": 5.4, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.01 }, "isPlaceable": false, "hasColorVariation": true, "emissive": false, "state": "solid" },
-  { "name": "EMERALD", "displayName": "EMERALD", "color": "#50C878", "density": 5.3, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.01 }, "isPlaceable": false, "hasColorVariation": true, "emissive": false, "state": "solid" }
+  { "name": "EMERALD", "displayName": "EMERALD", "color": "#50C878", "density": 5.3, "isStatic": false, "isFlammable": false, "fluidity": { "resistance": 0.9, "spread": 0.01 }, "isPlaceable": false, "hasColorVariation": true, "emissive": false, "state": "solid" },
+  { "name": "LIMESTONE", "color": "#B0B0B0", "density": 5, "isStatic": false, "isWet": false, "isFlammable": false, "fluidity": { "resistance": 0.6, "spread": 0.1 }, "isPlaceable": false, "hasColorVariation": true, "state": "solid" }
 ]

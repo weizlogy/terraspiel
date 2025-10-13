@@ -61,7 +61,7 @@ export const handleGranular = ({
       // Check if we would swap with the cell below. If not, we are likely settled.
       const shouldSwap = belowElementDef?.fluidity && elementDef.density > belowElementDef.density && belowElementDef.state === 'liquid';
 
-      if (!shouldSwap) {
+      if (!shouldSwap && elementDef.state !== 'liquid') {
         // If we are not going to swap, there's a high chance we are settled.
         if (Math.random() > 0.1) { // 90% chance to skip further checks
           if (!isChained) {

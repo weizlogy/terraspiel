@@ -149,5 +149,18 @@
     "probability": 0.2,
     "threshold": 1,
     "conditions": [ { "type": "surrounding", "element": "PLANT", "min": 1 } ]
+  },
+  {
+    "from": "STONE",
+    "to": "LIMESTONE",
+    "probability": 0.05,
+    "threshold": 100,
+    "conditions": [
+      {
+        "type": "surrounding",
+        "element": "WATER",
+        "min": 1
+      }
+    ]
   }
 ]

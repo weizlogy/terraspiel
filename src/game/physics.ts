@@ -62,6 +62,39 @@ const handleCrystalBehavior: ElementBehavior = (context) => {
   return spawnedParticle;
 };
 
+const handleMagmaBehavior: ElementBehavior = (context) => {
+  // 1. Apply granular behavior first for movement.
+  handleGranular(context);
+
+  // 2. After moving, check a random surrounding cell to potentially spawn a FIRE particle.
+  const i = Math.floor(Math.random() * 3) - 1;
+  const j = Math.floor(Math.random() * 3) - 1;
+
+  if (i === 0 && j === 0) return null; // Don't check the cell itself
+
+  const nx = context.x + i;
+  const ny = context.y + j;
+
+  if (nx >= 0 && nx < context.width && ny >= 0 && ny < context.height) {
+    if (context.grid[ny][nx].type === 'EMPTY') {
+      if (Math.random() < 0.02) { // 2% chance to spawn fire
+        // Return a particle to be spawned, instead of writing to the grid
+        return {
+          id: -1, // ID will be assigned by the main loop
+          px: nx + 0.5,
+          py: ny + 0.5,
+          vx: (Math.random() - 0.5) * 0.2, // Small random velocity
+          vy: (Math.random() - 0.5) * 0.2,
+          type: 'FIRE',
+          life: Math.floor(Math.random() * 40) + 80, // Lifespan from 80 to 120 frames
+        };
+      }
+    }
+  }
+
+  return null; // No particle spawned
+};
+
 // Map elements to their behavior handlers
 const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   SOIL: handleGranular,
@@ -85,7 +118,7 @@ const behaviors: Partial<Record<ElementName, ElementBehavior>> = {
   AMETHYST: handleGranular,
   GARNET: handleGranular,
   EMERALD: handleGranular,
-  MAGMA: handleGranular,
+  MAGMA: handleMagmaBehavior,
 };
 
 // Main physics simulation function that handles cells and particles
