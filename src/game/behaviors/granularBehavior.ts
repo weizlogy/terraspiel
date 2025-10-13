@@ -51,31 +51,10 @@ export const handleGranular = ({
   const { resistance, spread } = elementDef.fluidity;
   const myColor = colorGrid[y][x];
 
-  // Optimization: Check if the particle is likely settled
-  const downY = y + 1;
-  if (downY < height) {
-    const belowCell = grid[downY][x];
-    if (belowCell.type !== 'EMPTY') {
-      const belowElementDef = elements[belowCell.type];
 
-      // Check if we would swap with the cell below. If not, we are likely settled.
-      const shouldSwap = belowElementDef?.fluidity && elementDef.density > belowElementDef.density && belowElementDef.state === 'liquid';
-
-      if (!shouldSwap && elementDef.state !== 'liquid') {
-        // If we are not going to swap, there's a high chance we are settled.
-        if (Math.random() > 0.1) { // 90% chance to skip further checks
-          if (!isChained) {
-            newGrid[y][x] = currentCell;
-            newColorGrid[y][x] = colorGrid[y][x];
-            newLastMoveGrid[y][x] = lastMoveGrid[y][x];
-          }
-          return;
-        }
-      }
-    }
-  }
 
   // 1. Try moving down (or swapping with a less dense element)
+  const downY = y + 1;
   if (downY < height && !moved[y + 1][x]) {
     const targetCell = grid[downY][x];
     const targetElementDef = elements[targetCell.type];

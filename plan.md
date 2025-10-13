@@ -80,7 +80,7 @@ http://localhost:5173/
     CRYSTAL + MUD → AMETHYST
     CRYSTAL + CLAY → GARNET
     CRYSTAL + PLANT → EMERALD
-    WATER + STONE = LIMESTONE
+    WATER + STONE → LIMESTONE
 
 4. 周囲の環境等による物質変化（非錬金術）
     ## 土壌
