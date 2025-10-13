@@ -55,17 +55,22 @@ export const handleGranular = ({
   const downY = y + 1;
   if (downY < height) {
     const belowCell = grid[downY][x];
-    const belowElementDef = elements[belowCell.type];
-    // If the cell below is not empty and is denser or static, this particle is likely settled.
-    if (belowCell.type !== 'EMPTY' && (!belowElementDef.fluidity || belowElementDef.density > elementDef.density)) {
-      // Greatly reduce the chance of checking for horizontal or diagonal moves
-      if (Math.random() > 0.1) { // 90% chance to skip further checks
-        if (!isChained) {
-          newGrid[y][x] = currentCell;
-          newColorGrid[y][x] = colorGrid[y][x];
-          newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+    if (belowCell.type !== 'EMPTY') {
+      const belowElementDef = elements[belowCell.type];
+
+      // Check if we would swap with the cell below. If not, we are likely settled.
+      const shouldSwap = belowElementDef?.fluidity && elementDef.density > belowElementDef.density && belowElementDef.state === 'liquid';
+
+      if (!shouldSwap) {
+        // If we are not going to swap, there's a high chance we are settled.
+        if (Math.random() > 0.1) { // 90% chance to skip further checks
+          if (!isChained) {
+            newGrid[y][x] = currentCell;
+            newColorGrid[y][x] = colorGrid[y][x];
+            newLastMoveGrid[y][x] = lastMoveGrid[y][x];
+          }
+          return;
         }
-        return;
       }
     }
   }

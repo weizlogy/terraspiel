@@ -15,6 +15,7 @@ export type ElementName =
   | 'SEED'
   | 'PLANT'
   | 'OIL'
+  | 'MAGMA'
   | 'CRYSTAL'
   | 'ELECTRUM'
   | 'RUBY'

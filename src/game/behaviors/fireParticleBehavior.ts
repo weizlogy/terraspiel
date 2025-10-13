@@ -1,5 +1,4 @@
 import { type Particle, type Cell, type ElementName } from "../../types/elements";
-import useGameStore from "../../stores/gameStore";
 
 interface FireParticleBehaviorContext {
   particles: Particle[];

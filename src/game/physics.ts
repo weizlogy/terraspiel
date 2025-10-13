@@ -101,6 +101,8 @@ export const simulateWorld = (
 ): {
   newParticles: Particle[];
 } => {
+  const startTime = performance.now();
+
   // Add a guard clause to check if the grid is initialized
   if (!readGrid || readGrid.length === 0 || !readGrid[0] || readGrid[0].length === 0) {
     // Grid not initialized yet, return current state
@@ -223,7 +225,6 @@ export const simulateWorld = (
     grid: thunderResult.updatedGrid, // Use the grid potentially modified by Thunder
     width,
     height,
-    spawnedParticles,
     nextParticleId: thunderResult.nextParticleId, // Pass the updated ID counter
   });
 
