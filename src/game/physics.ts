@@ -101,7 +101,7 @@ export const simulateWorld = (
 ): {
   newParticles: Particle[];
 } => {
-  const startTime = performance.now();
+
 
   // Add a guard clause to check if the grid is initialized
   if (!readGrid || readGrid.length === 0 || !readGrid[0] || readGrid[0].length === 0) {

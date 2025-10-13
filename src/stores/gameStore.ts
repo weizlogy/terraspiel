@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { type Element, type ElementName, type Particle, type MoveDirection, type Cell, type ParticleType, type TransformationRule } from '../types/elements';
 import { type ParticleInteractionRule } from '../game/behaviors/etherBehavior';
 import { varyColor } from '../utils/colors';
-import { createNoise2D } from '../utils/noise';
+
+import { generateTerrain } from '../utils/worldGenerator';
 
 interface GameState {
   selectedElement: ElementName;
@@ -88,7 +89,7 @@ const useGameStore = create<GameState>()((set, get) => ({
   transformationRules: [],
   particleInteractionRules: [],
   perf: { simulationTime: 0, renderTime: 0 },
-  setPerf: (perfData) => set((state) => ({ perf: { ...state.perf, ...perfData } })),
+  setPerf: (perfData: Partial<{ simulationTime: number; renderTime: number; }>) => set((state) => ({ perf: { ...state.perf, ...perfData } })),
   setSelectedElement: (element) => set({ selectedElement: element }),
   setGrid: (grid) => set({ grid, updateSource: 'ui' }),
   setLastMoveGrid: (lastMoveGrid) => set({ lastMoveGrid }),
@@ -166,9 +167,9 @@ const useGameStore = create<GameState>()((set, get) => ({
 
     return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER' | 'THUNDER', number>, particles: [], nextParticleId: 0, updateSource: 'ui' };
   }),
-  randomizeGrid: () => set((state) => {
-    const { width, height, elements } = state;
-    const newGrid: Cell[][] = Array(height).fill(0).map(() => Array(width).fill(0).map(() => ({ type: 'EMPTY' })));
+  randomizeGrid: () => {
+    const { width, height, elements } = get();
+    const newGrid = generateTerrain({ width, height, seed: Math.random() });
     const newLastMoveGrid: MoveDirection[][] = Array(height).fill(0).map(() => Array(width).fill('NONE'));
     const newColorGrid: string[][] = Array(height).fill(0).map(() => Array(width).fill(elements.EMPTY.color));
 
@@ -177,91 +178,16 @@ const useGameStore = create<GameState>()((set, get) => ({
     stats.ETHER = 0;
     stats.THUNDER = 0;
 
-    const noise2D = createNoise2D(() => Math.random());
-    const featureFrequency = 80;
-    const materialFrequency = 25;
-    const patchFrequency = 15;
-    const veinFrequency = 8; // For very rare veins
-
-    const baseCaveThreshold = 0.5;
-    const caveThresholdVariation = 0.1;
-    const caveThreshold = baseCaveThreshold + (Math.random() - 0.5) * 2 * caveThresholdVariation;
-
-    const stoneDepth = height * 0.35;
-
+    // Calculate stats from the generated grid
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const featureNoise = (noise2D(x / featureFrequency, y / featureFrequency) + 1) / 2;
-        let elementType: ElementName = 'EMPTY';
-
-        if (featureNoise > caveThreshold) {
-          const materialNoise = (noise2D(x / materialFrequency, y / materialFrequency) + 1) / 2;
-          const patchNoise = (noise2D(x / patchFrequency, y / patchFrequency) + 1) / 2;
-
-          if (y > stoneDepth + materialNoise * 20) {
-            elementType = 'STONE';
-          } else {
-            elementType = 'SOIL';
-          }
-
-          if (elementType === 'SOIL') {
-            if (materialNoise > 0.7) elementType = 'CLAY';
-            if (patchNoise > 0.85) elementType = 'SAND';
-          } else if (elementType === 'STONE') {
-            if (materialNoise < 0.3) elementType = 'BASALT';
-          }
-
-          if (y > height * 0.6 && patchNoise < 0.15) {
-            elementType = 'PEAT';
-          }
-
-          // Add rare veins in stone layers
-          if (elementType === 'STONE' || elementType === 'BASALT') {
-            const veinNoise = (noise2D(x / veinFrequency, y / veinFrequency) + 1) / 2;
-            if (veinNoise > 0.95) {
-              elementType = 'CRYSTAL';
-            } else if (veinNoise > 0.9) {
-              elementType = 'OBSIDIAN';
-            }
-          }
-
-          // Add fertile soil patches near the surface
-          if (elementType === 'SOIL' && y < stoneDepth * 1.2) {
-            if (patchNoise < 0.1) {
-              elementType = 'FERTILE_SOIL';
-            }
-          }
-        }
-
+        const elementType = newGrid[y][x].type;
         if (elementType !== 'EMPTY') {
-          newGrid[y][x] = { type: elementType };
-          stats[elementType]++;
+          stats[elementType] = (stats[elementType] || 0) + 1;
         }
       }
     }
 
-    // Generate liquid pools at the bottom
-    const magmaLevel = Math.floor(height * 0.95);
-    const oilLevel = Math.floor(height * 0.9);
-    const waterLevel = Math.floor(height * 0.8);
-
-    for (let y = waterLevel; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (newGrid[y][x].type === 'EMPTY') {
-          let liquidType: ElementName | null = null;
-          if (y >= magmaLevel && Math.random() < 0.6) {
-            liquidType = 'MAGMA';
-          } else if (y >= oilLevel && Math.random() < 0.5) {
-            liquidType = 'OIL';
-          } else {
-            liquidType = 'WATER';
-          }
-          newGrid[y][x] = { type: liquidType };
-          stats[liquidType]++;
-        }
-      }
-    }
-    
     // Color the grid based on the final elements
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -272,8 +198,8 @@ const useGameStore = create<GameState>()((set, get) => ({
       }
     }
 
-    return { grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats: stats as any, particles: [], nextParticleId: 0, updateSource: 'ui' };
-  }),
+    set({ grid: newGrid, lastMoveGrid: newLastMoveGrid, colorGrid: newColorGrid, stats: stats as any, particles: [], nextParticleId: 0, updateSource: 'ui' });
+  },
   updateStats: (stats) => set({ stats }),
   setFps: (fps) => set({ fps }),
   loadElements: async () => {
