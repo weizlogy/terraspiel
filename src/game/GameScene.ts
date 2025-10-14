@@ -214,11 +214,19 @@ export class GameScene extends Phaser.Scene {
 
     if (!readGrid || readGrid.length === 0 || !this.elements || Object.keys(this.elements).length === 0) return;
 
+    this.cellGraphics.clear();
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        this.drawCell(x, y, readGrid, readColorGrid);
+        const elementName = readGrid[y][x].type;
+        if (elementName !== 'EMPTY') {
+          const displayColor = readColorGrid[y][x];
+          const color = parseInt(displayColor.replace('#', '0x'));
+          this.cellGraphics.fillStyle(color, 1);
+          this.cellGraphics.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+        }
       }
     }
+    this.gridTexture.draw(this.cellGraphics);
   }
 
   private drawDirtyCells() {
@@ -227,29 +235,30 @@ export class GameScene extends Phaser.Scene {
     const readGrid = this.grids[this.activeBufferIndex];
     const readColorGrid = this.colorGrids[this.activeBufferIndex];
 
-    this.dirtyCells.forEach(key => {
-      const [x, y] = key.split(',').map(Number);
-      this.drawCell(x, y, readGrid, readColorGrid);
-    });
-
-    this.dirtyCells.clear();
-  }
-
-  private drawCell(x: number, y: number, readGrid: Cell[][], readColorGrid: string[][]) {
-    const elementName = readGrid[y][x].type;
-    const displayColor = readColorGrid[y][x];
-
     this.cellGraphics.clear();
 
-    // Erase the cell area by drawing a transparent rectangle
-    this.gridTexture.erase(this.cellGraphics.fillStyle(0x000000, 0).fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize));
+    // Batch erase
+    this.dirtyCells.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      this.cellGraphics.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
+    });
+    this.gridTexture.erase(this.cellGraphics);
+    this.cellGraphics.clear();
 
-    if (elementName !== 'EMPTY') {
+    // Batch draw
+    this.dirtyCells.forEach(key => {
+      const [x, y] = key.split(',').map(Number);
+      const elementName = readGrid[y][x].type;
+      if (elementName !== 'EMPTY') {
+        const displayColor = readColorGrid[y][x];
         const color = parseInt(displayColor.replace('#', '0x'));
         this.cellGraphics.fillStyle(color, 1);
         this.cellGraphics.fillRect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
-        this.gridTexture.draw(this.cellGraphics);
-    }
+      }
+    });
+    this.gridTexture.draw(this.cellGraphics);
+
+    this.dirtyCells.clear();
   }
 
   private drawParticles() {
