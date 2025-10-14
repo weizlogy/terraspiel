@@ -26,7 +26,7 @@ export const generateTerrain = (params: WorldGenerationParams): Cell[][] => {
     .map(() => Array(width).fill(0).map(() => ({ type: 'EMPTY' })));
 
   grid = generateSurface(grid, { width, height }, simplexNoise, seed);
-  grid = generateUnderground(grid, { width, height }, simplexNoise, seed);
+  grid = generateUnderground(grid, { width, height }, simplexNoise);
 
   return grid;
 };
@@ -112,7 +112,7 @@ const generateUnderground = (
   const maxThreshold = 0.875; // Corresponds to ~2.5x the previous solid amount
   const randomCaveThreshold = minThreshold + Math.random() * (maxThreshold - minThreshold);
 
-  const ores: { type: ElementName; frequency: number; threshold: number; seed: number }[] = [
+  const ores: { type: ElementName; frequency: number; threshold: number; }[] = [
     { type: 'CRYSTAL', frequency: 30, threshold: 0.95 },
     { type: 'RUBY', frequency: 40, threshold: 0.97 },
     { type: 'ELECTRUM', frequency: 50, threshold: 0.98 },
