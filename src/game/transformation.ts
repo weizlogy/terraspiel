@@ -80,13 +80,15 @@ export const handleTransformations = ({
   y,
   width,
   height,
-}: BehaviorContext): Particle | null => {
+}: BehaviorContext): { particles: Particle[], nextId: number } => {
   const { transformationRules, nextParticleId, elements } = useGameStore.getState();
   const cell = grid[y][x];
   const applicableRules = transformationRules.filter(rule => rule.from === cell.type);
+  const spawnedParticles: Particle[] = [];
+  let nextId = nextParticleId;
 
   if (applicableRules.length === 0) {
-    return null;
+    return { particles: spawnedParticles, nextId };
   }
 
   // Find all rules that meet their conditions
@@ -147,7 +149,7 @@ export const handleTransformations = ({
           const vy = (Math.random() - 0.5) * 0.5;
           
           const newParticle: Particle = {
-            id: nextParticleId,
+            id: nextId++,
             px: x + 0.5,
             py: y + 0.5,
             vx,
@@ -155,9 +157,26 @@ export const handleTransformations = ({
             type: rule.spawnParticle,
             life: 150, // Generic lifespan
           };
-          useGameStore.setState({ nextParticleId: nextParticleId + 1 });
-          return newParticle;
+          spawnedParticles.push(newParticle);
         }
+
+        // Add a very low chance to spawn an ETHER particle on any transformation
+        const ETHER_SPAWN_CHANCE = 0.001; // 0.1%
+        if (Math.random() < ETHER_SPAWN_CHANCE) {
+            const vx = (Math.random() - 0.5) * 0.2;
+            const vy = (Math.random() - 0.5) * 0.2;
+            const etherParticle: Particle = {
+                id: nextId++,
+                px: x + 0.5,
+                py: y + 0.5,
+                vx,
+                vy,
+                type: 'ETHER',
+                life: 150,
+            };
+            spawnedParticles.push(etherParticle);
+        }
+
       } else {
         newGrid[y][x].counter = newCounter;
       }
@@ -169,5 +188,5 @@ export const handleTransformations = ({
     }
   }
 
-  return null;
+  return { particles: spawnedParticles, nextId };
 };

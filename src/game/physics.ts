@@ -199,18 +199,20 @@ export const simulateWorld = (
   }
 
   // --- PASS 2: TRANSFORMATIONS ---
+  let nextParticleIdInLoop = useGameStore.getState().nextParticleId;
   for (let y = height - 1; y >= 0; y--) {
     for (let i = 0; i < width; i++) {
       const x = scanRight ? i : width - 1 - i;
-      const newParticle = handleTransformations({
+      const result = handleTransformations({
         grid: writeGrid, // Read from and write to the same grid
         newGrid: writeGrid, // Pass it as newGrid as well
         newColorGrid: writeColorGrid,
         x, y, width, height,
       });
-      if (newParticle) {
-        spawnedParticles.push(newParticle);
+      if (result.particles.length > 0) {
+        spawnedParticles.push(...result.particles);
       }
+      nextParticleIdInLoop = result.nextId;
     }
   }
 
@@ -225,7 +227,7 @@ export const simulateWorld = (
   // This is a potential area for further optimization.
 
   // --- PASS 3: PARTICLE SIMULATION & DEEPENING ---
-  let nextParticleId = useGameStore.getState().nextParticleId;
+  let nextParticleId = nextParticleIdInLoop;
   for (const p of spawnedParticles) {
     if (p.id === -1) {
       p.id = nextParticleId++;
