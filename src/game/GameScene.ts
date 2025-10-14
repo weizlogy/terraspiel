@@ -114,7 +114,7 @@ export class GameScene extends Phaser.Scene {
         return;
     }
 
-    const { newParticles } = simulateWorld(
+    const { newParticles, dirtyCells } = simulateWorld(
       readGrid,
       this.lastMoveGrids[readBufferIndex],
       this.colorGrids[readBufferIndex],
@@ -125,14 +125,7 @@ export class GameScene extends Phaser.Scene {
       this.frameCount
     );
 
-    // Detect dirty cells by comparing read and write buffers
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        if (readGrid[y][x].type !== writeGrid[y][x].type) {
-          this.dirtyCells.add(`${x},${y}`);
-        }
-      }
-    }
+    this.dirtyCells = dirtyCells;
 
     this.particles = newParticles;
     this.activeBufferIndex = writeBufferIndex as 0 | 1;
