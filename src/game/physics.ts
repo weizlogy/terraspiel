@@ -282,6 +282,45 @@ export const simulateWorld = (
     }
   }
 
+  // --- PASS 4: COLOR BLENDING (Proof of Concept) ---
+  const baseWaterColor = elements.WATER.color;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (writeGrid[y][x].type === 'WATER') {
+        let nonWaterNeighbors = 0;
+        for (let j = -1; j <= 1; j++) {
+          for (let i = -1; i <= 1; i++) {
+            if (i === 0 && j === 0) continue;
+            const nx = x + i;
+            const ny = y + j;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              if (writeGrid[ny][nx].type !== 'WATER') {
+                nonWaterNeighbors++;
+              }
+            } else {
+              // Treat out-of-bounds as non-water neighbors
+              nonWaterNeighbors++;
+            }
+          }
+        }
+        
+        // Reduce alpha based on the number of non-water neighbors
+        const alpha = 1.0 - (nonWaterNeighbors / 8) * 0.7;
+        const r = parseInt(baseWaterColor.slice(1, 3), 16);
+        const g = parseInt(baseWaterColor.slice(3, 5), 16);
+        const b = parseInt(baseWaterColor.slice(5, 7), 16);
+
+        // This is not a perfect way to handle hex colors with alpha in JS, but it demonstrates the logic.
+        // A proper implementation would use a color utility library.
+        // For now, we'll just modify the color to be darker as a visual cue.
+        const newR = Math.floor(r * alpha);
+        const newG = Math.floor(g * alpha);
+        const newB = Math.floor(b * alpha);
+        writeColorGrid[y][x] = `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+      }
+    }
+  }
+
   return { newParticles: fireResult.updatedParticles };
 };
 
