@@ -220,33 +220,7 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < this.width; x++) {
         const elementName = readGrid[y][x].type;
         if (elementName !== 'EMPTY') {
-          let displayColor = readColorGrid[y][x];
-
-          // Special rendering for Water: blend with neighbors
-          if (elementName === 'WATER') {
-            let blendedColor = displayColor;
-            let blendCount = 1; // Start with self color
-
-            // Check 8 neighbors
-            for (let dy = -1; dy <= 1; dy++) {
-              for (let dx = -1; dx <= 1; dx++) {
-                if (dx === 0 && dy === 0) continue;
-
-                const nx = x + dx;
-                const ny = y + dy;
-
-                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                  const neighborElement = readGrid[ny][nx].type;
-                  if (neighborElement !== 'EMPTY' && neighborElement !== 'WATER') { // Blend with non-empty, non-water neighbors
-                    const neighborColor = readColorGrid[ny][nx];
-                    blendedColor = blendColors(blendedColor, neighborColor, 0.9); // Small weight for neighbor
-                    blendCount++;
-                  }
-                }
-              }
-            }
-            displayColor = blendedColor;
-          }
+          const displayColor = readColorGrid[y][x];
 
           this.gridGraphics.fillStyle(parseInt(displayColor.replace('#', '0x')), 1);
           this.gridGraphics.fillRect(

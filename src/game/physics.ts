@@ -300,56 +300,6 @@ export const simulateWorld = (
     }
   }
 
-  // --- PASS 4: COLOR BLENDING (Optimized) ---
-  const cellsToRecalculate = new Set<string>();
-  dirtyCells.forEach(key => {
-    const [x, y] = key.split(',').map(Number);
-    // Add the dirty cell itself
-    cellsToRecalculate.add(key);
-    // Add its 8 neighbors
-    for (let j = -1; j <= 1; j++) {
-      for (let i = -1; i <= 1; i++) {
-        if (i === 0 && j === 0) continue;
-        const nx = x + i;
-        const ny = y + j;
-        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-          cellsToRecalculate.add(`${nx},${ny}`);
-        }
-      }
-    }
-  });
-
-  const baseWaterColor = elements.WATER.color;
-  cellsToRecalculate.forEach(key => {
-    const [x, y] = key.split(',').map(Number);
-    if (writeGrid[y][x].type === 'WATER') {
-      let nonWaterNeighbors = 0;
-      for (let j = -1; j <= 1; j++) {
-        for (let i = -1; i <= 1; i++) {
-          if (i === 0 && j === 0) continue;
-          const nx = x + i;
-          const ny = y + j;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            if (writeGrid[ny][nx].type !== 'WATER') {
-              nonWaterNeighbors++;
-            }
-          } else {
-            nonWaterNeighbors++;
-          }
-        }
-      }
-      
-      const alpha = 1.0 - (nonWaterNeighbors / 8) * 0.7;
-      const r = parseInt(baseWaterColor.slice(1, 3), 16);
-      const g = parseInt(baseWaterColor.slice(3, 5), 16);
-      const b = parseInt(baseWaterColor.slice(5, 7), 16);
-
-      const newR = Math.floor(r * alpha);
-      const newG = Math.floor(g * alpha);
-      const newB = Math.floor(b * alpha);
-      writeColorGrid[y][x] = `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-    }
-  });
 
   return { newParticles: fireResult.updatedParticles, dirtyCells };
 };
