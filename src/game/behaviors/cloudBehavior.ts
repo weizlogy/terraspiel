@@ -1,6 +1,5 @@
 import { type Cell, type Particle } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
-import { varyColor } from "../../utils/colors";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -25,7 +24,7 @@ export const handleCloud = ({
   width,
   height,
 }: BehaviorContext): Particle | null => {
-  const elements = useGameStore.getState().elements;
+  const { elements, colorVariations } = useGameStore.getState();
   if (Object.keys(elements).length === 0) return null;
 
   const cell = grid[y][x];
@@ -97,7 +96,12 @@ export const handleCloud = ({
     // Try to rain below
     if (y + 1 < height && grid[y + 1][x].type === 'EMPTY' && !moved[y + 1][x]) {
       newGrid[y + 1][x] = { type: 'WATER' };
-      newColorGrid[y + 1][x] = varyColor(elements.WATER.color);
+      const variations = colorVariations.get('WATER');
+      if (variations && variations.length > 0) {
+        newColorGrid[y + 1][x] = variations[Math.floor(Math.random() * variations.length)];
+      } else {
+        newColorGrid[y + 1][x] = elements.WATER.color;
+      }
       moved[y + 1][x] = true;
       rainCounter = 0; // Reset counter
       decayCounter += 10; // Increment decay counter on rain

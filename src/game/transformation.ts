@@ -1,6 +1,5 @@
 import { type Cell, type RuleCondition, type SurroundingCondition, type EnvironmentCondition, type Particle, type Element, type ElementName, type SurroundingAttributeCondition } from "../types/elements";
 import useGameStore from "../stores/gameStore";
-import { varyColor } from "../utils/colors";
 
 interface BehaviorContext {
   grid: Cell[][];
@@ -81,7 +80,7 @@ export const handleTransformations = ({
   width,
   height,
 }: BehaviorContext): { particles: Particle[], nextId: number } => {
-  const { transformationRules, nextParticleId, elements } = useGameStore.getState();
+  const { transformationRules, nextParticleId, elements, colorVariations } = useGameStore.getState();
   const cell = grid[y][x];
   const applicableRules = transformationRules.filter(rule => rule.from === cell.type);
   const spawnedParticles: Particle[] = [];
@@ -140,7 +139,16 @@ export const handleTransformations = ({
         // Also update the color
         const newElement = elements[rule.to];
         if (newElement) {
-          newColorGrid[y][x] = varyColor(newElement.color);
+          if (newElement.hasColorVariation) {
+            const variations = colorVariations.get(newElement.name);
+            if (variations && variations.length > 0) {
+              newColorGrid[y][x] = variations[Math.floor(Math.random() * variations.length)];
+            } else {
+              newColorGrid[y][x] = newElement.color;
+            }
+          } else {
+            newColorGrid[y][x] = newElement.color;
+          }
         }
 
         // Spawn a particle if the rule specifies it

@@ -18,6 +18,7 @@ interface GameState {
   stats: Record<ElementName | 'ETHER' | 'THUNDER', number>;
   fps: number;
   elements: Record<ElementName, Element>;
+  colorVariations: Map<string, string[]>;
   transformationRules: TransformationRule[];
   particleInteractionRules: ParticleInteractionRule[];
   perf: { simulationTime: number; renderTime: number; };
@@ -41,6 +42,7 @@ interface GameState {
   setFps: (fps: number) => void;
   loadElements: () => Promise<void>;
   loadRules: () => Promise<void>;
+  initializeColorVariations: () => void;
 }
 
 const FIXED_WIDTH = 320;
@@ -86,6 +88,7 @@ const useGameStore = create<GameState>()((set, get) => ({
   },
   fps: 0,
   elements: {} as Record<ElementName, Element>,
+  colorVariations: new Map(),
   transformationRules: [],
   particleInteractionRules: [],
   perf: { simulationTime: 0, renderTime: 0 },
@@ -168,7 +171,7 @@ const useGameStore = create<GameState>()((set, get) => ({
     return { grid, lastMoveGrid, colorGrid, stats: stats as Record<ElementName | 'ETHER' | 'THUNDER', number>, particles: [], nextParticleId: 0, updateSource: 'ui' };
   }),
   randomizeGrid: () => {
-    const { width, height, elements } = get();
+    const { width, height, elements, colorVariations } = get();
     const newGrid = generateTerrain({ width, height, seed: Math.random() });
     const newLastMoveGrid: MoveDirection[][] = Array(height).fill(0).map(() => Array(width).fill('NONE'));
     const newColorGrid: string[][] = Array(height).fill(0).map(() => Array(width).fill(elements.EMPTY.color));
@@ -193,7 +196,12 @@ const useGameStore = create<GameState>()((set, get) => ({
       for (let x = 0; x < width; x++) {
         const elementType = newGrid[y][x].type;
         if (elementType !== 'EMPTY') {
-          newColorGrid[y][x] = varyColor(elements[elementType].color);
+          const variations = colorVariations.get(elementType);
+          if (variations && variations.length > 0) {
+            newColorGrid[y][x] = variations[Math.floor(Math.random() * variations.length)];
+          } else {
+            newColorGrid[y][x] = elements[elementType].color;
+          }
         }
       }
     }
@@ -216,6 +224,8 @@ const useGameStore = create<GameState>()((set, get) => ({
       set({ elements: elementsMap });
       console.log('Elements loaded successfully.', elementsMap);
 
+      get().initializeColorVariations();
+
       // Now that elements are loaded, initialize the grid
       get().initializeGrid();
       // get().randomizeGrid(); // Removed this line
@@ -223,6 +233,36 @@ const useGameStore = create<GameState>()((set, get) => ({
     } catch (error) {
       console.error("Error loading elements:", error);
     }
+  },
+  initializeColorVariations: () => {
+    const { elements } = get();
+    const newColorVariations = new Map<string, string[]>();
+    const variationCount = 10;
+
+    for (const elementName in elements) {
+      const element = elements[elementName as ElementName];
+      
+      if (element.hasColorVariation && element.color) {
+        const variations: string[] = [];
+        for (let i = 0; i < variationCount; i++) {
+          variations.push(varyColor(element.color));
+        }
+        newColorVariations.set(element.name, variations);
+      }
+
+      if (element.partColors) {
+        for (const partName in element.partColors) {
+          const partColor = element.partColors[partName];
+          const variations: string[] = [];
+          for (let i = 0; i < variationCount; i++) {
+            variations.push(varyColor(partColor));
+          }
+          newColorVariations.set(`${element.name}_${partName}`, variations);
+        }
+      }
+    }
+    set({ colorVariations: newColorVariations as any });
+    console.log('Color variations initialized.', newColorVariations);
   },
   loadRules: async () => {
     try {

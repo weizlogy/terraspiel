@@ -11,7 +11,7 @@ import { handleFireParticles } from "./behaviors/fireParticleBehavior";
 import { handleOil } from "./behaviors/oilBehavior";
 import { handleCrystal } from "./behaviors/crystalBehavior";
 import useGameStore from "../stores/gameStore";
-import { varyColor } from "../utils/colors";
+
 
 // Define the context for behaviors
 interface BehaviorContext {
@@ -145,8 +145,7 @@ export const simulateWorld = (
 
   const height = readGrid.length;
   const width = readGrid[0].length;
-  const elements = useGameStore.getState().elements;
-  const particleInteractionRules = useGameStore.getState().particleInteractionRules;
+  const { elements, colorVariations, particleInteractionRules } = useGameStore.getState();
 
   if (Object.keys(elements).length === 0) {
     // Elements not loaded yet, return current state
@@ -276,8 +275,16 @@ export const simulateWorld = (
         if (writeGrid[y][x].type !== finalGrid[y][x].type) {
           writeGrid[y][x] = finalGrid[y][x];
           const newType = finalGrid[y][x].type;
-          const baseColor = elements[newType]?.color || '#000000';
-          writeColorGrid[y][x] = elements[newType]?.hasColorVariation ? varyColor(baseColor) : baseColor;
+          if (elements[newType]?.hasColorVariation) {
+            const variations = colorVariations.get(newType);
+            if (variations && variations.length > 0) {
+              writeColorGrid[y][x] = variations[Math.floor(Math.random() * variations.length)];
+            } else {
+              writeColorGrid[y][x] = elements[newType]?.color || '#000000';
+            }
+          } else {
+            writeColorGrid[y][x] = elements[newType]?.color || '#000000';
+          }
         }
       }
     }

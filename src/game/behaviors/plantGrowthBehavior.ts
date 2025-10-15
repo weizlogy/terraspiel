@@ -1,6 +1,5 @@
 import { type Cell } from "../../types/elements";
 import useGameStore from "../../stores/gameStore";
-import { varyColor } from "../../utils/colors";
 
 const DECAY_THRESHOLD = 2000;
 const GROWTH_THRESHOLD = 100;
@@ -10,6 +9,13 @@ const LEAF_GROW_CHANCE = 0.2;
 const FLOWER_GROW_CHANCE = 0.05;
 const GROUND_COVER_SPREAD_CHANCE = 0.3;
 
+const getRandomVariation = (variations: string[] | undefined, fallbackColor: string): string => {
+  if (variations && variations.length > 0) {
+    return variations[Math.floor(Math.random() * variations.length)];
+  }
+  return fallbackColor;
+};
+
 export const handlePlantGrowth = (
   grid: Cell[][],
   newGrid: Cell[][],
@@ -17,13 +23,9 @@ export const handlePlantGrowth = (
   width: number,
   height: number
 ) => {
-  const elements = useGameStore.getState().elements;
+  const { elements, colorVariations } = useGameStore.getState();
   const plantElement = elements.PLANT;
   if (!plantElement || !plantElement.partColors) return;
-
-  const leafColor = plantElement.partColors.leaf;
-  const flowerColor = plantElement.partColors.flower;
-  const witheredColor = plantElement.partColors.withered;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -39,7 +41,7 @@ export const handlePlantGrowth = (
         const oilCounter = (newCell.oilCounter || 0) + 1;
         if (oilCounter > OIL_THRESHOLD * (0.8 + Math.random() * 0.4)) {
           newGrid[y][x] = { type: 'OIL' };
-          newColorGrid[y][x] = varyColor(elements.OIL.color);
+          newColorGrid[y][x] = getRandomVariation(colorVariations.get('OIL'), elements.OIL.color);
         } else {
           // Ensure the cell remains a withered plant until it turns to oil
           newGrid[y][x] = { ...newCell, type: 'PLANT', plantMode: 'withered', oilCounter };
@@ -53,7 +55,7 @@ export const handlePlantGrowth = (
         const decayCounter = (newCell.decayCounter || 0) + 1;
         if (decayCounter > DECAY_THRESHOLD * (0.8 + Math.random() * 0.4)) {
           newGrid[y][x] = { type: 'PLANT', plantMode: 'withered', oilCounter: 0 };
-          newColorGrid[y][x] = varyColor(witheredColor);
+          newColorGrid[y][x] = getRandomVariation(colorVariations.get('PLANT_withered'), plantElement.partColors.withered);
           continue;
         }
         newGrid[y][x].decayCounter = decayCounter;
@@ -74,7 +76,7 @@ export const handlePlantGrowth = (
             const targetCell = grid[upY][x];
             if (targetCell.type !== 'PLANT') {
               newGrid[upY][x] = { type: 'PLANT', plantMode: 'stem', counter: 0, decayCounter: 0 };
-              newColorGrid[upY][x] = varyColor(plantElement.color);
+              newColorGrid[upY][x] = getRandomVariation(colorVariations.get('PLANT'), plantElement.color);
             }
           }
 
@@ -84,10 +86,10 @@ export const handlePlantGrowth = (
             if (sideX >= 0 && sideX < width && grid[y][sideX].type === 'EMPTY') {
               if (Math.random() < LEAF_GROW_CHANCE) {
                 newGrid[y][sideX] = { type: 'PLANT', plantMode: 'leaf' };
-                newColorGrid[y][sideX] = varyColor(leafColor);
+                newColorGrid[y][sideX] = getRandomVariation(colorVariations.get('PLANT_leaf'), plantElement.partColors.leaf);
               } else if (Math.random() < FLOWER_GROW_CHANCE) {
                 newGrid[y][sideX] = { type: 'PLANT', plantMode: 'flower' };
-                newColorGrid[y][sideX] = varyColor(flowerColor);
+                newColorGrid[y][sideX] = getRandomVariation(colorVariations.get('PLANT_flower'), plantElement.partColors.flower);
               }
             }
           }
@@ -98,7 +100,7 @@ export const handlePlantGrowth = (
               const belowY = y + 1;
               if (belowY < height && grid[belowY][nx].type !== 'EMPTY' && elements[grid[belowY][nx].type]?.isStatic === false) {
                    newGrid[y][nx] = { type: 'PLANT', plantMode: 'ground_cover', counter: 0, decayCounter: 0 };
-                   newColorGrid[y][nx] = varyColor(plantElement.color);
+                   newColorGrid[y][nx] = getRandomVariation(colorVariations.get('PLANT'), plantElement.color);
               }
           }
         }
