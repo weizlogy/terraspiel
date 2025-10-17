@@ -1,0 +1,27 @@
+[package]
+name = "terraspiel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# 最新の互換性のあるバージョンに統一
+winit = "0.29.15"
+winit_input_helper = "0.16.0"
+
+egui = "0.27.2"
+egui-wgpu = "0.27.2"
+egui-winit = "0.27.2"
+
+# pixels は main ブランチを直接指定
+pixels = { git = "https://github.com/parasyte/pixels.git", branch = "main" }
+
+# 他の依存関係
+noise = "0.8"
+rand = "0.8"
+fastrand = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+rayon = "1.8"
+tracing = "0.1"
+palette = { version = "0.7", features = ["serde"] }
+blake3 = "1.5"
