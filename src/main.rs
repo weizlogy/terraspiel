@@ -1,4 +1,7 @@
 mod app;
+mod renderer;
+mod event_handler;
+
 use app::App;
 
 use winit::event_loop::EventLoop;

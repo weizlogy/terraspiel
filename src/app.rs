@@ -1,17 +1,16 @@
 use pixels::Pixels;
 use winit::window::Window;
-use winit::event_loop::ActiveEventLoop;
 
 // ドットの状態を保持する構造体
-struct Dot {
-    x: f64,
-    y: f64,
-    vx: f64,  // x方向速度
-    vy: f64,  // y方向速度
+pub struct Dot {
+    pub x: f64,
+    pub y: f64,
+    pub vx: f64,  // x方向速度
+    pub vy: f64,  // y方向速度
 }
 
 impl Dot {
-    fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: f64, y: f64) -> Self {
         Self {
             x,
             y,
@@ -26,15 +25,18 @@ pub struct App {
     pub window: Option<Window>,
     pub pixels: Option<Pixels>,
     pub mouse_position: Option<(f64, f64)>,
-    dots: Vec<Dot>,        // ドットリスト
-    gravity: f64,          // 重力加速度
-    last_time: std::time::Instant,  // 時間管理用
-    bounce_factor: f64,    // 反発係数
-    is_updating: bool,     // 物理更新中かどうかのフラグ
-    left_mouse_pressed: bool, // 左クリックが押されているか
-    last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
-    dot_add_interval: std::time::Duration, // ドット追加の間隔
+    pub dots: Vec<Dot>,        // ドットリスト
+    pub gravity: f64,          // 重力加速度
+    pub last_time: std::time::Instant,  // 時間管理用
+    pub bounce_factor: f64,    // 反発係数
+    pub is_updating: bool,     // 物理更新中かどうかのフラグ
+    pub left_mouse_pressed: bool, // 左クリックが押されているか
+    pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
+    pub dot_add_interval: std::time::Duration, // ドット追加の間隔
 }
+
+pub const WIDTH: u32 = 640;
+pub const HEIGHT: u32 = 480;
 
 impl App {
     pub fn new() -> Self {
@@ -59,214 +61,5 @@ impl App {
         self.dots.push(Dot::new(x as f64, y as f64));
         self.is_updating = true; // 物理更新を開始
         self.last_dot_add_time = std::time::Instant::now(); // 最後に追加した時刻を更新
-    }
-
-    // 物理更新
-    pub fn update_physics(&mut self) {
-        // 更新が必要な場合のみ物理計算を行う
-        if self.is_updating {
-            let now = std::time::Instant::now();
-            let dt = now.duration_since(self.last_time).as_secs_f64();
-            self.last_time = now;
-
-            for dot in &mut self.dots {
-                // 重力を適用
-                dot.vy += self.gravity * dt;
-
-                // 位置を更新
-                dot.x += dot.vx * dt;
-                dot.y += dot.vy * dt;
-
-                // 境界衝突処理（画面下端）
-                if dot.y >= (super::HEIGHT as f64 - 2.0) {  // ドットの半径分余裕を持たせる
-                    dot.y = super::HEIGHT as f64 - 2.0;
-                    dot.vy = -dot.vy * self.bounce_factor;  // 反発
-                }
-
-                // 境界衝突処理（画面上端）
-                if dot.y <= 1.0 {
-                    dot.y = 1.0;
-                    dot.vy = -dot.vy * self.bounce_factor;
-                }
-
-                // 境界衝突処理（左右端）
-                if dot.x >= super::WIDTH as f64 - 2.0 {
-                    dot.x = super::WIDTH as f64 - 2.0;
-                    dot.vx = -dot.vx * self.bounce_factor;
-                }
-                if dot.x <= 1.0 {
-                    dot.x = 1.0;
-                    dot.vx = -dot.vx * self.bounce_factor;
-                }
-            }
-
-            // 更新を停止する条件を確認
-            let all_stopped = self.dots.iter().all(|dot| {
-                // 速度が非常に小さいか、画面下端にあり跳ね返りが非常に小さいかを確認
-                let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
-                let at_bottom = dot.y >= super::HEIGHT as f64 - 3.0; // 少し余裕を持たせる
-                let slow_bounce = velocity_small && at_bottom;
-                
-                slow_bounce
-            });
-
-            // すべてのドットが停止状態に達した場合、更新を停止
-            if all_stopped && !self.dots.is_empty() {
-                self.is_updating = false;
-                println!("Physics update stopped - all dots have stopped"); // デバッグ出力
-            }
-        }
-    }
-
-    // ドット描画
-    pub fn draw_dots(&mut self) {
-        println!("draw_dots called, number of dots: {}", self.dots.len()); // デバッグ出力
-        if let Some(ref mut pixels) = self.pixels {
-            // フレームをクリア（黒）
-            let frame = pixels.frame_mut();
-            for pixel in frame.chunks_exact_mut(4) {
-                pixel[0] = 0;  // R
-                pixel[1] = 0;  // G
-                pixel[2] = 0;  // B
-                pixel[3] = 255; // A
-            }
-
-            // すべてのドットを描画
-            for dot in &self.dots {
-                println!("Drawing dot at ({}, {})", dot.x, dot.y); // デバッグ出力
-                // 4x4ドットの範囲を計算
-                let x = dot.x as i32;
-                let y = dot.y as i32;
-                let start_x = (x - 2).max(0).min(super::WIDTH as i32 - 1);
-                let end_x = (x + 1).max(0).min(super::WIDTH as i32 - 1);
-                let start_y = (y - 2).max(0).min(super::HEIGHT as i32 - 1);
-                let end_y = (y + 1).max(0).min(super::HEIGHT as i32 - 1);
-
-                println!("Drawing range: ({}, {}) to ({}, {})", start_x, start_y, end_x, end_y); // デバッグ出力
-
-                for py in start_y..=end_y {
-                    for px in start_x..=end_x {
-                        let pixel_index = (py as usize * super::WIDTH as usize + px as usize) * 4;
-                        // RGBA: 白色 (255, 255, 255, 255)
-                        frame[pixel_index] = 255;       // R
-                        frame[pixel_index + 1] = 255;   // G
-                        frame[pixel_index + 2] = 255;   // B
-                        frame[pixel_index + 3] = 255;   // A
-                    }
-                }
-            }
-        }
-    }
-}
-
-impl winit::application::ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        // 初回実行時やアプリ再開時にウィンドウとピクセルを初期化
-        if self.window.is_none() {
-            let window_attributes = Window::default_attributes()
-                .with_title("Dot Drawer with Gravity")
-                .with_inner_size(winit::dpi::LogicalSize::new(super::WIDTH, super::HEIGHT));
-
-            let window = event_loop.create_window(window_attributes)
-                .expect("Failed to create window");
-
-            let window_size = window.inner_size();
-            let surface_texture = pixels::SurfaceTexture::new(window_size.width, window_size.height, &window);
-            let pixels = pixels::Pixels::new(super::WIDTH, super::HEIGHT, surface_texture)
-                .expect("Failed to create pixels");
-
-            self.window = Some(window);
-            self.pixels = Some(pixels);
-        }
-        
-        // アプリが再開されたときに時間差分が大きくなるのを防ぐため、last_timeを現在時刻にリセット
-        self.last_time = std::time::Instant::now();
-        self.last_dot_add_time = std::time::Instant::now();
-    }
-
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        window_id: winit::window::WindowId,
-        event: winit::event::WindowEvent,
-    ) {
-        if let Some(ref window) = self.window {
-            if window.id() != window_id {
-                return;
-            }
-        } else {
-            return;
-        }
-
-        match event {
-            winit::event::WindowEvent::CloseRequested => {
-                event_loop.exit();
-            }
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
-                // マウス位置を保存
-                self.mouse_position = Some((position.x, position.y));
-            }
-            winit::event::WindowEvent::MouseInput {
-                state,
-                button: winit::event::MouseButton::Left,
-                ..
-            } => {
-                match state {
-                    winit::event::ElementState::Pressed => {
-                        // 左クリック押下
-                        println!("Left mouse pressed"); // デバッグ出力
-                        self.left_mouse_pressed = true;
-                        if let Some((x, y)) = self.mouse_position {
-                            println!("Adding dot at ({}, {})", x as i32, y as i32); // デバッグ出力
-                            self.add_dot_if_not_exists(x as i32, y as i32);
-                            println!("Number of dots after add: {}", self.dots.len()); // デバッグ出力
-                            // 再描画をリクエスト
-                            if let Some(ref window) = self.window {
-                                window.request_redraw();
-                            }
-                        } else {
-                            println!("Mouse position is None"); // デバッグ出力
-                        }
-                    }
-                    winit::event::ElementState::Released => {
-                        // 左クリック解放
-                        println!("Left mouse released"); // デバッグ出力
-                        self.left_mouse_pressed = false;
-                    }
-                }
-            }
-            winit::event::WindowEvent::RedrawRequested => {
-                // 左クリック押しっぱなしで、かつ指定時間経過している場合にドット追加
-                if self.left_mouse_pressed {
-                    if let Some((x, y)) = self.mouse_position {
-                        if std::time::Instant::now().duration_since(self.last_dot_add_time) >= self.dot_add_interval {
-                            println!("Adding dot due to hold at ({}, {})", x as i32, y as i32); // デバッグ出力
-                            self.add_dot_if_not_exists(x as i32, y as i32);
-                        }
-                    }
-                }
-                
-                // 物理更新
-                self.update_physics();
-                
-                // ドット描画
-                self.draw_dots();
-                
-                // 画面に反映
-                if let Some(ref mut pixels) = self.pixels {
-                    if pixels.render().is_err() {
-                        event_loop.exit();
-                    }
-                }
-                
-                // 更新中であれば、すぐに次の再描画をリクエスト
-                if self.is_updating {
-                    if let Some(ref window) = self.window {
-                        window.request_redraw();
-                    }
-                }
-            }
-            _ => {}
-        }
     }
 }
