@@ -1,5 +1,6 @@
 mod app;
 mod event_handler;
+mod material;
 mod renderer;
 
 use app::App;
