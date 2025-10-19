@@ -1,13 +1,10 @@
 mod app;
-mod renderer;
 mod event_handler;
+mod renderer;
 
 use app::App;
 
 use winit::event_loop::EventLoop;
-
-const WIDTH: u32 = 640;
-const HEIGHT: u32 = 480;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = EventLoop::builder().build()?;

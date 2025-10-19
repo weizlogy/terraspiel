@@ -1,4 +1,4 @@
-use crate::app::{App, Dot};
+use crate::app::App;
 
 impl App {
     // ドット描画
@@ -8,16 +8,16 @@ impl App {
             // フレームをクリア（黒）
             let frame = pixels.frame_mut();
             for pixel in frame.chunks_exact_mut(4) {
-                pixel[0] = 0;  // R
-                pixel[1] = 0;  // G
-                pixel[2] = 0;  // B
+                pixel[0] = 0; // R
+                pixel[1] = 0; // G
+                pixel[2] = 0; // B
                 pixel[3] = 255; // A
             }
 
             // すべてのドットを描画
             for dot in &self.dots {
                 println!("Drawing dot at ({}, {})", dot.x, dot.y); // デバッグ出力
-                // 4x4ドットの範囲を計算
+                                                                   // 4x4ドットの範囲を計算
                 let x = dot.x as i32;
                 let y = dot.y as i32;
                 let start_x = (x - 2).max(0).min(crate::app::WIDTH as i32 - 1);
@@ -25,16 +25,20 @@ impl App {
                 let start_y = (y - 2).max(0).min(crate::app::HEIGHT as i32 - 1);
                 let end_y = (y + 1).max(0).min(crate::app::HEIGHT as i32 - 1);
 
-                println!("Drawing range: ({}, {}) to ({}, {})", start_x, start_y, end_x, end_y); // デバッグ出力
+                println!(
+                    "Drawing range: ({}, {}) to ({}, {})",
+                    start_x, start_y, end_x, end_y
+                ); // デバッグ出力
 
                 for py in start_y..=end_y {
                     for px in start_x..=end_x {
-                        let pixel_index = (py as usize * crate::app::WIDTH as usize + px as usize) * 4;
+                        let pixel_index =
+                            (py as usize * crate::app::WIDTH as usize + px as usize) * 4;
                         // RGBA: 白色 (255, 255, 255, 255)
-                        frame[pixel_index] = 255;       // R
-                        frame[pixel_index + 1] = 255;   // G
-                        frame[pixel_index + 2] = 255;   // B
-                        frame[pixel_index + 3] = 255;   // A
+                        frame[pixel_index] = 255; // R
+                        frame[pixel_index + 1] = 255; // G
+                        frame[pixel_index + 2] = 255; // B
+                        frame[pixel_index + 3] = 255; // A
                     }
                 }
             }
@@ -58,9 +62,10 @@ impl App {
                 dot.y += dot.vy * dt;
 
                 // 境界衝突処理（画面下端）
-                if dot.y >= (crate::app::HEIGHT as f64 - 2.0) {  // ドットの半径分余裕を持たせる
+                if dot.y >= (crate::app::HEIGHT as f64 - 2.0) {
+                    // ドットの半径分余裕を持たせる
                     dot.y = crate::app::HEIGHT as f64 - 2.0;
-                    dot.vy = -dot.vy * self.bounce_factor;  // 反発
+                    dot.vy = -dot.vy * self.bounce_factor; // 反発
                 }
 
                 // 境界衝突処理（画面上端）
@@ -86,7 +91,7 @@ impl App {
                 let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
                 let at_bottom = dot.y >= crate::app::HEIGHT as f64 - 3.0; // 少し余裕を持たせる
                 let slow_bounce = velocity_small && at_bottom;
-                
+
                 slow_bounce
             });
 
