@@ -1,10 +1,7 @@
 mod app;
 use app::App;
 
-use winit::{
-    dpi::LogicalSize,
-    event_loop::EventLoop,
-};
+use winit::event_loop::EventLoop;
 
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 480;

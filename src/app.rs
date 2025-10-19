@@ -1,6 +1,6 @@
 use pixels::Pixels;
 use winit::window::Window;
-use winit::event_loop::ActiveEventLoop;  // 追加
+use winit::event_loop::ActiveEventLoop;
 
 // ドットの状態を保持する構造体
 struct Dot {
@@ -31,7 +31,9 @@ pub struct App {
     last_time: std::time::Instant,  // 時間管理用
     bounce_factor: f64,    // 反発係数
     is_updating: bool,     // 物理更新中かどうかのフラグ
-    update_until: Option<std::time::Instant>, // 物理更新を続ける期限
+    left_mouse_pressed: bool, // 左クリックが押されているか
+    last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
+    dot_add_interval: std::time::Duration, // ドット追加の間隔
 }
 
 impl App {
@@ -45,17 +47,18 @@ impl App {
             last_time: std::time::Instant::now(),
             bounce_factor: 0.7,   // 反発係数
             is_updating: false,   // 更新中フラグの初期値
-            update_until: None,   // 更新期限の初期値
+            left_mouse_pressed: false, // 左クリック押下状態の初期値
+            last_dot_add_time: std::time::Instant::now(), // ドット追加時刻の初期値
+            dot_add_interval: std::time::Duration::from_millis(100), // 100msごとにドット追加
         }
     }
 
-    // ドット追加
-    pub fn add_dot(&mut self, x: i32, y: i32) {
+    // ドット追加（簡略化版 - 常にドットを追加）
+    pub fn add_dot_if_not_exists(&mut self, x: i32, y: i32) {
+        // 位置の重複チェックを一旦外す
         self.dots.push(Dot::new(x as f64, y as f64));
-        // ドット追加時に更新を開始
-        self.is_updating = true;
-        // 例えば、5秒間更新を続ける
-        self.update_until = Some(std::time::Instant::now() + std::time::Duration::from_secs(5));
+        self.is_updating = true; // 物理更新を開始
+        self.last_dot_add_time = std::time::Instant::now(); // 最後に追加した時刻を更新
     }
 
     // 物理更新
@@ -110,6 +113,7 @@ impl App {
             // すべてのドットが停止状態に達した場合、更新を停止
             if all_stopped && !self.dots.is_empty() {
                 self.is_updating = false;
+                println!("Physics update stopped - all dots have stopped"); // デバッグ出力
             }
         }
     }
@@ -153,8 +157,6 @@ impl App {
             }
         }
     }
-
-    // 単一ドット描画（4x4ピクセル） - 不要になったので削除
 }
 
 impl winit::application::ApplicationHandler for App {
@@ -179,6 +181,7 @@ impl winit::application::ApplicationHandler for App {
         
         // アプリが再開されたときに時間差分が大きくなるのを防ぐため、last_timeを現在時刻にリセット
         self.last_time = std::time::Instant::now();
+        self.last_dot_add_time = std::time::Instant::now();
     }
 
     fn window_event(
@@ -204,20 +207,45 @@ impl winit::application::ApplicationHandler for App {
                 self.mouse_position = Some((position.x, position.y));
             }
             winit::event::WindowEvent::MouseInput {
-                state: winit::event::ElementState::Pressed,
+                state,
                 button: winit::event::MouseButton::Left,
                 ..
             } => {
-                // 左クリックでドットを追加
-                if let Some((x, y)) = self.mouse_position {
-                    self.add_dot(x as i32, y as i32);
-                    // 再描画をリクエスト
-                    if let Some(ref window) = self.window {
-                        window.request_redraw();
+                match state {
+                    winit::event::ElementState::Pressed => {
+                        // 左クリック押下
+                        println!("Left mouse pressed"); // デバッグ出力
+                        self.left_mouse_pressed = true;
+                        if let Some((x, y)) = self.mouse_position {
+                            println!("Adding dot at ({}, {})", x as i32, y as i32); // デバッグ出力
+                            self.add_dot_if_not_exists(x as i32, y as i32);
+                            println!("Number of dots after add: {}", self.dots.len()); // デバッグ出力
+                            // 再描画をリクエスト
+                            if let Some(ref window) = self.window {
+                                window.request_redraw();
+                            }
+                        } else {
+                            println!("Mouse position is None"); // デバッグ出力
+                        }
+                    }
+                    winit::event::ElementState::Released => {
+                        // 左クリック解放
+                        println!("Left mouse released"); // デバッグ出力
+                        self.left_mouse_pressed = false;
                     }
                 }
             }
             winit::event::WindowEvent::RedrawRequested => {
+                // 左クリック押しっぱなしで、かつ指定時間経過している場合にドット追加
+                if self.left_mouse_pressed {
+                    if let Some((x, y)) = self.mouse_position {
+                        if std::time::Instant::now().duration_since(self.last_dot_add_time) >= self.dot_add_interval {
+                            println!("Adding dot due to hold at ({}, {})", x as i32, y as i32); // デバッグ出力
+                            self.add_dot_if_not_exists(x as i32, y as i32);
+                        }
+                    }
+                }
+                
                 // 物理更新
                 self.update_physics();
                 
