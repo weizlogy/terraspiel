@@ -63,6 +63,7 @@ impl App {
         // 位置の重複チェックを一旦外す
         self.dots.push(Dot::new(x as f64, y as f64));
         self.is_updating = true; // 物理更新を開始
+        self.last_time = std::time::Instant::now(); // 物理更新の基準時刻をリセット
         self.last_dot_add_time = std::time::Instant::now(); // 最後に追加した時刻を更新
     }
 }
