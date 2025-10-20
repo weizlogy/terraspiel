@@ -1,3 +1,4 @@
+use crate::material::BaseMaterialParams;
 use pixels::Pixels;
 use winit::window::Window;
 
@@ -7,6 +8,7 @@ pub struct Dot {
     pub y: f64,
     pub vx: f64,  // x方向速度
     pub vy: f64,  // y方向速度
+    pub material: BaseMaterialParams,
 }
 
 impl Dot {
@@ -16,6 +18,7 @@ impl Dot {
             y,
             vx: 0.0,  // 初期速度は0
             vy: 0.0,
+            material: BaseMaterialParams::default(),
         }
     }
 }

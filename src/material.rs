@@ -1,12 +1,13 @@
+use palette::{FromColor, Hsl, RgbHue, Srgb};
 use serde::{Deserialize, Serialize};
 
 /// 物質の状態 (固体/液体/気体/粒子)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
-    Solid,      // 固体
-    Liquid,     // 液体
-    Gas,        // 気体
-    Particle,   // 粒子（例：粉体）
+    Solid,    // 固体
+    Liquid,   // 液体
+    Gas,      // 気体
+    Particle, // 粒子（例：粉体）
 }
 
 /// ベース物質のパラメータ（特性）
@@ -16,10 +17,10 @@ pub struct BaseMaterialParams {
     pub state: State,
 
     // 物理特性
-    pub density: f32,           // 密度 (0.0 ~ 1.0)
-    pub viscosity: f32,         // 粘度 (0.0 ~ 1.0)
-    pub hardness: f32,          // 硬度 (0.0 ~ 1.0)
-    pub elasticity: f32,        // 弾性 (0.0 ~ 1.0)
+    pub density: f32,    // 密度 (0.0 ~ 1.0)
+    pub viscosity: f32,  // 粘度 (0.0 ~ 1.0)
+    pub hardness: f32,   // 硬度 (0.0 ~ 1.0)
+    pub elasticity: f32, // 弾性 (0.0 ~ 1.0)
 
     // 熱・エネルギー系
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
@@ -27,14 +28,14 @@ pub struct BaseMaterialParams {
     pub heat_capacity: f32,     // 熱容量 (0.0 ~ 1.0)
 
     // 電磁特性
-    pub conductivity: f32,      // 電導率 (0.0 ~ 1.0)
-    pub magnetism: f32,         // 磁性 (-1.0 ~ 1.0)
+    pub conductivity: f32, // 電導率 (0.0 ~ 1.0)
+    pub magnetism: f32,    // 磁性 (-1.0 ~ 1.0)
 
     // 光・見た目系
-    pub color_hue: f32,         // 色相 (0.0 ~ 1.0)
-    pub color_saturation: f32,  // 彩度 (0.0 ~ 1.0)
-    pub color_luminance: f32,   // 明度 (0.0 ~ 1.0)
-    pub luminescence: f32,      // 自発光度 (0.0 ~ 1.0)
+    pub color_hue: f32,        // 色相 (0.0 ~ 1.0)
+    pub color_saturation: f32, // 彩度 (0.0 ~ 1.0)
+    pub color_luminance: f32,  // 明度 (0.0 ~ 1.0)
+    pub luminescence: f32,     // 自発光度 (0.0 ~ 1.0)
 }
 
 impl Default for BaseMaterialParams {
@@ -54,6 +55,44 @@ impl Default for BaseMaterialParams {
             color_saturation: 0.8,
             color_luminance: 0.6,
             luminescence: 0.0,
+        }
+    }
+}
+
+impl BaseMaterialParams {
+    /// HSVからRGBを計算して返す
+    /// H: 0.0~1.0, S: 0.0~1.0, L: 0.0~1.0
+    pub fn get_color_rgb(&self) -> (u8, u8, u8) {
+        // HSLからRGBへの変換
+        let hsl = Hsl::new(
+            RgbHue::from_degrees(self.color_hue * 360.0),
+            self.color_saturation,
+            self.color_luminance,
+        );
+        let rgb: Srgb<u8> = Srgb::from_color(hsl).into_format();
+
+        (rgb.red, rgb.green, rgb.blue)
+    }
+
+    /// ドットを描画する
+    pub fn draw_dot(&self, frame: &mut [u8], x: i32, y: i32, width: u32, height: u32) {
+        // 4x4ドットの範囲を計算
+        let start_x = (x - 2).max(0).min(width as i32 - 1);
+        let end_x = (x + 1).max(0).min(width as i32 - 1);
+        let start_y = (y - 2).max(0).min(height as i32 - 1);
+        let end_y = (y + 1).max(0).min(height as i32 - 1);
+
+        let (r, g, b) = self.get_color_rgb();
+
+        for py in start_y..=end_y {
+            for px in start_x..=end_x {
+                let pixel_index = (py as usize * width as usize + px as usize) * 4;
+                // RGBA: 物質の色を適用
+                frame[pixel_index] = r; // R
+                frame[pixel_index + 1] = g; // G
+                frame[pixel_index + 2] = b; // B
+                frame[pixel_index + 3] = 255; // A
+            }
         }
     }
 }

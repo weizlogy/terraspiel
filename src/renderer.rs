@@ -17,30 +17,13 @@ impl App {
             // すべてのドットを描画
             for dot in &self.dots {
                 println!("Drawing dot at ({}, {})", dot.x, dot.y); // デバッグ出力
-                                                                   // 4x4ドットの範囲を計算
-                let x = dot.x as i32;
-                let y = dot.y as i32;
-                let start_x = (x - 2).max(0).min(crate::app::WIDTH as i32 - 1);
-                let end_x = (x + 1).max(0).min(crate::app::WIDTH as i32 - 1);
-                let start_y = (y - 2).max(0).min(crate::app::HEIGHT as i32 - 1);
-                let end_y = (y + 1).max(0).min(crate::app::HEIGHT as i32 - 1);
-
-                println!(
-                    "Drawing range: ({}, {}) to ({}, {})",
-                    start_x, start_y, end_x, end_y
-                ); // デバッグ出力
-
-                for py in start_y..=end_y {
-                    for px in start_x..=end_x {
-                        let pixel_index =
-                            (py as usize * crate::app::WIDTH as usize + px as usize) * 4;
-                        // RGBA: 白色 (255, 255, 255, 255)
-                        frame[pixel_index] = 255; // R
-                        frame[pixel_index + 1] = 255; // G
-                        frame[pixel_index + 2] = 255; // B
-                        frame[pixel_index + 3] = 255; // A
-                    }
-                }
+                dot.material.draw_dot(
+                    frame,
+                    dot.x as i32,
+                    dot.y as i32,
+                    crate::app::WIDTH,
+                    crate::app::HEIGHT,
+                );
             }
         }
     }
