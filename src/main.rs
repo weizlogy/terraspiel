@@ -1,6 +1,7 @@
 mod app;
 mod material;
 mod renderer;
+mod gui;
 
 use app::App;
 use winit::event::{Event, WindowEvent};
@@ -17,8 +18,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 app.handle_resume(event_loop);
             }
             Event::WindowEvent { event, window_id } => {
-                if let Some(ref window) = app.window {
-                    if window.id() == window_id {
+                let window = match app.window.as_ref() {
+                    Some(w) => w.clone(),
+                    None => return,
+                };
+
+                let consumed_by_egui = app.handle_window_event(&window, &event);
+                if consumed_by_egui {
+                    return;
+                }
+
+                if window.id() == window_id {
                         match event {
                             WindowEvent::Resized(physical_size) => {
                                 app.resize(physical_size);
@@ -38,16 +48,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             _ => {}
                         }
                     }
-                }
             }
             _ => {}
         }
 
         // アニメーションや更新が必要な場合は、再描画をリクエスト
-        if app.is_updating {
-            if let Some(ref window) = app.window {
-                window.request_redraw();
-            }
+        if let Some(ref window) = app.window {
+            window.request_redraw();
         }
     }).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
 }

@@ -1,17 +1,20 @@
 use std::sync::Arc;
 use winit::window::Window;
 use wgpu::util::DeviceExt;
+use bytemuck;
 use crate::app::{WIDTH, HEIGHT};
+use crate::gui::Gui;
 
 pub struct Renderer {
     pub surface: Arc<wgpu::Surface<'static>>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
+    pub gui: Gui,
 }
 
 impl Renderer {
-    pub fn new(window: &Arc<Window>) -> Self {
+    pub fn new(window: &Arc<Window>, event_loop: &winit::event_loop::EventLoopWindowTarget<()>) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             flags: wgpu::InstanceFlags::empty(),
@@ -57,11 +60,14 @@ impl Renderer {
         };
         surface.configure(&device, &config);
 
+        let gui = Gui::new(event_loop, &device, config.format);
+
         Self {
             surface,
             device,
             queue,
             config,
+            gui,
         }
     }
 
@@ -73,12 +79,13 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, instance_data: &[f32]) {
+    pub fn render(&mut self, window: &Window, instance_data: &[f32], ui_closure: impl FnOnce(&egui::Context)) {
         let frame = self.surface.get_current_texture().expect("Failed to acquire next swap chain texture");
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
         
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("Render Encoder") });
         
+        // Draw dots first
         if !instance_data.is_empty() {
             let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Dot shader"),
@@ -122,6 +129,7 @@ impl Renderer {
                         },
                         instance_layout,
                     ],
+                    compilation_options: Default::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader_module,
@@ -131,6 +139,7 @@ impl Renderer {
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
+                    compilation_options: Default::default(),
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleStrip,
@@ -159,46 +168,46 @@ impl Renderer {
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
-            {
-                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Render Pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Dot Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
 
-                render_pass.set_pipeline(&render_pipeline);
-                render_pass.set_vertex_buffer(0, square_vertex_buffer.slice(..));
-                render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
-                render_pass.draw(0..4, 0..instance_data.len() as u32 / 5);
-            }
+            render_pass.set_pipeline(&render_pipeline);
+            render_pass.set_vertex_buffer(0, square_vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
+            render_pass.draw(0..4, 0..instance_data.len() as u32 / 5);
         } else {
-            {
-                let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Render Pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-            }
+            // Just clear the screen if there are no dots
+            let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Clear Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
         }
-        
+
+        // Draw egui UI
+        self.gui.render(window, &self.device, &self.queue, &mut encoder, &view, ui_closure);
+
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
     }

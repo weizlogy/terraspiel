@@ -37,12 +37,23 @@ pub struct App {
     pub left_mouse_pressed: bool, // 左クリックが押されているか
     pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
     pub dot_add_interval: std::time::Duration, // ドット追加の間隔
+    pub frame_times: std::collections::VecDeque<f64>,
+    pub last_fps_update: std::time::Instant,
+    pub fps: f64,
 }
 
 pub const WIDTH: u32 = 640;
 pub const HEIGHT: u32 = 480;
 
 impl App {
+    pub fn handle_window_event(&mut self, window: &Window, event: &winit::event::WindowEvent) -> bool {
+        if let Some(renderer) = &mut self.renderer {
+            renderer.gui.handle_window_event(window, event)
+        } else {
+            false
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             window: None,
@@ -56,6 +67,9 @@ impl App {
             left_mouse_pressed: false, // 左クリック押下状態の初期値
             last_dot_add_time: std::time::Instant::now(), // ドット追加時刻の初期値
             dot_add_interval: std::time::Duration::from_millis(100), // 100msごとにドット追加
+            frame_times: std::collections::VecDeque::with_capacity(100),
+            last_fps_update: std::time::Instant::now(),
+            fps: 0.0,
         }
     }
 
@@ -78,7 +92,7 @@ impl App {
                         .expect("Failed to create window")
                 );
                 self.window = Some(window.clone());
-                self.renderer = Some(Renderer::new(&window));
+                self.renderer = Some(Renderer::new(&window, event_loop));
             }
             
             // アプリが再開されたときに時間差分が大きくなるのを防ぐため、last_timeを現在時刻にリセット
@@ -205,6 +219,13 @@ impl App {
 
     // 再描画要求時に呼び出される
     pub fn handle_redraw_requested(&mut self) {
+        let now = std::time::Instant::now();
+        let delta_time = now.duration_since(self.last_time).as_secs_f64();
+        self.frame_times.push_back(delta_time);
+        if self.frame_times.len() > 100 {
+            self.frame_times.pop_front();
+        }
+
         // 左クリック押しっぱなしで、かつ指定時間経過している場合にドット追加
         if self.left_mouse_pressed {
             if let Some((x, y)) = self.mouse_position {
@@ -218,10 +239,30 @@ impl App {
         // 物理更新
         self.update_physics();
         
-        // ドット描画
+        // FPS計算とUI描画
+        if now.duration_since(self.last_fps_update).as_secs_f32() > 0.5 {
+            let sum: f64 = self.frame_times.iter().sum();
+            if !self.frame_times.is_empty() {
+                self.fps = self.frame_times.len() as f64 / sum;
+            }
+            self.last_fps_update = now;
+        }
+
         let instance_data = self.create_dot_instance_data();
+        let window = self.window.as_ref().unwrap();
+        let fps = self.fps;
+        let num_dots = self.dots.len();
+
         if let Some(renderer) = &mut self.renderer {
-            renderer.render(&instance_data);
+            renderer.render(window, &instance_data, |ctx| {
+                egui::Window::new("Info")
+                    .movable(false)
+                    .default_pos(egui::pos2(10.0, 10.0))
+                    .show(ctx, |ui| {
+                        ui.label(format!("FPS: {:.2}", fps));
+                        ui.label(format!("Dots: {}", num_dots));
+                });
+            });
         }
     }
 }
