@@ -73,26 +73,4 @@ impl BaseMaterialParams {
 
         (rgb.red, rgb.green, rgb.blue)
     }
-
-    /// ドットを描画する
-    pub fn draw_dot(&self, frame: &mut [u8], x: i32, y: i32, width: u32, height: u32) {
-        // 4x4ドットの範囲を計算
-        let start_x = (x - 2).max(0).min(width as i32 - 1);
-        let end_x = (x + 1).max(0).min(width as i32 - 1);
-        let start_y = (y - 2).max(0).min(height as i32 - 1);
-        let end_y = (y + 1).max(0).min(height as i32 - 1);
-
-        let (r, g, b) = self.get_color_rgb();
-
-        for py in start_y..=end_y {
-            for px in start_x..=end_x {
-                let pixel_index = (py as usize * width as usize + px as usize) * 4;
-                // RGBA: 物質の色を適用
-                frame[pixel_index] = r; // R
-                frame[pixel_index + 1] = g; // G
-                frame[pixel_index + 2] = b; // B
-                frame[pixel_index + 3] = 255; // A
-            }
-        }
-    }
 }

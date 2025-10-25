@@ -1,5 +1,6 @@
 mod app;
 mod material;
+mod renderer;
 
 use app::App;
 use winit::event::{Event, WindowEvent};
@@ -19,6 +20,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(ref window) = app.window {
                     if window.id() == window_id {
                         match event {
+                            WindowEvent::Resized(physical_size) => {
+                                app.resize(physical_size);
+                            }
                             WindowEvent::CloseRequested => {
                                 event_loop.exit();
                             }
