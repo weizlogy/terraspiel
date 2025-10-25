@@ -4,6 +4,8 @@ use wgpu::Surface;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
+use winit::window::WindowBuilder;
+
 // ドットの状態を保持する構造体
 pub struct Dot {
     pub x: f64,
@@ -78,7 +80,12 @@ impl App {
     // ウィンドウの再開時に呼び出される
     pub fn handle_resume(&mut self, event_loop: &winit::event_loop::EventLoopWindowTarget<()>) {
         if self.window.is_none() {
-            let window = Arc::new(winit::window::Window::new(&event_loop).expect("Failed to create window"));
+            let window = Arc::new(
+                WindowBuilder::new()
+                    .with_inner_size(winit::dpi::PhysicalSize::new(WIDTH, HEIGHT))
+                    .build(event_loop)
+                    .expect("Failed to create window")
+            );
             self.window = Some(window.clone());
 
             // wgpuの初期化
@@ -332,10 +339,10 @@ impl App {
 
                 // 基本形状の頂点バッファ (4ピクセルの正方形)
                 let square_vertex_data: [f32; 8] = [
-                    -1.0, -1.0,  // 左下
-                    1.0, -1.0,   // 右下
-                    -1.0, 1.0,   // 左上
-                    1.0, 1.0,    // 右上
+                    -2.0, -2.0,  // 左下
+                    2.0, -2.0,   // 右下
+                    -2.0, 2.0,   // 左上
+                    2.0, 2.0,    // 右上
                 ];
                 let square_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("Square Vertex Buffer"),
