@@ -1,5 +1,5 @@
-use crate::renderer::Renderer;
 use crate::material::BaseMaterialParams;
+use crate::renderer::Renderer;
 use std::sync::Arc;
 use winit::window::{Window, WindowBuilder};
 
@@ -7,8 +7,8 @@ use winit::window::{Window, WindowBuilder};
 pub struct Dot {
     pub x: f64,
     pub y: f64,
-    pub vx: f64,  // x方向速度
-    pub vy: f64,  // y方向速度
+    pub vx: f64, // x方向速度
+    pub vy: f64, // y方向速度
     pub material: BaseMaterialParams,
 }
 
@@ -17,7 +17,7 @@ impl Dot {
         Self {
             x,
             y,
-            vx: 0.0,  // 初期速度は0
+            vx: 0.0, // 初期速度は0
             vy: 0.0,
             material: BaseMaterialParams::default(),
         }
@@ -29,12 +29,12 @@ pub struct App {
     pub window: Option<Arc<Window>>,
     pub renderer: Option<Renderer>,
     pub mouse_position: Option<(f64, f64)>,
-    pub dots: Vec<Dot>,        // ドットリスト
-    pub gravity: f64,          // 重力加速度
-    pub last_time: std::time::Instant,  // 時間管理用
-    pub bounce_factor: f64,    // 反発係数
-    pub is_updating: bool,     // 物理更新中かどうかのフラグ
-    pub left_mouse_pressed: bool, // 左クリックが押されているか
+    pub dots: Vec<Dot>,                        // ドットリスト
+    pub gravity: f64,                          // 重力加速度
+    pub last_time: std::time::Instant,         // 時間管理用
+    pub bounce_factor: f64,                    // 反発係数
+    pub is_updating: bool,                     // 物理更新中かどうかのフラグ
+    pub left_mouse_pressed: bool,              // 左クリックが押されているか
     pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
     pub dot_add_interval: std::time::Duration, // ドット追加の間隔
     pub frame_times: std::collections::VecDeque<f64>,
@@ -46,7 +46,11 @@ pub const WIDTH: u32 = 640;
 pub const HEIGHT: u32 = 480;
 
 impl App {
-    pub fn handle_window_event(&mut self, window: &Window, event: &winit::event::WindowEvent) -> bool {
+    pub fn handle_window_event(
+        &mut self,
+        window: &Window,
+        event: &winit::event::WindowEvent,
+    ) -> bool {
         if let Some(renderer) = &mut self.renderer {
             renderer.gui.handle_window_event(window, event)
         } else {
@@ -60,12 +64,12 @@ impl App {
             renderer: None,
             mouse_position: None,
             dots: Vec::new(),
-            gravity: 9.8 * 10.0,  // 重力加速度（画面ピクセル基準にスケーリング）
+            gravity: 9.8 * 10.0, // 重力加速度（画面ピクセル基準にスケーリング）
             last_time: std::time::Instant::now(),
-            bounce_factor: 0.7,   // 反発係数
-            is_updating: false,   // 更新中フラグの初期値
-            left_mouse_pressed: false, // 左クリック押下状態の初期値
-            last_dot_add_time: std::time::Instant::now(), // ドット追加時刻の初期値
+            bounce_factor: 0.7,                                      // 反発係数
+            is_updating: false,                                      // 更新中フラグの初期値
+            left_mouse_pressed: false,                               // 左クリック押下状態の初期値
+            last_dot_add_time: std::time::Instant::now(),            // ドット追加時刻の初期値
             dot_add_interval: std::time::Duration::from_millis(100), // 100msごとにドット追加
             frame_times: std::collections::VecDeque::with_capacity(100),
             last_fps_update: std::time::Instant::now(),
@@ -83,22 +87,22 @@ impl App {
     }
 
     // ウィンドウの再開時に呼び出される
-        pub fn handle_resume(&mut self, event_loop: &winit::event_loop::EventLoopWindowTarget<()>) {
-            if self.window.is_none() {
-                let window = Arc::new(
-                    WindowBuilder::new()
-                        .with_inner_size(winit::dpi::PhysicalSize::new(WIDTH, HEIGHT))
-                        .build(event_loop)
-                        .expect("Failed to create window")
-                );
-                self.window = Some(window.clone());
-                self.renderer = Some(Renderer::new(&window, event_loop));
-            }
-            
-            // アプリが再開されたときに時間差分が大きくなるのを防ぐため、last_timeを現在時刻にリセット
-            self.last_time = std::time::Instant::now();
-            self.last_dot_add_time = std::time::Instant::now();
+    pub fn handle_resume(&mut self, event_loop: &winit::event_loop::EventLoopWindowTarget<()>) {
+        if self.window.is_none() {
+            let window = Arc::new(
+                WindowBuilder::new()
+                    .with_inner_size(winit::dpi::PhysicalSize::new(WIDTH, HEIGHT))
+                    .build(event_loop)
+                    .expect("Failed to create window"),
+            );
+            self.window = Some(window.clone());
+            self.renderer = Some(Renderer::new(&window, event_loop));
         }
+
+        // アプリが再開されたときに時間差分が大きくなるのを防ぐため、last_timeを現在時刻にリセット
+        self.last_time = std::time::Instant::now();
+        self.last_dot_add_time = std::time::Instant::now();
+    }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if let Some(renderer) = &mut self.renderer {
@@ -112,7 +116,11 @@ impl App {
     }
 
     // マウス入力時に呼び出される
-    pub fn handle_mouse_input(&mut self, state: winit::event::ElementState, button: winit::event::MouseButton) {
+    pub fn handle_mouse_input(
+        &mut self,
+        state: winit::event::ElementState,
+        button: winit::event::MouseButton,
+    ) {
         match button {
             winit::event::MouseButton::Left => {
                 match state {
@@ -124,12 +132,13 @@ impl App {
                             println!("Adding dot at ({}, {})", x as i32, y as i32); // デバッグ出力
                             self.add_dot_if_not_exists(x as i32, y as i32);
                             println!("Number of dots after add: {}", self.dots.len()); // デバッグ出力
-                            // 再描画をリクエスト
+                                                                                       // 再描画をリクエスト
                             if let Some(ref window) = self.window {
                                 window.request_redraw();
                             }
                         } else {
-                            println!("Mouse position is unknown - move the mouse first"); // デバッグ出力
+                            println!("Mouse position is unknown - move the mouse first");
+                            // デバッグ出力
                         }
                     }
                     winit::event::ElementState::Released => {
@@ -149,7 +158,7 @@ impl App {
         for dot in &self.dots {
             let (r, g, b) = dot.material.get_color_rgb();
             let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0];
-            
+
             // 各ドットの中心座標と色をインスタンスデータとして追加
             instance_data.push(dot.x as f32);
             instance_data.push(dot.y as f32);
@@ -229,16 +238,18 @@ impl App {
         // 左クリック押しっぱなしで、かつ指定時間経過している場合にドット追加
         if self.left_mouse_pressed {
             if let Some((x, y)) = self.mouse_position {
-                if std::time::Instant::now().duration_since(self.last_dot_add_time) >= self.dot_add_interval {
+                if std::time::Instant::now().duration_since(self.last_dot_add_time)
+                    >= self.dot_add_interval
+                {
                     println!("Adding dot due to hold at ({}, {})", x as i32, y as i32); // デバッグ出力
                     self.add_dot_if_not_exists(x as i32, y as i32);
                 }
             }
         }
-        
+
         // 物理更新
         self.update_physics();
-        
+
         // FPS計算とUI描画
         if now.duration_since(self.last_fps_update).as_secs_f32() > 0.5 {
             let sum: f64 = self.frame_times.iter().sum();
@@ -256,12 +267,14 @@ impl App {
         if let Some(renderer) = &mut self.renderer {
             renderer.render(window, &instance_data, |ctx| {
                 egui::Window::new("Info")
+                    .title_bar(false)
                     .movable(false)
+                    .resizable(false)
                     .default_pos(egui::pos2(10.0, 10.0))
                     .show(ctx, |ui| {
                         ui.label(format!("FPS: {:.2}", fps));
                         ui.label(format!("Dots: {}", num_dots));
-                });
+                    });
             });
         }
     }
