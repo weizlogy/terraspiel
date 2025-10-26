@@ -16,7 +16,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(
         window: &Arc<Window>,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<()>, 
     ) -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
@@ -90,7 +90,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &UiData) {
+    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &mut UiData) -> bool {
         let frame = self
             .surface
             .get_current_texture()
@@ -108,7 +108,7 @@ impl Renderer {
         self.wgpu_renderer
             .render(&self.device, &mut encoder, &view, dots);
 
-        self.gui.render(
+        let button_clicked = self.gui.render(
             window,
             &self.device,
             &self.queue,
@@ -119,5 +119,7 @@ impl Renderer {
 
         self.queue.submit(std::iter::once(encoder.finish()));
         frame.present();
+
+        button_clicked
     }
 }
