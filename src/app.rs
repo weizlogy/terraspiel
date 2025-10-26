@@ -152,21 +152,7 @@ impl App {
         }
     }
 
-    // ドットのインスタンスデータ（中心座標、色）を生成する
-    pub fn create_dot_instance_data(&self) -> Vec<f32> {
-        let mut instance_data: Vec<f32> = Vec::new();
-        for dot in &self.dots {
-            let (r, g, b) = dot.material.get_color_rgb();
-            let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0];
 
-            // 各ドットの中心座標と色をインスタンスデータとして追加
-            instance_data.push(dot.x as f32);
-            instance_data.push(dot.y as f32);
-            instance_data.extend_from_slice(&color);
-        }
-
-        instance_data
-    }
 
     // 物理更新
     pub fn update_physics(&mut self) {
@@ -259,23 +245,14 @@ impl App {
             self.last_fps_update = now;
         }
 
-        let instance_data = self.create_dot_instance_data();
         let window = self.window.as_ref().unwrap();
-        let fps = self.fps;
-        let num_dots = self.dots.len();
+        let ui_data = crate::renderer::gui::UiData {
+            fps: self.fps,
+            dot_count: self.dots.len(),
+        };
 
         if let Some(renderer) = &mut self.renderer {
-            renderer.render(window, &instance_data, |ctx| {
-                egui::Window::new("Info")
-                    .title_bar(false)
-                    .movable(false)
-                    .resizable(false)
-                    .default_pos(egui::pos2(10.0, 10.0))
-                    .show(ctx, |ui| {
-                        ui.label(format!("FPS: {:.2}", fps));
-                        ui.label(format!("Dots: {}", num_dots));
-                    });
-            });
+            renderer.render(window, &self.dots, &ui_data);
         }
     }
 }

@@ -1,7 +1,6 @@
 mod app;
 mod material;
 mod renderer;
-mod gui;
 
 use app::App;
 use winit::event::{Event, WindowEvent};
