@@ -1,8 +1,8 @@
 use crate::material::{BaseMaterialParams, State};
 use crate::physics::engine::DOT_RADIUS;
-use crate::physics::Physics;
+use crate::physics::{engine, Physics};
 use crate::renderer::Renderer;
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use std::sync::Arc;
 use winit::window::{Window, WindowBuilder};
 
@@ -36,6 +36,7 @@ pub struct App {
     pub dots: Vec<Dot>,                // ドットリスト
     pub gravity: f64,                  // 重力加速度
     pub last_time: std::time::Instant, // 時間管理用
+    pub physics: Physics,
 
     pub is_updating: bool,                     // 物理更新中かどうかのフラグ
     pub left_mouse_pressed: bool,              // 左クリックが押されているか
@@ -65,6 +66,7 @@ impl App {
             gravity: 9.8 * 10.0,
 
             last_time: std::time::Instant::now(),
+            physics: Physics::new(),
 
             is_updating: false,
 
@@ -89,7 +91,7 @@ impl App {
     // ブラシの物質をランダム化
 
     fn randomize_brush_material(&mut self) {
-        let mut rng = rand::thread_rng();
+        let mut rng = thread_rng();
 
         let state_choice = rng.gen_range(0..3);
 
@@ -103,15 +105,15 @@ impl App {
 
         self.brush_material.state = state;
 
-        self.brush_material.density = rng.random(); // 0.0 ~ 1.0
+        self.brush_material.density = rng.gen(); // 0.0 ~ 1.0
 
-        self.brush_material.color_hue = rng.random(); // 0.0 ~ 1.0
+        self.brush_material.color_hue = rng.gen(); // 0.0 ~ 1.0
 
-        self.brush_material.viscosity = rng.random();
+        self.brush_material.viscosity = rng.gen();
 
-        self.brush_material.hardness = rng.random();
+        self.brush_material.hardness = rng.gen();
 
-        self.brush_material.elasticity = rng.random();
+        self.brush_material.elasticity = rng.gen();
     }
 
     pub fn handle_window_event(
@@ -226,17 +228,14 @@ impl App {
 
         self.last_time = now;
 
-        let physics = Physics::new();
-
         // 1. 状態に基づいて力を適用
-        physics.update_state(self, dt);
+        engine::update_state(&mut self.dots, self.gravity, dt);
 
         // 2. 衝突判定と応答
-        let mut all_stopped = true;
-        physics.update_collision(self, dt);
+        self.physics.update_collision(&mut self.dots, dt);
 
         // 3. 位置更新と壁との衝突
-        all_stopped = physics.update_position(self, dt);
+        let all_stopped = engine::update_position(&mut self.dots, dt);
 
         if all_stopped && !self.dots.is_empty() {
             self.is_updating = false;

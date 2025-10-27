@@ -1,210 +1,231 @@
 use crate::{
-    app::{App, Dot, HEIGHT, WIDTH},
+    app::{Dot, HEIGHT, WIDTH},
     material::State,
 };
-use rand::Rng;
+use rand::{thread_rng, Rng};
 
+pub const DOT_RADIUS: f64 = 2.0;
 const GAS_REFERENCE_DENSITY: f32 = 0.5;
 const GAS_DIFFUSION_FACTOR: f64 = 5.0;
 
-pub const DOT_RADIUS: f64 = 2.0;
-
-pub struct Physics {}
+pub struct Physics {
+    grid: Vec<Vec<usize>>,
+    cols: usize,
+    rows: usize,
+    cell_size: f64,
+}
 
 impl Physics {
     pub fn new() -> Self {
-        Physics {}
-    }
+        let cell_size = DOT_RADIUS * 2.0;
+        let cols = (WIDTH as f64 / cell_size).ceil() as usize;
+        let rows = (HEIGHT as f64 / cell_size).ceil() as usize;
+        let grid = vec![Vec::new(); cols * rows];
 
-    pub fn update_state(&self, app: &mut App, dt: f64) {
-        let mut rng = rand::rng();
-
-        for dot in &mut app.dots {
-            match dot.material.state {
-                State::Solid | State::Liquid | State::Particle => {
-                    dot.vy += app.gravity * dt;
-                }
-
-                State::Gas => {
-                    let buoyancy =
-                        (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * app.gravity;
-
-                    dot.vy -= buoyancy * dt;
-
-                    let diffusion_strength =
-                        (1.0 - dot.material.viscosity) as f64 * GAS_DIFFUSION_FACTOR;
-
-                    dot.vx += (rng.random::<f64>() - 0.5) * diffusion_strength * dt;
-
-                    dot.vy += (rng.random::<f64>() - 0.5) * diffusion_strength * dt;
-                }
-            }
+        Physics {
+            grid,
+            cols,
+            rows,
+            cell_size,
         }
     }
 
-    pub fn update_collision(&self, app: &mut App, dt: f64) -> bool {
-        let all_stopped = true;
+    pub fn update_collision(&mut self, dots: &mut Vec<Dot>, dt: f64) -> bool {
+        // 1. グリッドをクリア
+        for cell in self.grid.iter_mut() {
+            cell.clear();
+        }
 
-        let num_dots = app.dots.len();
+        // 2. ドットをグリッドに登録
+        for (i, dot) in dots.iter().enumerate() {
+            let cell_x = (dot.x / self.cell_size).floor() as usize;
+            let cell_y = (dot.y / self.cell_size).floor() as usize;
+            let cell_idx = cell_y * self.cols + cell_x;
+            if cell_idx < self.grid.len() {
+                self.grid[cell_idx].push(i);
+            }
+        }
 
+        // 3. 衝突判定
+        let num_dots = dots.len();
         for i in 0..num_dots {
-            for j in (i + 1)..num_dots {
-                let (dot1_slice, dot2_slice) = app.dots.split_at_mut(j);
+            let cell_x = (dots[i].x / self.cell_size).floor() as i32;
+            let cell_y = (dots[i].y / self.cell_size).floor() as i32;
 
-                let dot1 = &mut dot1_slice[i];
+            // 周囲のセルを探索
+            for y_offset in -1..=1 {
+                for x_offset in -1..=1 {
+                    let check_x = cell_x + x_offset;
+                    let check_y = cell_y + y_offset;
 
-                let dot2 = &mut dot2_slice[0];
-
-                let dx = dot2.x - dot1.x;
-
-                let dy = dot2.y - dot1.y;
-
-                let distance_sq = dx * dx + dy * dy;
-
-                let min_dist = DOT_RADIUS * 2.0;
-
-                if distance_sq < min_dist * min_dist && distance_sq > 1e-6 {
-                    let distance = distance_sq.sqrt();
-
-                    let overlap = 0.5 * (min_dist - distance);
-
-                    let nx = dx / distance;
-
-                    let ny = dy / distance;
-
-                    dot1.x -= overlap * nx;
-
-                    dot1.y -= overlap * ny;
-
-                    dot2.x += overlap * nx;
-
-                    dot2.y += overlap * ny;
-
-                    match (dot1.material.state, dot2.material.state) {
-                        (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
-                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
-                        }
-
-                        (State::Solid, State::Liquid) => {
-                            if dot1.material.density > dot2.material.density
-                                && dot1.material.viscosity > dot2.material.viscosity
-                            {
-                                // Solid is immovable, Liquid bounces off
-
-                                let e = (dot1.material.elasticity + dot2.material.elasticity)
-                                    as f64
-                                    / 2.0;
-
-                                let v_liquid_n = dot2.vx * nx + dot2.vy * ny;
-
-                                if v_liquid_n < 0.0 {
-                                    // Liquid moving towards Solid
-
-                                    dot2.vx -= (1.0 + e) * v_liquid_n * nx;
-
-                                    dot2.vy -= (1.0 + e) * v_liquid_n * ny;
-                                }
-                            } else {
-                                handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                    if check_x >= 0
+                        && check_x < self.cols as i32
+                        && check_y >= 0
+                        && check_y < self.rows as i32
+                    {
+                        let cell_idx = (check_y as usize) * self.cols + (check_x as usize);
+                        for &j in &self.grid[cell_idx] {
+                            if i >= j { // 各ペアを一度だけ処理する
+                                continue;
                             }
-                        }
 
-                        (State::Liquid, State::Solid) => {
-                            if dot2.material.density > dot1.material.density
-                                && dot2.material.viscosity > dot1.material.viscosity
-                            {
-                                // Solid is immovable, Liquid bounces off
+                            // 借用チェッカーを回避するためにインデックスでアクセス
+                            let (dot1_x, dot1_y, dot2_x, dot2_y) = {
+                                let dot1 = &dots[i];
+                                let dot2 = &dots[j];
+                                (dot1.x, dot1.y, dot2.x, dot2.y)
+                            };
 
-                                let e = (dot1.material.elasticity + dot2.material.elasticity)
-                                    as f64
-                                    / 2.0;
+                            let dx = dot2_x - dot1_x;
+                            let dy = dot2_y - dot1_y;
+                            let distance_sq = dx * dx + dy * dy;
+                            let min_dist = DOT_RADIUS * 2.0;
 
-                                // Normal is from dot1->dot2. Liquid is dot1. Check against inverse normal.
+                            if distance_sq < min_dist * min_dist && distance_sq > 1e-6 {
+                                let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
+                                let dot1 = &mut dot1_slice[i];
+                                let dot2 = &mut dot2_slice[0];
 
-                                let v_liquid_n = dot1.vx * (-nx) + dot1.vy * (-ny);
+                                let distance = distance_sq.sqrt();
+                                let overlap = 0.5 * (min_dist - distance);
+                                let nx = dx / distance;
+                                let ny = dy / distance;
 
-                                if v_liquid_n < 0.0 {
-                                    // Liquid moving towards Solid
+                                dot1.x -= overlap * nx;
+                                dot1.y -= overlap * ny;
+                                dot2.x += overlap * nx;
+                                dot2.y += overlap * ny;
 
-                                    dot1.vx -= (1.0 + e) * v_liquid_n * (-nx);
-
-                                    dot1.vy -= (1.0 + e) * v_liquid_n * (-ny);
+                                match (dot1.material.state, dot2.material.state) {
+                                    (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
+                                        handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                                    }
+                                    (State::Solid, State::Liquid) => {
+                                        if dot1.material.density > dot2.material.density
+                                            && dot1.material.viscosity > dot2.material.viscosity
+                                        {
+                                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                                            let v_liquid_n = dot2.vx * nx + dot2.vy * ny;
+                                            if v_liquid_n < 0.0 {
+                                                dot2.vx -= (1.0 + e) * v_liquid_n * nx;
+                                                dot2.vy -= (1.0 + e) * v_liquid_n * ny;
+                                            }
+                                        } else {
+                                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                                        }
+                                    }
+                                    (State::Liquid, State::Solid) => {
+                                        if dot2.material.density > dot1.material.density
+                                            && dot2.material.viscosity > dot1.material.viscosity
+                                        {
+                                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                                            let v_liquid_n = dot1.vx * (-nx) + dot1.vy * (-ny);
+                                            if v_liquid_n < 0.0 {
+                                                dot1.vx -= (1.0 + e) * v_liquid_n * (-nx);
+                                                dot1.vy -= (1.0 + e) * v_liquid_n * (-ny);
+                                            }
+                                        } else {
+                                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                                        }
+                                    }
+                                    (State::Gas, State::Gas) => {
+                                        handle_gas_collision(dot1, dot2, nx, ny);
+                                    }
+                                    (State::Solid, State::Gas) | (State::Liquid, State::Gas) => {
+                                        handle_gas_displacement(dot2, dot1, nx, ny);
+                                    }
+                                    (State::Gas, State::Solid) | (State::Gas, State::Liquid) => {
+                                        handle_gas_displacement(dot1, dot2, nx, ny);
+                                    }
+                                    _ => {
+                                        handle_simple_collision(dot1, dot2, nx, ny);
+                                    }
                                 }
-                            } else {
-                                handle_detailed_collision(dot1, dot2, nx, ny, dt);
                             }
-                        }
-
-                        (State::Gas, State::Gas) => {
-                            handle_gas_collision(dot1, dot2, nx, ny);
-                        }
-
-                        (State::Solid, State::Gas) | (State::Liquid, State::Gas) => {
-                            handle_gas_displacement(dot2, dot1, nx, ny);
-                        }
-
-                        (State::Gas, State::Solid) | (State::Gas, State::Liquid) => {
-                            handle_gas_displacement(dot1, dot2, nx, ny);
-                        }
-
-                        _ => {
-                            handle_simple_collision(dot1, dot2, nx, ny);
                         }
                     }
                 }
             }
         }
-        all_stopped
+        // all_stoppedのロジックはupdate_positionに依存するため、ここでは単純にtrueを返す
+        // 必要であれば、衝突があったかどうかをフラグで管理することも可能
+        true
     }
+}
 
-    pub fn update_position(&self, app: &mut App, dt: f64) -> bool {
-        let mut all_stopped = true;
+pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
+    let mut rng = thread_rng();
 
-        for dot in &mut app.dots {
-            dot.x += dot.vx * dt;
-
-            dot.y += dot.vy * dt;
-
-            let elasticity = dot.material.elasticity as f64;
-
-            if dot.y >= (HEIGHT as f64 - DOT_RADIUS) {
-                dot.y = HEIGHT as f64 - DOT_RADIUS;
-
-                dot.vy *= -elasticity;
+    for dot in dots {
+        match dot.material.state {
+            State::Solid | State::Liquid | State::Particle => {
+                dot.vy += gravity * dt;
             }
 
-            if dot.y <= DOT_RADIUS {
-                dot.y = DOT_RADIUS;
+            State::Gas => {
+                let buoyancy =
+                    (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * gravity;
 
-                dot.vy *= -elasticity;
-            }
+                dot.vy -= buoyancy * dt;
 
-            if dot.x >= (WIDTH as f64 - DOT_RADIUS) {
-                dot.x = WIDTH as f64 - DOT_RADIUS;
+                let diffusion_strength =
+                    (1.0 - dot.material.viscosity) as f64 * GAS_DIFFUSION_FACTOR;
 
-                dot.vx *= -elasticity;
-            }
+                dot.vx += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
 
-            if dot.x <= DOT_RADIUS {
-                dot.x = DOT_RADIUS;
-
-                dot.vx *= -elasticity;
-            }
-
-            if dot.material.state != State::Gas {
-                let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
-
-                let at_bottom = dot.y >= (HEIGHT as f64 - DOT_RADIUS - 1.0);
-
-                if !(velocity_small && at_bottom) {
-                    all_stopped = false;
-                }
-            } else {
-                all_stopped = false;
+                dot.vy += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
             }
         }
-        all_stopped
     }
+}
+
+pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
+    let mut all_stopped = true;
+
+    for dot in dots {
+        dot.x += dot.vx * dt;
+
+        dot.y += dot.vy * dt;
+
+        let elasticity = dot.material.elasticity as f64;
+
+        if dot.y >= (HEIGHT as f64 - DOT_RADIUS) {
+            dot.y = HEIGHT as f64 - DOT_RADIUS;
+
+            dot.vy *= -elasticity;
+        }
+
+        if dot.y <= DOT_RADIUS {
+            dot.y = DOT_RADIUS;
+
+            dot.vy *= -elasticity;
+        }
+
+        if dot.x >= (WIDTH as f64 - DOT_RADIUS) {
+            dot.x = WIDTH as f64 - DOT_RADIUS;
+
+            dot.vx *= -elasticity;
+        }
+
+        if dot.x <= DOT_RADIUS {
+            dot.x = DOT_RADIUS;
+
+            dot.vx *= -elasticity;
+        }
+
+        if dot.material.state != State::Gas {
+            let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
+
+            let at_bottom = dot.y >= (HEIGHT as f64 - DOT_RADIUS - 1.0);
+
+            if !(velocity_small && at_bottom) {
+                all_stopped = false;
+            }
+        } else {
+            all_stopped = false;
+        }
+    }
+    all_stopped
 }
 
 // --- ヘルパー関数 ---
