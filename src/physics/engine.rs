@@ -99,6 +99,15 @@ impl Physics {
                                 match (dot1.material.state, dot2.material.state) {
                                     (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
                                         handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                                        
+                                        // If both are liquids, apply accumulation behavior if near bottom
+                                        if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
+                                            handle_liquid_accumulation(dot1, dot2, nx, ny, dt);
+                                        }
+                                        // If both are solids, apply viscosity-based spreading behavior
+                                        else if dot1.material.state == State::Solid && dot2.material.state == State::Solid {
+                                            handle_solid_spreading(dot1, dot2, nx, ny, dt);
+                                        }
                                     }
                                     (State::Solid, State::Liquid) => {
                                         if dot1.material.density > dot2.material.density
@@ -189,28 +198,89 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
 
         let elasticity = dot.material.elasticity as f64;
 
+        // Handle bottom boundary collision with different behavior based on state
         if dot.y >= (HEIGHT as f64 - DOT_RADIUS) {
             dot.y = HEIGHT as f64 - DOT_RADIUS;
 
-            dot.vy *= -elasticity;
+            // Different behavior based on material state
+            match dot.material.state {
+                State::Solid => {
+                    // Solids bounce with elasticity and stop when velocity is low
+                    dot.vy *= -elasticity;
+                    // 床との摩擦を適用
+                    let friction_factor = dot.material.viscosity as f64 * 0.7; // 係数を調整
+                    dot.vx *= (1.0 - friction_factor).max(0.0);
+                }
+                State::Liquid => {
+                    // Liquids spread based on viscosity
+                    dot.vy *= -elasticity * (1.0 - dot.material.viscosity as f64); // More viscous liquids lose more vertical energy
+                    
+                    // Apply horizontal spreading based on viscosity
+                    if dot.material.viscosity < 0.7 { // Only spread if not highly viscous
+                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 2.0;
+                        dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor;
+                    }
+                }
+                State::Gas => {
+                    // Gases should have minimal interaction with bottom, just bounce slightly
+                    dot.vy *= -elasticity * 0.1; // Very little bounce to keep gases moving
+                }
+                State::Particle => {
+                    // Particles behave similarly to solids but with more spreading
+                    dot.vy *= -elasticity;
+                    if dot.material.viscosity < 0.5 {
+                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 1.5;
+                        dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor;
+                    }
+                }
+            }
         }
 
         if dot.y <= DOT_RADIUS {
             dot.y = DOT_RADIUS;
 
-            dot.vy *= -elasticity;
+            // For gases, minimal bounce to keep them moving
+            if dot.material.state == State::Gas {
+                dot.vy *= -elasticity * 0.1;
+            } else {
+                // Apply viscosity effect when hitting top boundary too
+                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
+                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
+                    dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited horizontal variability
+                }
+                dot.vy *= -elasticity;
+            }
         }
-
         if dot.x >= (WIDTH as f64 - DOT_RADIUS) {
             dot.x = WIDTH as f64 - DOT_RADIUS;
 
-            dot.vx *= -elasticity;
+            // Handle gas differently - allow more energy to be preserved
+            if dot.material.state == State::Gas {
+                dot.vx *= -elasticity * 0.3; // Gases preserve more horizontal momentum
+            } else {
+                // Apply viscosity effect when hitting side walls too
+                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
+                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
+                    dot.vy += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
+                }
+                dot.vx *= -elasticity;
+            }
         }
 
         if dot.x <= DOT_RADIUS {
             dot.x = DOT_RADIUS;
 
-            dot.vx *= -elasticity;
+            // Handle gas differently - allow more energy to be preserved
+            if dot.material.state == State::Gas {
+                dot.vx *= -elasticity * 0.3; // Gases preserve more horizontal momentum
+            } else {
+                // Apply viscosity effect when hitting side walls too
+                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
+                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
+                    dot.vy += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
+                }
+                dot.vx *= -elasticity;
+            }
         }
 
         if dot.material.state != State::Gas {
@@ -271,17 +341,21 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
 
     let avg_viscosity = (dot1.material.viscosity + dot2.material.viscosity) / 2.0;
 
-    if avg_viscosity < 0.5 && ny.abs() > 0.8 {
-        let spread_force = (1.0 - avg_viscosity) as f64 * 10.0 * dt;
+    // Liquids spread based on viscosity
+    if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
+        let viscosity_threshold = 0.5; // Liquids require lower viscosity to spread
 
-        if dot1.x < dot2.x {
-            dot1.vx -= spread_force;
+        if avg_viscosity < viscosity_threshold && ny.abs() > 0.8 {
+            let spread_factor = (1.0 - avg_viscosity as f64) * 10.0; // Normal spreading force for liquids
+            let spread_force = spread_factor * dt;
 
-            dot2.vx += spread_force;
-        } else {
-            dot1.vx += spread_force;
-
-            dot2.vx -= spread_force;
+            if dot1.x < dot2.x {
+                dot1.vx -= spread_force;
+                dot2.vx += spread_force;
+            } else {
+                dot1.vx += spread_force;
+                dot2.vx -= spread_force;
+            }
         }
     }
 }
@@ -340,4 +414,89 @@ fn handle_simple_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     dot2.vx -= k * nx;
 
     dot2.vy -= k * ny;
+}
+
+// 液体の蓄積処理
+fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
+    // Only apply accumulation if both dots are near the bottom
+    let near_bottom = dot1.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0) || dot2.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0);
+    
+    if !near_bottom {
+        return;
+    }
+
+    // Calculate average viscosity of the two liquid dots (convert f32 to f64)
+    let avg_viscosity = ((dot1.material.viscosity + dot2.material.viscosity) / 2.0) as f64;
+    
+    // Calculate how much to spread based on viscosity (less viscous spreads more)
+    let spread_factor = (1.0 - avg_viscosity) * 0.5; // Reduced factor to make it more natural
+    
+    // If the collision is more horizontal than vertical, apply spreading force
+    if nx.abs() > ny.abs() {
+        // Apply lateral spreading based on viscosity
+        if dot1.x < dot2.x {
+            dot1.vx -= spread_factor * dt * 10.0;
+            dot2.vx += spread_factor * dt * 10.0;
+        } else {
+            dot1.vx += spread_factor * dt * 10.0;
+            dot2.vx -= spread_factor * dt * 10.0;
+        }
+    }
+    
+    // Apply small vertical force to simulate liquid pressure
+    // Less viscous liquids will have more vertical movement
+    let vertical_factor = avg_viscosity * 0.1; // Very small vertical movement
+    dot1.vy += vertical_factor * dt * 5.0;
+    dot2.vy += vertical_factor * dt * 5.0;
+}
+
+// 固体間の粘度に基づく広がり処理
+fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
+    let avg_viscosity = ((dot1.material.viscosity + dot2.material.viscosity) / 2.0) as f64;
+
+    // --- 摩擦処理 --- 
+    // 接線方向のベクトル (tangent)
+    let tx = -ny;
+    let ty = nx;
+
+    // 接線方向の相対速度
+    let v_rel_t = (dot2.vx - dot1.vx) * tx + (dot2.vy - dot1.vy) * ty;
+
+    // 摩擦による速度変化量。v_rel_tを0に近づける方向に力を加える。
+    // 粘度が高いほど強くなる。
+    let friction_impulse = v_rel_t * avg_viscosity * 0.5; // 係数は要調整
+
+    // 質量に応じて摩擦力積を適用
+    let m1 = dot1.material.density as f64;
+    let m2 = dot2.material.density as f64;
+    let total_mass = m1 + m2;
+    if total_mass > 1e-6 {
+        dot1.vx += friction_impulse * (m2 / total_mass) * tx;
+        dot1.vy += friction_impulse * (m2 / total_mass) * ty;
+        dot2.vx -= friction_impulse * (m1 / total_mass) * tx;
+        dot2.vy -= friction_impulse * (m1 / total_mass) * ty;
+    }
+
+    // --- 広がりと圧力の処理 --- 
+    // 粘度が低いほどわずかに広がる力を持たせる
+    if avg_viscosity < 0.8 {
+        let spread_factor = (1.0 - avg_viscosity) * 0.01; // 係数をさらに小さく
+        // ほぼ上下の衝突のときだけ、わずかに広がる
+        if ny.abs() > 0.8 {
+            let spread_force = spread_factor * dt;
+            if dot1.x < dot2.x {
+                dot1.vx -= spread_force;
+                dot2.vx += spread_force;
+            } else {
+                dot1.vx += spread_force;
+                dot2.vx -= spread_force;
+            }
+        }
+    }
+
+    // 縦方向の圧力。粘度が高いほど強くかかる
+    // これが積み重なる効果を生むはず
+    let vertical_factor = avg_viscosity * 0.05;
+    dot1.vy += vertical_factor * dt;
+    dot2.vy += vertical_factor * dt;
 }
