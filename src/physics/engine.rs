@@ -1,8 +1,7 @@
-use crate::{
-    app::{Dot, HEIGHT, WIDTH},
-    material::State,
-};
-use rand::{thread_rng, Rng};
+use rand::Rng;
+use rand::thread_rng;
+
+use crate::{app::{Dot, HEIGHT, WIDTH}, material::State,};
 
 pub const DOT_RADIUS: f64 = 2.0;
 const GAS_REFERENCE_DENSITY: f32 = 0.5;
@@ -190,6 +189,7 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
 
 pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
     let mut all_stopped = true;
+    let mut rng = thread_rng();
 
     for dot in dots {
         dot.x += dot.vx * dt;
@@ -218,7 +218,7 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                     // Apply horizontal spreading based on viscosity
                     if dot.material.viscosity < 0.7 { // Only spread if not highly viscous
                         let spread_factor = (1.0 - dot.material.viscosity as f64) * 2.0;
-                        dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor;
+                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
                     }
                 }
                 State::Gas => {
@@ -230,7 +230,7 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                     dot.vy *= -elasticity;
                     if dot.material.viscosity < 0.5 {
                         let spread_factor = (1.0 - dot.material.viscosity as f64) * 1.5;
-                        dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor;
+                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
                     }
                 }
             }
@@ -246,7 +246,7 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                 // Apply viscosity effect when hitting top boundary too
                 if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
                     let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vx += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited horizontal variability
+                    dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited horizontal variability
                 }
                 dot.vy *= -elasticity;
             }
@@ -261,7 +261,7 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                 // Apply viscosity effect when hitting side walls too
                 if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
                     let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vy += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
+                    dot.vy += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
                 }
                 dot.vx *= -elasticity;
             }
@@ -277,7 +277,7 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                 // Apply viscosity effect when hitting side walls too
                 if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
                     let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vy += (thread_rng().gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
+                    dot.vy += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
                 }
                 dot.vx *= -elasticity;
             }

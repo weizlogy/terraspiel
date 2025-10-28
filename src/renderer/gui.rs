@@ -49,8 +49,9 @@ impl Gui {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         ui_data: &UiData,
-    ) -> bool {
+    ) -> (bool, bool) { // 戻り値を (randomize_clicked, clear_clicked) に変更
         let mut randomize_button_clicked = false;
+        let mut clear_button_clicked = false; // 新しいフラグ
 
         let raw_input = self.state.take_egui_input(window);
         let full_output = self.ctx.run(raw_input, |ctx| {
@@ -69,6 +70,14 @@ impl Gui {
                         .clicked()
                     {
                         randomize_button_clicked = true;
+                    }
+                    // CLSボタンを追加
+                    if ui
+                        .button("CLS")
+                        .on_hover_text("Clear all dots")
+                        .clicked()
+                    {
+                        clear_button_clicked = true;
                     }
                 });
 
@@ -127,6 +136,6 @@ impl Gui {
         self.renderer
             .render(&mut render_pass, &tris, &screen_descriptor);
 
-        randomize_button_clicked
+        (randomize_button_clicked, clear_button_clicked) // 戻り値を変更
     }
 }

@@ -1,8 +1,9 @@
+use rand::Rng;
+use rand::thread_rng;
 use crate::material::{BaseMaterialParams, State};
 use crate::physics::engine::DOT_RADIUS;
 use crate::physics::{engine, Physics};
 use crate::renderer::Renderer;
-use rand::{thread_rng, Rng};
 use std::sync::Arc;
 use winit::window::{Window, WindowBuilder};
 
@@ -93,7 +94,7 @@ impl App {
     fn randomize_brush_material(&mut self) {
         let mut rng = thread_rng();
 
-        let state_choice = rng.gen_range(0..3);
+        let state_choice = rng.gen_range(0..=2);
 
         let state = match state_choice {
             0 => State::Solid,
@@ -114,6 +115,11 @@ impl App {
         self.brush_material.hardness = rng.gen();
 
         self.brush_material.elasticity = rng.gen();
+    }
+
+    pub fn clear_dots(&mut self) {
+        self.dots.clear();
+        self.is_updating = false;
     }
 
     pub fn handle_window_event(
@@ -288,8 +294,13 @@ impl App {
         };
 
         if let Some(renderer) = &mut self.renderer {
-            if renderer.render(window, &self.dots, &mut ui_data) {
+            let (randomize_clicked, clear_clicked) = renderer.render(window, &self.dots, &mut ui_data); // 戻り値を受け取る
+
+            if randomize_clicked {
                 self.randomize_brush_material();
+            }
+            if clear_clicked { // CLSボタンがクリックされたら
+                self.clear_dots(); // ドットをクリア
             }
         }
     }
