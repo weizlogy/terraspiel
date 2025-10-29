@@ -146,8 +146,7 @@ impl App {
     }
 
     pub fn add_dot_if_not_exists(&mut self, x: i32, y: i32) {
-        let mut rng = thread_rng();
-        let seed = rng.gen();
+        let seed = 0; // ベース物質のseedは0とする
         let material_dna = to_dna(&self.brush_material, seed);
 
         let dot = Dot {
@@ -333,9 +332,11 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let hovered_material = self
-            .hovered_dot_index
-            .map(|i| self.dots[i].material.clone());
+        let (hovered_material, hovered_dot_dna) = self.hovered_dot_index
+            .and_then(|i| self.dots.get(i))
+            .map_or((None, None), |dot| {
+                (Some(dot.material.clone()), Some(dot.material_dna.clone()))
+            });
 
         let mut ui_data = crate::renderer::gui::UiData {
             fps: self.fps,
@@ -343,6 +344,7 @@ impl App {
             dot_count: self.dots.len(),
 
             hovered_material,
+            hovered_dot_dna,
         };
 
         if let Some(renderer) = &mut self.renderer {

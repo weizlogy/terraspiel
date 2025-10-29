@@ -125,13 +125,25 @@ impl MaterialDNA {
     /// 2つのDNAを線形補間でブレンドする
     /// ratio: 0.0でa、1.0でbになる
     pub fn blend(&self, other: &Self, ratio: f32) -> Self {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
         let mut new_genes = [0.0; 14];
         for i in 0..14 {
             new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
         }
 
-        // seedは単純に両者のxorを取るなど、簡易的な方法で生成
-        let new_seed = self.seed.wrapping_add(other.seed);
+        // ブレンド後のgenesからハッシュを計算して新しいseedとする
+        let mut hasher = DefaultHasher::new();
+        for &gene in &new_genes {
+            gene.to_bits().hash(&mut hasher);
+        }
+        let mut new_seed = hasher.finish();
+
+        // seedが0になるのを防ぐ
+        if new_seed == 0 {
+            new_seed = 1;
+        }
 
         Self {
             seed: new_seed,
