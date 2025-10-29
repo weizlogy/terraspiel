@@ -1,7 +1,10 @@
+use crate::{
+    app::{Dot, HEIGHT, WIDTH},
+    material::{MaterialDNA, State},
+};
 use rand::Rng;
 use rand::thread_rng;
-
-use crate::{app::{Dot, HEIGHT, WIDTH}, material::State,};
+use std::sync::mpsc;
 
 pub const DOT_RADIUS: f64 = 2.0;
 const GAS_REFERENCE_DENSITY: f32 = 0.5;
@@ -12,10 +15,11 @@ pub struct Physics {
     cols: usize,
     rows: usize,
     cell_size: f64,
+    collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
 }
 
 impl Physics {
-    pub fn new() -> Self {
+    pub fn new(collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>) -> Self {
         let cell_size = DOT_RADIUS * 2.0;
         let cols = (WIDTH as f64 / cell_size).ceil() as usize;
         let rows = (HEIGHT as f64 / cell_size).ceil() as usize;
@@ -26,6 +30,7 @@ impl Physics {
             cols,
             rows,
             cell_size,
+            collision_tx,
         }
     }
 
@@ -45,13 +50,13 @@ impl Physics {
             }
         }
 
-        // 3. 衝突判定
-        let num_dots = dots.len();
-        for i in 0..num_dots {
+        let mut potentially_colliding_pairs = Vec::new();
+
+        // 3. 衝突候補ペアを収集
+        for i in 0..dots.len() {
             let cell_x = (dots[i].x / self.cell_size).floor() as i32;
             let cell_y = (dots[i].y / self.cell_size).floor() as i32;
 
-            // 周囲のセルを探索
             for y_offset in -1..=1 {
                 for x_offset in -1..=1 {
                     let check_x = cell_x + x_offset;
@@ -64,99 +69,104 @@ impl Physics {
                     {
                         let cell_idx = (check_y as usize) * self.cols + (check_x as usize);
                         for &j in &self.grid[cell_idx] {
-                            if i >= j { // 各ペアを一度だけ処理する
-                                continue;
-                            }
-
-                            // 借用チェッカーを回避するためにインデックスでアクセス
-                            let (dot1_x, dot1_y, dot2_x, dot2_y) = {
-                                let dot1 = &dots[i];
-                                let dot2 = &dots[j];
-                                (dot1.x, dot1.y, dot2.x, dot2.y)
-                            };
-
-                            let dx = dot2_x - dot1_x;
-                            let dy = dot2_y - dot1_y;
-                            let distance_sq = dx * dx + dy * dy;
-                            let min_dist = DOT_RADIUS * 2.0;
-
-                            if distance_sq < min_dist * min_dist && distance_sq > 1e-6 {
-                                let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
-                                let dot1 = &mut dot1_slice[i];
-                                let dot2 = &mut dot2_slice[0];
-
-                                let distance = distance_sq.sqrt();
-                                let overlap = 0.5 * (min_dist - distance);
-                                let nx = dx / distance;
-                                let ny = dy / distance;
-
-                                dot1.x -= overlap * nx;
-                                dot1.y -= overlap * ny;
-                                dot2.x += overlap * nx;
-                                dot2.y += overlap * ny;
-
-                                match (dot1.material.state, dot2.material.state) {
-                                    (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
-                                        handle_detailed_collision(dot1, dot2, nx, ny, dt);
-                                        
-                                        // If both are liquids, apply accumulation behavior if near bottom
-                                        if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
-                                            handle_liquid_accumulation(dot1, dot2, nx, ny, dt);
-                                        }
-                                        // If both are solids, apply viscosity-based spreading behavior
-                                        else if dot1.material.state == State::Solid && dot2.material.state == State::Solid {
-                                            handle_solid_spreading(dot1, dot2, nx, ny, dt);
-                                        }
-                                    }
-                                    (State::Solid, State::Liquid) => {
-                                        if dot1.material.density > dot2.material.density
-                                            && dot1.material.viscosity > dot2.material.viscosity
-                                        {
-                                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
-                                            let v_liquid_n = dot2.vx * nx + dot2.vy * ny;
-                                            if v_liquid_n < 0.0 {
-                                                dot2.vx -= (1.0 + e) * v_liquid_n * nx;
-                                                dot2.vy -= (1.0 + e) * v_liquid_n * ny;
-                                            }
-                                        } else {
-                                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
-                                        }
-                                    }
-                                    (State::Liquid, State::Solid) => {
-                                        if dot2.material.density > dot1.material.density
-                                            && dot2.material.viscosity > dot1.material.viscosity
-                                        {
-                                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
-                                            let v_liquid_n = dot1.vx * (-nx) + dot1.vy * (-ny);
-                                            if v_liquid_n < 0.0 {
-                                                dot1.vx -= (1.0 + e) * v_liquid_n * (-nx);
-                                                dot1.vy -= (1.0 + e) * v_liquid_n * (-ny);
-                                            }
-                                        } else {
-                                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
-                                        }
-                                    }
-                                    (State::Gas, State::Gas) => {
-                                        handle_gas_collision(dot1, dot2, nx, ny);
-                                    }
-                                    (State::Solid, State::Gas) | (State::Liquid, State::Gas) => {
-                                        handle_gas_displacement(dot2, dot1, nx, ny);
-                                    }
-                                    (State::Gas, State::Solid) | (State::Gas, State::Liquid) => {
-                                        handle_gas_displacement(dot1, dot2, nx, ny);
-                                    }
-                                    _ => {
-                                        handle_simple_collision(dot1, dot2, nx, ny);
-                                    }
-                                }
+                            if i < j { // 各ペアを一度だけ処理
+                                potentially_colliding_pairs.push((i, j));
                             }
                         }
                     }
                 }
             }
         }
-        // all_stoppedのロジックはupdate_positionに依存するため、ここでは単純にtrueを返す
-        // 必要であれば、衝突があったかどうかをフラグで管理することも可能
+
+        // 4. 衝突判定と処理
+        for (i, j) in potentially_colliding_pairs {
+            let (dot1_x, dot1_y, dot2_x, dot2_y) = {
+                let dot1 = &dots[i];
+                let dot2 = &dots[j];
+                (dot1.x, dot1.y, dot2.x, dot2.y)
+            };
+
+            let dx = dot2_x - dot1_x;
+            let dy = dot2_y - dot1_y;
+            let distance_sq = dx * dx + dy * dy;
+            let min_dist = DOT_RADIUS * 2.0;
+
+            if distance_sq < min_dist * min_dist && distance_sq > 1e-6 {
+                // 衝突イベントを送信
+                let _ = self.collision_tx.send((
+                    (i, dots[i].material_dna.clone()),
+                    (j, dots[j].material_dna.clone()),
+                ));
+
+                // --- 物理的な衝突応答 ---
+                let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
+                let dot1 = &mut dot1_slice[i];
+                let dot2 = &mut dot2_slice[0];
+
+                let distance = distance_sq.sqrt();
+                let overlap = 0.5 * (min_dist - distance);
+                let nx = dx / distance;
+                let ny = dy / distance;
+
+                dot1.x -= overlap * nx;
+                dot1.y -= overlap * ny;
+                dot2.x += overlap * nx;
+                dot2.y += overlap * ny;
+
+                match (dot1.material.state, dot2.material.state) {
+                    (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
+                        handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                        
+                        if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
+                            handle_liquid_accumulation(dot1, dot2, nx, ny, dt);
+                        }
+                        else if dot1.material.state == State::Solid && dot2.material.state == State::Solid {
+                            handle_solid_spreading(dot1, dot2, nx, ny, dt);
+                        }
+                    }
+                    (State::Solid, State::Liquid) => {
+                        if dot1.material.density > dot2.material.density
+                            && dot1.material.viscosity > dot2.material.viscosity
+                        {
+                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                            let v_liquid_n = dot2.vx * nx + dot2.vy * ny;
+                            if v_liquid_n < 0.0 {
+                                dot2.vx -= (1.0 + e) * v_liquid_n * nx;
+                                dot2.vy -= (1.0 + e) * v_liquid_n * ny;
+                            }
+                        } else {
+                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                        }
+                    }
+                    (State::Liquid, State::Solid) => {
+                        if dot2.material.density > dot1.material.density
+                            && dot2.material.viscosity > dot1.material.viscosity
+                        {
+                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                            let v_liquid_n = dot1.vx * (-nx) + dot1.vy * (-ny);
+                            if v_liquid_n < 0.0 {
+                                dot1.vx -= (1.0 + e) * v_liquid_n * (-nx);
+                                dot1.vy -= (1.0 + e) * v_liquid_n * (-ny);
+                            }
+                        } else {
+                            handle_detailed_collision(dot1, dot2, nx, ny, dt);
+                        }
+                    }
+                    (State::Gas, State::Gas) => {
+                        handle_gas_collision(dot1, dot2, nx, ny);
+                    }
+                    (State::Solid, State::Gas) | (State::Liquid, State::Gas) => {
+                        handle_gas_displacement(dot2, dot1, nx, ny);
+                    }
+                    (State::Gas, State::Solid) | (State::Gas, State::Liquid) => {
+                        handle_gas_displacement(dot1, dot2, nx, ny);
+                    }
+                    _ => {
+                        handle_simple_collision(dot1, dot2, nx, ny);
+                    }
+                }
+            }
+        }
         true
     }
 }

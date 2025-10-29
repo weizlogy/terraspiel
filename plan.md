@@ -54,3 +54,128 @@ UI操作が描画結果に反映される（例：スライダーで色が変わ
 |                       | `color_saturation`  | 0.0〜1.0  | 彩度。                                         |
 |                       | `color_luminance`   | 0.0〜1.0  | 明度。                                         |
 |                       | `luminescence`      | 0.0〜1.0  | 自発光度。発熱や電気で光を放つ度合い。         |
+
+## 各パラメータのシミュレーション影響まとめ
+state
+セルの移動ロジック・隣接チェック方法を決定
+- Solid: 固定または重力で滑落
+- Liquid: 下方向＋横方向に流動
+- Gas: 上昇＋拡散
+- Particle: 落下しつつ堆積（砂挙動）
+
+density
+重力下での落下優先度／浮力バランス
+- 他セルと比較して「軽い方が上」「重い方が下」へ交換
+- fall_speed ∝ density * gravity
+
+viscosity
+移動速度・形状維持力・流動抵抗
+- high: 水飴状、動きが鈍く隣接流動が抑制される
+- low: サラサラした水や煙
+- 実装：移動確率を 1 - viscosity でスケーリング
+
+hardness
+崩壊・衝突・侵食耐性
+- 周囲から押されても形が崩れにくい
+- low: 流体や砂のように容易に崩壊
+- 他セルとの接触で破壊確率 ∝ 1 - hardness
+
+elasticity
+反発・跳ね返り・波動伝播速度
+- 落下時の反発係数
+- 周囲への力伝達に利用（衝突反応・弾性波）
+- 実装：速度反転時に velocity *= elasticity
+
+temperature
+相変化トリガー・熱拡散・光度変化
+- 高温: 蒸発 or 発光
+- 低温: 凝固 or 着色変化
+- 周囲温度との差で heat_flux = (neighbor.temp - self.temp) * heat_conductivity
+
+heat_conductivity
+熱伝達スピード
+- 高いほど温度が早く均一化
+- 実装：セル間で温度を線形補間（diffusion）
+
+heat_capacity
+温度変化の鈍さ（慣性）
+- 高いと加熱・冷却に時間がかかる
+- 実装：温度変化量 ΔT *= 1.0 - heat_capacity
+
+conductivity
+電流・エネルギー伝播率
+- 近傍の電位差に応じて電流伝搬
+- 高ければ連鎖的に発光や加熱が広がる
+
+magnetism
+近距離での引力／斥力
+- 正負極で方向性のある力を発生
+- 他セルとの距離に応じたベクトルを加算（磁力線的挙動）
+
+color_hue / saturation / luminance
+表示上の色彩表現
+- hue：ブレンド結果で変化
+- saturation：混ざるほど低下（濁る）
+- luminance：視覚的なエネルギー量指標（温度と連動しても良い）
+
+luminescence	自発光（明度オフセット）
+- render_color = base_color + luminescence * glow
+- 熱や電気で増加するよう連動させると“生命感”が出る
+
+## 物質DNAのデータ構造
+DNAは「その物質のすべてを決定する数値列」。
+再現性とブレンド性を両立するには、シンプルな固定長のバイト列 or ベクトルが理想。
+
+struct MaterialDNA {
+  seed: u64,              // ハッシュや世界シードとの組み合わせ
+  genes: [f32; 14],       // 各特性を0〜1正規化した値
+}
+
+ここで genes[i] は BaseMaterialParams の各要素に対応。
+DNAブレンドは単に genes[i] をブレンドするだけでOK。
+これを BaseMaterialParams に変換する関数を定義：
+
+fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
+  // genes順序は固定。シンプルにマッピング。
+}
+
+### DNAから物質名・色を生成する方法
+DNAの決定性を維持しつつ、多様性を演出する手続き生成がカギ！
+
+色の決定
+color_hue, saturation, luminance はDNAから直接決定。
+
+追加演出として：
+temperatureが高ければ暖色寄り、低ければ寒色寄りに補正。
+luminescenceが高ければ発光エフェクトを追加。
+
+### 名前の決定（アルケミー名生成）
+DNAのシードを擬似乱数生成器に使って、
+「母音＋子音パターン」を使った人工言語的ネームジェネレーターが定番。
+
+### ブレンド処理の後処理
+ブレンドに使用した物質はどうするのがいいか？
+
+相互変化型（Reaction）
+AとBが両方とも同時に新物質に変化
+
+触媒型（Catalytic）
+一方（触媒セル）は変化せず、もう一方のみ変化する
+
+通常は相互変化型
+温度差・状態差が極端な場合は、片方だけ変化（燃焼や蒸発の表現）
+
+状態差（state difference）
+状態（Solid, Liquid, Gas, Particle）間には、物理的に大きな差があります。
+この差をブレンド反応モードを選ぶための「優先ルール」に使います。
+
+各状態のエネルギーレベル
+Solid    0.2
+Particle 0.4
+Liquid   0.6
+Gas      0.9
+
+状態差による反応分類ルール
+ΔE < 0.2	    Reaction（両方変化）	     同質系の混合反応
+0.2 ≤ ΔE < 0.5	Catalytic（片方が変化）	エネルギーレベルの高いほうは変化せず、低いほうを変化させる
+ΔE ≥ 0.5	    Catalytic（片方が変化）    エネルギーレベルの高いほうが変化し、低いほうを消滅させる

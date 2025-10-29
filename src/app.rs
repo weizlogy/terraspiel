@@ -1,10 +1,10 @@
 use rand::Rng;
 use rand::thread_rng;
-use crate::material::{BaseMaterialParams, State};
+use crate::material::{from_dna, BaseMaterialParams, MaterialDNA, State, to_dna};
 use crate::physics::engine::DOT_RADIUS;
 use crate::physics::{engine, Physics};
 use crate::renderer::Renderer;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 use winit::window::{Window, WindowBuilder};
 
 // ドットの状態を保持する構造体
@@ -15,18 +15,18 @@ pub struct Dot {
     pub vx: f64, // x方向速度
     pub vy: f64, // y方向速度
     pub material: BaseMaterialParams,
+    pub material_dna: MaterialDNA, // 物質DNA
+}
+
+/// 非同期ブレンド処理の結果
+#[derive(Debug)]
+pub enum BlendResult {
+    Change { index: usize, new_dna: MaterialDNA },
+    Vanish { index: usize },
 }
 
 impl Dot {
-    pub fn new(x: f64, y: f64) -> Self {
-        Self {
-            x,
-            y,
-            vx: 0.0, // 初期速度は0
-            vy: 0.0,
-            material: BaseMaterialParams::default(),
-        }
-    }
+    // new関数は使われなくなるので削除、もしくは更新が必要
 }
 
 // App構造体
@@ -48,13 +48,20 @@ pub struct App {
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
     pub hovered_dot_index: Option<usize>,   // マウスがホバーしているドット
+
+    // 非同期処理用
+    pub collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>, // 衝突イベント送信
+    pub result_rx: mpsc::Receiver<BlendResult>, // ブレンド結果受信
 }
 
 pub const WIDTH: u32 = 640;
 pub const HEIGHT: u32 = 480;
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(
+        collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
+        result_rx: mpsc::Receiver<BlendResult>,
+    ) -> Self {
         Self {
             window: None,
 
@@ -67,7 +74,7 @@ impl App {
             gravity: 9.8 * 10.0,
 
             last_time: std::time::Instant::now(),
-            physics: Physics::new(),
+            physics: Physics::new(collision_tx.clone()),
 
             is_updating: false,
 
@@ -86,6 +93,8 @@ impl App {
             brush_material: BaseMaterialParams::default(),
 
             hovered_dot_index: None,
+            collision_tx,
+            result_rx,
         }
     }
 
@@ -137,9 +146,18 @@ impl App {
     }
 
     pub fn add_dot_if_not_exists(&mut self, x: i32, y: i32) {
-        let mut dot = Dot::new(x as f64, y as f64);
+        let mut rng = thread_rng();
+        let seed = rng.gen();
+        let material_dna = to_dna(&self.brush_material, seed);
 
-        dot.material = self.brush_material.clone(); // ブラシの物質を適用
+        let dot = Dot {
+            x: x as f64,
+            y: y as f64,
+            vx: 0.0,
+            vy: 0.0,
+            material: self.brush_material.clone(), // ブラシの物質を適用
+            material_dna,
+        };
 
         self.dots.push(dot);
 
@@ -268,6 +286,40 @@ impl App {
         }
 
         self.update_physics();
+
+        // ブレンド結果を適用
+        let mut to_be_removed: Vec<usize> = Vec::new();
+        let mut changes: Vec<(usize, MaterialDNA)> = Vec::new();
+
+        for result in self.result_rx.try_iter() {
+            match result {
+                BlendResult::Change { index, new_dna } => {
+                    changes.push((index, new_dna));
+                }
+                BlendResult::Vanish { index } => {
+                    to_be_removed.push(index);
+                }
+            }
+        }
+
+        // 変更を適用
+        for (index, new_dna) in changes {
+            if let Some(dot) = self.dots.get_mut(index) {
+                dot.material_dna = new_dna;
+                dot.material = from_dna(&dot.material_dna);
+            }
+        }
+
+        // 重複を削除し、降順にソートしてインデックスのズレを防ぐ
+        to_be_removed.sort_unstable();
+        to_be_removed.dedup();
+        to_be_removed.reverse();
+
+        for index in to_be_removed {
+            if index < self.dots.len() {
+                self.dots.remove(index);
+            }
+        }
 
         if now.duration_since(self.last_fps_update).as_secs_f32() > 0.5 {
             let sum: f64 = self.frame_times.iter().sum();
