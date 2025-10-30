@@ -340,9 +340,8 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
 fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
-    let m1 = dot1.material.density as f64;
-
-    let m2 = dot2.material.density as f64;
+    let m1 = dot1.material.density as f64 * (1.0 + dot1.material.hardness as f64);
+    let m2 = dot2.material.density as f64 * (1.0 + dot2.material.hardness as f64);
 
     let v1n = dot1.vx * nx + dot1.vy * ny;
 
@@ -462,9 +461,10 @@ fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, 
 
     // Calculate average viscosity of the two liquid dots (convert f32 to f64)
     let avg_viscosity = ((dot1.material.viscosity + dot2.material.viscosity) / 2.0) as f64;
+    let avg_hardness = ((dot1.material.hardness + dot2.material.hardness) / 2.0) as f64;
     
     // Calculate how much to spread based on viscosity (less viscous spreads more)
-    let spread_factor = (1.0 - avg_viscosity) * 0.5; // Reduced factor to make it more natural
+    let spread_factor = (1.0 - avg_viscosity) * (1.0 - avg_hardness) * 0.5; // Reduced factor to make it more natural
     
     // If the collision is more horizontal than vertical, apply spreading force
     if nx.abs() > ny.abs() {
@@ -512,10 +512,12 @@ fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: 
         dot2.vy -= friction_impulse * (m1 / total_mass) * ty;
     }
 
+    let avg_hardness = ((dot1.material.hardness + dot2.material.hardness) / 2.0) as f64;
+
     // --- 広がりと圧力の処理 --- 
     // 粘度が低いほどわずかに広がる力を持たせる
-    if avg_viscosity < 0.8 {
-        let spread_factor = (1.0 - avg_viscosity) * 0.01; // 係数をさらに小さく
+    if avg_viscosity < 0.8 && avg_hardness < 0.5 {
+        let spread_factor = (1.0 - avg_viscosity) * (1.0 - avg_hardness) * 0.01; // 係数をさらに小さく
         // ほぼ上下の衝突のときだけ、わずかに広がる
         if ny.abs() > 0.8 {
             let spread_force = spread_factor * dt;
