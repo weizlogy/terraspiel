@@ -16,6 +16,8 @@ pub struct Dot {
     pub vy: f64, // y方向速度
     pub material: BaseMaterialParams,
     pub material_dna: MaterialDNA, // 物質DNA
+    pub reaction_count: u32,
+    pub last_reaction_time: std::time::Instant,
 }
 
 /// 非同期ブレンド処理の結果
@@ -156,6 +158,8 @@ impl App {
             vy: 0.0,
             material: self.brush_material.clone(), // ブラシの物質を適用
             material_dna,
+            reaction_count: 0,
+            last_reaction_time: std::time::Instant::now(),
         };
 
         self.dots.push(dot);

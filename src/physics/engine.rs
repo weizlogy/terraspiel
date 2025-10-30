@@ -6,9 +6,13 @@ use rand::Rng;
 use rand::thread_rng;
 use std::sync::mpsc;
 
+use std::time::Instant;
+
 pub const DOT_RADIUS: f64 = 2.0;
 const GAS_REFERENCE_DENSITY: f32 = 0.5;
 const GAS_DIFFUSION_FACTOR: f64 = 5.0;
+const INITIAL_WAIT_TIME: f64 = 0.1; // seconds
+const DECAY_FACTOR: f64 = 0.5;
 
 pub struct Physics {
     grid: Vec<Vec<usize>>,
@@ -92,13 +96,34 @@ impl Physics {
             let min_dist = DOT_RADIUS * 2.0;
 
             if distance_sq < min_dist * min_dist && distance_sq > 1e-6 {
-                // 衝突イベントを送信
-                let _ = self.collision_tx.send((
-                    (i, dots[i].material_dna.clone()),
-                    (j, dots[j].material_dna.clone()),
-                ));
+                let now = Instant::now();
 
-                // --- 物理的な衝突応答 ---
+                // --- Reaction Logic ---
+                let dot1 = &dots[i];
+                let dot2 = &dots[j];
+                let wait_time1 = INITIAL_WAIT_TIME * (DECAY_FACTOR * dot1.reaction_count as f64).exp();
+                let wait_time2 = INITIAL_WAIT_TIME * (DECAY_FACTOR * dot2.reaction_count as f64).exp();
+                let elapsed1 = now.duration_since(dot1.last_reaction_time).as_secs_f64();
+                let elapsed2 = now.duration_since(dot2.last_reaction_time).as_secs_f64();
+
+                if elapsed1 >= wait_time1 && elapsed2 >= wait_time2 {
+                    // Send collision event for material blending
+                    let _ = self.collision_tx.send((
+                        (i, dots[i].material_dna.clone()),
+                        (j, dots[j].material_dna.clone()),
+                    ));
+                    
+                    // Update reaction counters and timestamps
+                    let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
+                    let dot1 = &mut dot1_slice[i];
+                    let dot2 = &mut dot2_slice[0];
+                    dot1.reaction_count += 1;
+                    dot2.reaction_count += 1;
+                    dot1.last_reaction_time = now;
+                    dot2.last_reaction_time = now;
+                }
+
+                // --- Physical Collision Response (always happens) ---
                 let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
                 let dot1 = &mut dot1_slice[i];
                 let dot2 = &mut dot2_slice[0];
