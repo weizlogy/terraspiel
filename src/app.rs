@@ -105,27 +105,29 @@ impl App {
     fn randomize_brush_material(&mut self) {
         let mut rng = thread_rng();
 
-        let state_choice = rng.gen_range(0..=2);
-
-        let state = match state_choice {
+        self.brush_material.state = match rng.gen_range(0..=3) {
             0 => State::Solid,
-
             1 => State::Liquid,
-
-            _ => State::Gas,
+            2 => State::Gas,
+            _ => State::Particle,
         };
 
-        self.brush_material.state = state;
-
-        self.brush_material.density = rng.gen(); // 0.0 ~ 1.0
-
-        self.brush_material.color_hue = rng.gen(); // 0.0 ~ 1.0
-
+        self.brush_material.density = rng.gen();
         self.brush_material.viscosity = rng.gen();
-
         self.brush_material.hardness = rng.gen();
-
         self.brush_material.elasticity = rng.gen();
+        self.brush_material.melting_point = rng.gen();
+        self.brush_material.boiling_point = rng.gen();
+        self.brush_material.flammability = rng.gen();
+        self.brush_material.temperature = rng.gen::<f32>() * 2.0 - 1.0; // -1.0 ~ 1.0
+        self.brush_material.heat_conductivity = rng.gen();
+        self.brush_material.heat_capacity = rng.gen();
+        self.brush_material.conductivity = rng.gen();
+        self.brush_material.magnetism = rng.gen::<f32>() * 2.0 - 1.0; // -1.0 ~ 1.0
+        self.brush_material.color_hue = rng.gen();
+        self.brush_material.color_saturation = rng.gen();
+        self.brush_material.color_luminance = rng.gen();
+        self.brush_material.luminescence = rng.gen();
     }
 
     pub fn clear_dots(&mut self) {

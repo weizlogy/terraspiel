@@ -14,6 +14,10 @@ const GAS_DIFFUSION_FACTOR: f64 = 5.0;
 const INITIAL_WAIT_TIME: f64 = 0.1; // seconds
 const DECAY_FACTOR: f64 = 0.5;
 
+const MELTING_RATE: f32 = 0.01; // Rate at which solid melts into liquid
+const EVAPORATION_RATE: f32 = 0.01; // Rate at which liquid evaporates into gas
+const EXPLOSION_THRESHOLD: f32 = 0.9; // Temperature threshold for gas explosion
+
 pub struct Physics {
     grid: Vec<Vec<usize>>,
     cols: usize,
@@ -198,8 +202,49 @@ impl Physics {
 
 pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
     let mut rng = thread_rng();
+    let mut dots_to_remove: Vec<usize> = Vec::new();
+    let heat_loss_rate = 0.01; // 熱が失われる速度
 
-    for dot in dots {
+    for (i, dot) in dots.iter_mut().enumerate() {
+        // 1. Temperature-based state changes (先に処理)
+        match dot.material.state {
+            State::Solid => {
+                if dot.material.temperature > dot.material.melting_point {
+                    // 硬度を徐々に下げる
+                    dot.material.hardness -= 0.05 * dt as f32; // 係数は要調整
+                    dot.material.temperature -= heat_loss_rate * dt as f32; // 融解は熱を消費する
+
+                    if dot.material.hardness <= 0.1 { // 閾値以下になったら液体に
+                        dot.material.state = State::Liquid;
+                        // 硬度と粘度を液体っぽく再設定
+                        dot.material.hardness = 0.1;
+                        dot.material.viscosity = dot.material.viscosity.max(0.3); // 最低限の粘度
+                    }
+                }
+            }
+            State::Liquid => {
+                if dot.material.temperature > dot.material.boiling_point {
+                    // 粘度を徐々に下げる
+                    dot.material.viscosity -= 0.1 * dt as f32; // 係数は要調整
+                    dot.material.temperature -= heat_loss_rate * dt as f32; // 蒸発は熱を消費する
+
+                    if dot.material.viscosity <= 0.05 { // 閾値以下になったら気体に
+                        dot.material.state = State::Gas;
+                        // 粘度を気体っぽく再設定
+                        dot.material.viscosity = 0.05;
+                    }
+                }
+            }
+            State::Gas => {
+                if dot.material.temperature > EXPLOSION_THRESHOLD && dot.material.flammability > 0.8 {
+                    dots_to_remove.push(i);
+                    // TODO: Add explosion force to nearby dots
+                }
+            }
+            _ => {} // Particle state, no temperature-based change for now
+        }
+
+        // 2. Apply forces based on the (potentially new) state (後に処理)
         match dot.material.state {
             State::Solid | State::Liquid | State::Particle => {
                 dot.vy += gravity * dt;
@@ -219,6 +264,13 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 dot.vy += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
             }
         }
+    }
+
+    // Remove exploded dots
+    dots_to_remove.sort_unstable();
+    dots_to_remove.reverse(); // Remove from end to avoid index shifting issues
+    for i in dots_to_remove {
+        dots.remove(i);
     }
 }
 
@@ -392,6 +444,17 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
             }
         }
     }
+
+    // --- 熱交換 ---
+    let temp1 = dot1.material.temperature;
+    let temp2 = dot2.material.temperature;
+    let avg_temp = (temp1 + temp2) / 2.0;
+
+    // 熱伝導率に応じて温度を平均に近づける
+    let heat_transfer_rate = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0 * 0.1; // 係数は要調整
+
+    dot1.material.temperature += (avg_temp - temp1) * heat_transfer_rate;
+    dot2.material.temperature += (avg_temp - temp2) * heat_transfer_rate;
 }
 
 // Gas間の衝突処理

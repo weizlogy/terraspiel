@@ -59,6 +59,9 @@ pub struct BaseMaterialParams {
     pub viscosity: f32,  // 粘度 (0.0 ~ 1.0)
     pub hardness: f32,   // 硬度 (0.0 ~ 1.0)
     pub elasticity: f32, // 弾性 (0.0 ~ 1.0)
+    pub melting_point: f32, // 融点 (0.0 ~ 1.0)
+    pub boiling_point: f32, // 沸点 (0.0 ~ 1.0)
+    pub flammability: f32, // 可燃性 (0.0 ~ 1.0)
 
     // 熱・エネルギー系
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
@@ -84,6 +87,9 @@ impl Default for BaseMaterialParams {
             viscosity: 0.3,
             hardness: 0.7,
             elasticity: 0.2,
+            melting_point: 0.3,
+            boiling_point: 0.7,
+            flammability: 0.1,
             temperature: 0.0,
             heat_conductivity: 0.4,
             heat_capacity: 0.6,
@@ -118,7 +124,7 @@ impl BaseMaterialParams {
 pub struct MaterialDNA {
     pub seed: u64,
     /// 各特性を0〜1正規化した値。順序はBaseMaterialParamsのフィールドに対応。
-    pub genes: [f32; 14],
+    pub genes: [f32; 17],
 }
 
 impl MaterialDNA {
@@ -128,8 +134,8 @@ impl MaterialDNA {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut new_genes = [0.0; 14];
-        for i in 0..14 {
+        let mut new_genes = [0.0; 17];
+        for i in 0..17 {
             new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
         }
 
@@ -168,15 +174,18 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         viscosity: dna.genes[2],
         hardness: dna.genes[3],
         elasticity: dna.genes[4],
-        temperature: dna.genes[5] * 2.0 - 1.0, // 0..1 to -1..1
-        heat_conductivity: dna.genes[6],
-        heat_capacity: dna.genes[7],
-        conductivity: dna.genes[8],
-        magnetism: dna.genes[9] * 2.0 - 1.0, // 0..1 to -1..1
-        color_hue: dna.genes[10],
-        color_saturation: dna.genes[11],
-        color_luminance: dna.genes[12],
-        luminescence: dna.genes[13],
+        melting_point: dna.genes[5],
+        boiling_point: dna.genes[6],
+        flammability: dna.genes[7],
+        temperature: dna.genes[8] * 2.0 - 1.0, // 0..1 to -1..1
+        heat_conductivity: dna.genes[9],
+        heat_capacity: dna.genes[10],
+        conductivity: dna.genes[11],
+        magnetism: dna.genes[12] * 2.0 - 1.0, // 0..1 to -1..1
+        color_hue: dna.genes[13],
+        color_saturation: dna.genes[14],
+        color_luminance: dna.genes[15],
+        luminescence: dna.genes[16],
     }
 }
 
@@ -197,6 +206,9 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.viscosity,
             params.hardness,
             params.elasticity,
+            params.melting_point,
+            params.boiling_point,
+            params.flammability,
             (params.temperature + 1.0) / 2.0, // -1..1 to 0..1
             params.heat_conductivity,
             params.heat_capacity,

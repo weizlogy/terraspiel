@@ -92,16 +92,93 @@ impl Gui {
 
                 egui::Window::new(window_title)
                     .default_pos(egui::pos2(10.0, 80.0))
+                    .resizable(true)
+                    .default_height(300.0)
                     .show(ctx, |ui| {
-                        if let Some(dna) = &ui_data.hovered_dot_dna {
-                            ui.label(format!("Seed: {:?}", dna.seed));
-                        }
-                        ui.heading("Material Properties");
-                        ui.label(format!("State: {:?}", material.state));
-                        ui.label(format!("Density: {:.2}", material.density));
-                        ui.label(format!("Viscosity: {:.2}", material.viscosity));
-                        ui.label(format!("Hardness: {:.2}", material.hardness));
-                        ui.label(format!("Elasticity: {:.2}", material.elasticity));
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            if let Some(dna) = &ui_data.hovered_dot_dna {
+                                ui.label(format!("Seed: {}", dna.seed));
+                            }
+                            
+                            ui.separator();
+
+                            egui::Grid::new("material_properties_grid")
+                                .num_columns(2)
+                                .spacing([20.0, 4.0])
+                                .striped(true)
+                                .show(ui, |ui| {
+                                    // --- Basic ---
+                                    ui.heading("Basic");
+                                    ui.end_row();
+                                    ui.label("State");
+                                    ui.label(format!("{:?}", material.state));
+                                    ui.end_row();
+
+                                    // --- Physical ---
+                                    ui.heading("Physical");
+                                    ui.end_row();
+                                    ui.label("Density");
+                                    ui.label(format!("{:.2}", material.density));
+                                    ui.end_row();
+                                    ui.label("Viscosity");
+                                    ui.label(format!("{:.2}", material.viscosity));
+                                    ui.end_row();
+                                    ui.label("Hardness");
+                                    ui.label(format!("{:.2}", material.hardness));
+                                    ui.end_row();
+                                    ui.label("Elasticity");
+                                    ui.label(format!("{:.2}", material.elasticity));
+                                    ui.end_row();
+                                    ui.label("Melting Point");
+                                    ui.label(format!("{:.2}", material.melting_point));
+                                    ui.end_row();
+                                    ui.label("Boiling Point");
+                                    ui.label(format!("{:.2}", material.boiling_point));
+                                    ui.end_row();
+                                    ui.label("Flammability");
+                                    ui.label(format!("{:.2}", material.flammability));
+                                    ui.end_row();
+
+                                    // --- Thermal ---
+                                    ui.heading("Thermal");
+                                    ui.end_row();
+                                    ui.label("Temperature");
+                                    ui.label(format!("{:.2}", material.temperature));
+                                    ui.end_row();
+                                    ui.label("Heat Conductivity");
+                                    ui.label(format!("{:.2}", material.heat_conductivity));
+                                    ui.end_row();
+                                    ui.label("Heat Capacity");
+                                    ui.label(format!("{:.2}", material.heat_capacity));
+                                    ui.end_row();
+
+                                    // --- Electromagnetic ---
+                                    ui.heading("Electromagnetic");
+                                    ui.end_row();
+                                    ui.label("Conductivity");
+                                    ui.label(format!("{:.2}", material.conductivity));
+                                    ui.end_row();
+                                    ui.label("Magnetism");
+                                    ui.label(format!("{:.2}", material.magnetism));
+                                    ui.end_row();
+
+                                    // --- Optical ---
+                                    ui.heading("Optical");
+                                    ui.end_row();
+                                    ui.label("Color Hue");
+                                    ui.label(format!("{:.2}", material.color_hue));
+                                    ui.end_row();
+                                    ui.label("Color Saturation");
+                                    ui.label(format!("{:.2}", material.color_saturation));
+                                    ui.end_row();
+                                    ui.label("Color Luminance");
+                                    ui.label(format!("{:.2}", material.color_luminance));
+                                    ui.end_row();
+                                    ui.label("Luminescence");
+                                    ui.label(format!("{:.2}", material.luminescence));
+                                    ui.end_row();
+                                });
+                        });
                     });
             }
         });

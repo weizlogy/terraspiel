@@ -8,7 +8,7 @@ struct VertexOutput {
 fn vs_main(
     @location(0) vertex_offset: vec2<f32>,  // 基本形状の頂点オフセット (-1.0 〜 1.0)
     @location(1) instance_position: vec2<f32>,  // インスタンスの中心位置
-    @location(2) instance_color: vec3<f32>     // インスタンスの色
+    @location(2) instance_color: vec3<f32>,     // インスタンスの色
 ) -> VertexOutput {
     // 頂点の最終位置 = インスタンスの中心位置 + 基本形状の頂点オフセット
     let final_pos = instance_position + vertex_offset;
