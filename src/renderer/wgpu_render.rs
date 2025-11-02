@@ -15,7 +15,7 @@ impl WgpuRenderer {
         });
 
         let instance_layout = wgpu::VertexBufferLayout {
-            array_stride: (2 + 3) as wgpu::BufferAddress
+            array_stride: (2 + 3 + 1) as wgpu::BufferAddress
                 * std::mem::size_of::<f32>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &[
@@ -28,6 +28,11 @@ impl WgpuRenderer {
                     offset: (2 * std::mem::size_of::<f32>()) as wgpu::BufferAddress,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: (5 * std::mem::size_of::<f32>()) as wgpu::BufferAddress,
+                    shader_location: 4, // is_selected flag
+                    format: wgpu::VertexFormat::Float32,
                 },
             ],
         };
@@ -73,7 +78,7 @@ impl WgpuRenderer {
             multiview: None,
         });
 
-        let square_vertex_data: [f32; 8] = [-2.0, -2.0, 2.0, -2.0, -2.0, 2.0, 2.0, 2.0];
+        let square_vertex_data: [f32; 8] = [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0];
         let square_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Square Vertex Buffer"),
             contents: bytemuck::cast_slice(&square_vertex_data),
@@ -87,7 +92,7 @@ impl WgpuRenderer {
     }
 
     fn create_dot_instance_data(dots: &[Dot]) -> Vec<f32> {
-        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 5); // 5 floats per dot
+        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 6); // 6 floats per dot
         for dot in dots {
             let (r, g, b) = dot.material.get_color_rgb();
             let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0];
@@ -95,6 +100,9 @@ impl WgpuRenderer {
             instance_data.push(dot.x as f32);
             instance_data.push(dot.y as f32);
             instance_data.extend_from_slice(&color);
+
+            let is_selected = if dot.is_selected { 1.0 } else { 0.0 };
+            instance_data.push(is_selected);
         }
         instance_data
     }

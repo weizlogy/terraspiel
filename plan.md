@@ -92,7 +92,7 @@ temperature
 - 低温: 凝固 or 着色変化
 - 周囲温度との差で heat_flux = (neighbor.temp - self.temp) * heat_conductivity
 
-temperatureの値に応じて、高温な物質は発光する。
+temperatureの値に応じて、
 高温なSolidは徐々に融解しLiquidに変化する。
 高温なLiquidは徐々に蒸発しGasに変化する。
 高温なGasは爆発する。

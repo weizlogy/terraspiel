@@ -2,8 +2,8 @@ use crate::{
     app::{Dot, HEIGHT, WIDTH},
     material::{MaterialDNA, State},
 };
-use rand::Rng;
 use rand::thread_rng;
+use rand::Rng;
 use std::sync::mpsc;
 
 use std::time::Instant;
@@ -14,8 +14,6 @@ const GAS_DIFFUSION_FACTOR: f64 = 5.0;
 const INITIAL_WAIT_TIME: f64 = 0.1; // seconds
 const DECAY_FACTOR: f64 = 0.5;
 
-const MELTING_RATE: f32 = 0.01; // Rate at which solid melts into liquid
-const EVAPORATION_RATE: f32 = 0.01; // Rate at which liquid evaporates into gas
 const EXPLOSION_THRESHOLD: f32 = 0.9; // Temperature threshold for gas explosion
 
 pub struct Physics {
@@ -77,7 +75,8 @@ impl Physics {
                     {
                         let cell_idx = (check_y as usize) * self.cols + (check_x as usize);
                         for &j in &self.grid[cell_idx] {
-                            if i < j { // 各ペアを一度だけ処理
+                            if i < j {
+                                // 各ペアを一度だけ処理
                                 potentially_colliding_pairs.push((i, j));
                             }
                         }
@@ -105,8 +104,10 @@ impl Physics {
                 // --- Reaction Logic ---
                 let dot1 = &dots[i];
                 let dot2 = &dots[j];
-                let wait_time1 = INITIAL_WAIT_TIME * (DECAY_FACTOR * dot1.reaction_count as f64).exp();
-                let wait_time2 = INITIAL_WAIT_TIME * (DECAY_FACTOR * dot2.reaction_count as f64).exp();
+                let wait_time1 =
+                    INITIAL_WAIT_TIME * (DECAY_FACTOR * dot1.reaction_count as f64).exp();
+                let wait_time2 =
+                    INITIAL_WAIT_TIME * (DECAY_FACTOR * dot2.reaction_count as f64).exp();
                 let elapsed1 = now.duration_since(dot1.last_reaction_time).as_secs_f64();
                 let elapsed2 = now.duration_since(dot2.last_reaction_time).as_secs_f64();
 
@@ -116,7 +117,7 @@ impl Physics {
                         (i, dots[i].material_dna.clone()),
                         (j, dots[j].material_dna.clone()),
                     ));
-                    
+
                     // Update reaction counters and timestamps
                     let (dot1_slice, dot2_slice) = dots.split_at_mut(j);
                     let dot1 = &mut dot1_slice[i];
@@ -145,11 +146,14 @@ impl Physics {
                 match (dot1.material.state, dot2.material.state) {
                     (State::Solid, State::Solid) | (State::Liquid, State::Liquid) => {
                         handle_detailed_collision(dot1, dot2, nx, ny, dt);
-                        
-                        if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
+
+                        if dot1.material.state == State::Liquid
+                            && dot2.material.state == State::Liquid
+                        {
                             handle_liquid_accumulation(dot1, dot2, nx, ny, dt);
-                        }
-                        else if dot1.material.state == State::Solid && dot2.material.state == State::Solid {
+                        } else if dot1.material.state == State::Solid
+                            && dot2.material.state == State::Solid
+                        {
                             handle_solid_spreading(dot1, dot2, nx, ny, dt);
                         }
                     }
@@ -157,7 +161,8 @@ impl Physics {
                         if dot1.material.density > dot2.material.density
                             && dot1.material.viscosity > dot2.material.viscosity
                         {
-                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                            let e =
+                                (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
                             let v_liquid_n = dot2.vx * nx + dot2.vy * ny;
                             if v_liquid_n < 0.0 {
                                 dot2.vx -= (1.0 + e) * v_liquid_n * nx;
@@ -171,7 +176,8 @@ impl Physics {
                         if dot2.material.density > dot1.material.density
                             && dot2.material.viscosity > dot1.material.viscosity
                         {
-                            let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
+                            let e =
+                                (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
                             let v_liquid_n = dot1.vx * (-nx) + dot1.vy * (-ny);
                             if v_liquid_n < 0.0 {
                                 dot1.vx -= (1.0 + e) * v_liquid_n * (-nx);
@@ -214,11 +220,13 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                     dot.material.hardness -= 0.05 * dt as f32; // 係数は要調整
                     dot.material.temperature -= heat_loss_rate * dt as f32; // 融解は熱を消費する
 
-                    if dot.material.hardness <= 0.1 { // 閾値以下になったら液体に
+                    if dot.material.hardness <= 0.1 {
+                        // 閾値以下になったら液体に
                         dot.material.state = State::Liquid;
                         // 硬度と粘度を液体っぽく再設定
                         dot.material.hardness = 0.1;
-                        dot.material.viscosity = dot.material.viscosity.max(0.3); // 最低限の粘度
+                        dot.material.viscosity = dot.material.viscosity.max(0.3);
+                        // 最低限の粘度
                     }
                 }
             }
@@ -228,7 +236,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                     dot.material.viscosity -= 0.1 * dt as f32; // 係数は要調整
                     dot.material.temperature -= heat_loss_rate * dt as f32; // 蒸発は熱を消費する
 
-                    if dot.material.viscosity <= 0.05 { // 閾値以下になったら気体に
+                    if dot.material.viscosity <= 0.05 {
+                        // 閾値以下になったら気体に
                         dot.material.state = State::Gas;
                         // 粘度を気体っぽく再設定
                         dot.material.viscosity = 0.05;
@@ -236,7 +245,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 }
             }
             State::Gas => {
-                if dot.material.temperature > EXPLOSION_THRESHOLD && dot.material.flammability > 0.8 {
+                if dot.material.temperature > EXPLOSION_THRESHOLD && dot.material.flammability > 0.8
+                {
                     dots_to_remove.push(i);
                     // TODO: Add explosion force to nearby dots
                 }
@@ -251,8 +261,7 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
             }
 
             State::Gas => {
-                let buoyancy =
-                    (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * gravity;
+                let buoyancy = (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * gravity;
 
                 dot.vy -= buoyancy * dt;
 
@@ -301,9 +310,10 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                 State::Liquid => {
                     // Liquids spread based on viscosity
                     dot.vy *= -elasticity * (1.0 - dot.material.viscosity as f64); // More viscous liquids lose more vertical energy
-                    
+
                     // Apply horizontal spreading based on viscosity
-                    if dot.material.viscosity < 0.7 { // Only spread if not highly viscous
+                    if dot.material.viscosity < 0.7 {
+                        // Only spread if not highly viscous
                         let spread_factor = (1.0 - dot.material.viscosity as f64) * 2.0;
                         dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
                     }
@@ -451,7 +461,8 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
     let avg_temp = (temp1 + temp2) / 2.0;
 
     // 熱伝導率に応じて温度を平均に近づける
-    let heat_transfer_rate = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0 * 0.1; // 係数は要調整
+    let heat_transfer_rate =
+        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0 * 0.1; // 係数は要調整
 
     dot1.material.temperature += (avg_temp - temp1) * heat_transfer_rate;
     dot2.material.temperature += (avg_temp - temp2) * heat_transfer_rate;
@@ -516,8 +527,9 @@ fn handle_simple_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
 // 液体の蓄積処理
 fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     // Only apply accumulation if both dots are near the bottom
-    let near_bottom = dot1.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0) || dot2.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0);
-    
+    let near_bottom = dot1.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0)
+        || dot2.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0);
+
     if !near_bottom {
         return;
     }
@@ -525,10 +537,10 @@ fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, 
     // Calculate average viscosity of the two liquid dots (convert f32 to f64)
     let avg_viscosity = ((dot1.material.viscosity + dot2.material.viscosity) / 2.0) as f64;
     let avg_hardness = ((dot1.material.hardness + dot2.material.hardness) / 2.0) as f64;
-    
+
     // Calculate how much to spread based on viscosity (less viscous spreads more)
     let spread_factor = (1.0 - avg_viscosity) * (1.0 - avg_hardness) * 0.5; // Reduced factor to make it more natural
-    
+
     // If the collision is more horizontal than vertical, apply spreading force
     if nx.abs() > ny.abs() {
         // Apply lateral spreading based on viscosity
@@ -540,7 +552,7 @@ fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, 
             dot2.vx -= spread_factor * dt * 10.0;
         }
     }
-    
+
     // Apply small vertical force to simulate liquid pressure
     // Less viscous liquids will have more vertical movement
     let vertical_factor = avg_viscosity * 0.1; // Very small vertical movement
@@ -552,7 +564,7 @@ fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, 
 fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     let avg_viscosity = ((dot1.material.viscosity + dot2.material.viscosity) / 2.0) as f64;
 
-    // --- 摩擦処理 --- 
+    // --- 摩擦処理 ---
     // 接線方向のベクトル (tangent)
     let tx = -ny;
     let ty = nx;
@@ -577,11 +589,11 @@ fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: 
 
     let avg_hardness = ((dot1.material.hardness + dot2.material.hardness) / 2.0) as f64;
 
-    // --- 広がりと圧力の処理 --- 
+    // --- 広がりと圧力の処理 ---
     // 粘度が低いほどわずかに広がる力を持たせる
     if avg_viscosity < 0.8 && avg_hardness < 0.5 {
         let spread_factor = (1.0 - avg_viscosity) * (1.0 - avg_hardness) * 0.01; // 係数をさらに小さく
-        // ほぼ上下の衝突のときだけ、わずかに広がる
+                                                                                 // ほぼ上下の衝突のときだけ、わずかに広がる
         if ny.abs() > 0.8 {
             let spread_force = spread_factor * dt;
             if dot1.x < dot2.x {

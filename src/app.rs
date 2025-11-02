@@ -1,9 +1,9 @@
-use rand::Rng;
-use rand::thread_rng;
-use crate::material::{from_dna, BaseMaterialParams, MaterialDNA, State, to_dna};
+use crate::material::{from_dna, to_dna, BaseMaterialParams, MaterialDNA, State};
 use crate::physics::engine::DOT_RADIUS;
 use crate::physics::{engine, Physics};
 use crate::renderer::Renderer;
+use rand::thread_rng;
+use rand::Rng;
 use std::sync::{mpsc, Arc};
 use winit::window::{Window, WindowBuilder};
 
@@ -18,6 +18,7 @@ pub struct Dot {
     pub material_dna: MaterialDNA, // 物質DNA
     pub reaction_count: u32,
     pub last_reaction_time: std::time::Instant,
+    pub is_selected: bool, // 選択状態
 }
 
 /// 非同期ブレンド処理の結果
@@ -41,15 +42,16 @@ pub struct App {
     pub last_time: std::time::Instant, // 時間管理用
     pub physics: Physics,
 
-    pub is_updating: bool,                     // 物理更新中かどうかのフラグ
-    pub left_mouse_pressed: bool,              // 左クリックが押されているか
+    pub is_updating: bool,      // 物理更新中かどうかのフラグ
+    pub left_mouse_pressed: bool, // 左クリックが押されているか
+    pub right_mouse_pressed: bool, // 右クリックが押されているか
     pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
     pub dot_add_interval: std::time::Duration, // ドット追加の間隔
     pub frame_times: std::collections::VecDeque<f64>,
     pub last_fps_update: std::time::Instant,
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
-    pub hovered_dot_index: Option<usize>,   // マウスがホバーしているドット
+    pub selected_dot_index: Option<usize>,  // マウスがクリックしたドット
 
     // 非同期処理用
     pub collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>, // 衝突イベント送信
@@ -81,6 +83,7 @@ impl App {
             is_updating: false,
 
             left_mouse_pressed: false,
+            right_mouse_pressed: false,
 
             last_dot_add_time: std::time::Instant::now(),
 
@@ -94,7 +97,7 @@ impl App {
 
             brush_material: BaseMaterialParams::default(),
 
-            hovered_dot_index: None,
+            selected_dot_index: None,
             collision_tx,
             result_rx,
         }
@@ -162,6 +165,7 @@ impl App {
             material_dna,
             reaction_count: 0,
             last_reaction_time: std::time::Instant::now(),
+            is_selected: false,
         };
 
         self.dots.push(dot);
@@ -200,22 +204,6 @@ impl App {
 
     pub fn handle_cursor_moved(&mut self, position: winit::dpi::PhysicalPosition<f64>) {
         self.mouse_position = Some((position.x, position.y));
-
-        // ホバー判定
-
-        self.hovered_dot_index = None;
-
-        for (i, dot) in self.dots.iter().enumerate().rev() {
-            let dx = dot.x - position.x;
-
-            let dy = dot.y - position.y;
-
-            if (dx * dx + dy * dy) < (DOT_RADIUS * DOT_RADIUS) {
-                self.hovered_dot_index = Some(i);
-
-                break;
-            }
-        }
     }
 
     pub fn handle_mouse_input(
@@ -225,24 +213,44 @@ impl App {
 
         button: winit::event::MouseButton,
     ) {
-        if button == winit::event::MouseButton::Left {
-            match state {
-                winit::event::ElementState::Pressed => {
-                    self.left_mouse_pressed = true;
-
+        match button {
+            winit::event::MouseButton::Left => {
+                self.left_mouse_pressed = state == winit::event::ElementState::Pressed;
+                if self.left_mouse_pressed {
                     if let Some((x, y)) = self.mouse_position {
                         self.add_dot_if_not_exists(x as i32, y as i32);
+                    }
+                }
+            }
+            winit::event::MouseButton::Right => {
+                if state == winit::event::ElementState::Pressed {
+                    if let Some((x, y)) = self.mouse_position {
+                        let mut clicked_dot_index = None;
+                        // クリック位置のドットを探す
+                        for (i, dot) in self.dots.iter().enumerate().rev() {
+                            let dx = dot.x - x;
+                            let dy = dot.y - y;
+                            if (dx * dx + dy * dy) < (DOT_RADIUS * DOT_RADIUS) {
+                                clicked_dot_index = Some(i);
+                                break;
+                            }
+                        }
+
+                        // is_selected フラグを更新
+                        for (i, dot) in self.dots.iter_mut().enumerate() {
+                            dot.is_selected = Some(i) == clicked_dot_index;
+                        }
+
+                        // selected_dot_index を更新
+                        self.selected_dot_index = clicked_dot_index;
 
                         if let Some(ref window) = self.window {
                             window.request_redraw();
                         }
                     }
                 }
-
-                winit::event::ElementState::Released => {
-                    self.left_mouse_pressed = false;
-                }
             }
+            _ => {}
         }
     }
 
@@ -338,7 +346,8 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let (hovered_material, hovered_dot_dna) = self.hovered_dot_index
+        let (hovered_material, hovered_dot_dna) = self
+            .selected_dot_index
             .and_then(|i| self.dots.get(i))
             .map_or((None, None), |dot| {
                 (Some(dot.material.clone()), Some(dot.material_dna.clone()))
@@ -349,17 +358,19 @@ impl App {
 
             dot_count: self.dots.len(),
 
-            hovered_material,
-            hovered_dot_dna,
+            selected_material: hovered_material,
+            selected_dot_dna: hovered_dot_dna,
         };
 
         if let Some(renderer) = &mut self.renderer {
-            let (randomize_clicked, clear_clicked) = renderer.render(window, &self.dots, &mut ui_data); // 戻り値を受け取る
+            let (randomize_clicked, clear_clicked) =
+                renderer.render(window, &self.dots, &mut ui_data); // 戻り値を受け取る
 
             if randomize_clicked {
                 self.randomize_brush_material();
             }
-            if clear_clicked { // CLSボタンがクリックされたら
+            if clear_clicked {
+                // CLSボタンがクリックされたら
                 self.clear_dots(); // ドットをクリア
             }
         }
