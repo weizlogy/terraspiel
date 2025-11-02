@@ -9,7 +9,6 @@ pub enum State {
     Solid,    // 固体
     Liquid,   // 液体
     Gas,      // 気体
-    Particle, // 粒子（例：粉体）
 }
 
 impl State {
@@ -17,9 +16,8 @@ impl State {
     pub fn get_energy_level(&self) -> f32 {
         match self {
             State::Solid => 0.2,
-            State::Particle => 0.4,
-            State::Liquid => 0.6,
-            State::Gas => 0.9,
+            State::Liquid => 0.5,
+            State::Gas => 0.8,
         }
     }
 }
@@ -124,11 +122,10 @@ impl BaseMaterialParams {
 pub fn from_seed(seed: u64) -> BaseMaterialParams {
     let mut rng = StdRng::seed_from_u64(seed);
 
-    let state = match rng.gen_range(0..=3) {
+    let state = match rng.gen_range(0..=2) {
         0 => State::Solid,
         1 => State::Liquid,
-        2 => State::Gas,
-        _ => State::Particle,
+        _ => State::Gas,
     };
 
     BaseMaterialParams {
@@ -195,10 +192,9 @@ impl MaterialDNA {
 pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
     // genes[0] を State にマッピング
     let state = match dna.genes[0] {
-        x if (0.0..0.25).contains(&x) => State::Solid,
-        x if (0.25..0.5).contains(&x) => State::Liquid,
-        x if (0.5..0.75).contains(&x) => State::Gas,
-        _ => State::Particle,
+        x if (0.0..0.33).contains(&x) => State::Solid,
+        x if (0.33..0.66).contains(&x) => State::Liquid,
+        _ => State::Gas,
     };
 
     BaseMaterialParams {
@@ -225,10 +221,9 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
 /// BaseMaterialParamsからDNAへの変換
 pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
     let state_gene = match params.state {
-        State::Solid => 0.125,
-        State::Liquid => 0.375,
-        State::Gas => 0.625,
-        State::Particle => 0.875,
+        State::Solid => 0.165,
+        State::Liquid => 0.495,
+        State::Gas => 0.825,
     };
 
     MaterialDNA {

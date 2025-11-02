@@ -1,4 +1,5 @@
 use crate::material::{MaterialDNA, State};
+use rand::distributions::{Distribution, WeightedIndex};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::rngs::StdRng;
@@ -19,9 +20,7 @@ const GAS_PREFIX: &[&str] = &["ae", "pha", "is", "sy", "lu"];
 const GAS_ROOT: &[&str] = &["el", "ar", "ia", "es", "the", "ion"];
 const GAS_SUFFIX: &[&str] = &["-is", "-os", "-ion", "-eth"];
 
-const PARTICLE_PREFIX: &[&str] = &["mu", "fi", "sha", "ki", "to"];
-const PARTICLE_ROOT: &[&str] = &["ra", "en", "ta", "il", "mi"];
-const PARTICLE_SUFFIX: &[&str] = &["-a", "-en", "-um", "-ir"];
+
 
 // Temperature-based phonemes
 const TEMP_COLD: &[&str] = &["cr", "sil", "el", "is", "fr", "ne"];
@@ -74,12 +73,29 @@ where
     slice.choose(rng).unwrap().clone()
 }
 
+fn choose_weighted<T>(rng: &mut impl Rng, slice: &[T], weight: f32) -> T
+where
+    T: Clone,
+{
+    if slice.is_empty() {
+        panic!("Cannot choose from an empty slice.");
+    }
+    let weights: Vec<f32> = (0..slice.len())
+        .map(|i| {
+            let i_normalized = i as f32 / (slice.len() - 1) as f32;
+            1.0 - (i_normalized - weight).abs()
+        })
+        .collect();
+
+    let dist = WeightedIndex::new(&weights).unwrap();
+    slice[dist.sample(rng)].clone()
+}
+
 fn get_phonemes_for_state(state: State) -> (&'static [&'static str], &'static [&'static str], &'static [&'static str]) {
     match state {
         State::Solid => (SOLID_PREFIX, SOLID_ROOT, SOLID_SUFFIX),
         State::Liquid => (LIQUID_PREFIX, LIQUID_ROOT, LIQUID_SUFFIX),
         State::Gas => (GAS_PREFIX, GAS_ROOT, GAS_SUFFIX),
-        State::Particle => (PARTICLE_PREFIX, PARTICLE_ROOT, PARTICLE_SUFFIX),
     }
 }
 
@@ -156,15 +172,12 @@ pub fn generate_name(dna: &MaterialDNA) -> String {
     let (cond_phonemes, cond_suffix) = get_phonemes_for_conductivity(material.conductivity);
     let mag_phonemes = get_phonemes_for_magnetism(material.magnetism);
     let (lum_phonemes, lum_suffix) = get_phonemes_for_luminescence(material.luminescence);
-    let visc_phonemes = get_phonemes_for_viscosity(material.viscosity);
-    let (hard_phonemes, hard_suffix) = get_phonemes_for_hardness(material.hardness);
 
     // --- Choose Template ---
     let template_id = match material.state {
         State::Solid => if rng.gen_bool(0.5) { "T2" } else { "T3" },
         State::Liquid => "T2",
         State::Gas => if rng.gen_bool(0.5) { "T1" } else { "T4" },
-        State::Particle => "T2", // Default for Particle
     };
 
     let final_template = if material.luminescence > 0.7 && rng.gen_bool(0.3) {
@@ -178,33 +191,58 @@ pub fn generate_name(dna: &MaterialDNA) -> String {
 
     match final_template {
         "T1" => {
-            let prefix = choose(&mut rng, state_prefix);
-            let root = choose(&mut rng, state_root);
+            let weight = match material.state {
+                State::Solid => material.hardness,
+                State::Liquid => material.viscosity,
+                State::Gas => 1.0 - material.density,
+            };
+            let prefix = choose_weighted(&mut rng, state_prefix, weight);
+            let root = choose_weighted(&mut rng, state_root, weight);
             name = format!("{}{}", prefix, root);
         }
         "T2" => {
-            let prefix = choose(&mut rng, state_prefix);
-            let root = choose(&mut rng, state_root);
-            let suffix = choose(&mut rng, state_suffix);
+            let weight = match material.state {
+                State::Solid => material.hardness,
+                State::Liquid => material.viscosity,
+                State::Gas => 1.0 - material.density,
+            };
+            let prefix = choose_weighted(&mut rng, state_prefix, weight);
+            let root = choose_weighted(&mut rng, state_root, weight);
+            let suffix = choose_weighted(&mut rng, state_suffix, weight);
             name = format!("{}{}{}", prefix, root, suffix.strip_prefix('-').unwrap_or(suffix));
         }
         "T3" => {
-            let root = choose(&mut rng, state_root);
-            let suffix = choose(&mut rng, state_suffix);
+            let weight = match material.state {
+                State::Solid => material.hardness,
+                State::Liquid => material.viscosity,
+                State::Gas => 1.0 - material.density,
+            };
+            let root = choose_weighted(&mut rng, state_root, weight);
+            let suffix = choose_weighted(&mut rng, state_suffix, weight);
             name = format!("{}{}", root, suffix.strip_prefix('-').unwrap_or(suffix));
         }
         "T4" => {
-            let prefix = choose(&mut rng, state_prefix);
-            let root = choose(&mut rng, state_root);
-            let variant_suffix = choose(&mut rng, &[temp_suffix, cond_suffix, lum_suffix].concat());
+            let weight = match material.state {
+                State::Solid => material.hardness,
+                State::Liquid => material.viscosity,
+                State::Gas => 1.0 - material.density,
+            };
+            let prefix = choose_weighted(&mut rng, state_prefix, weight);
+            let root = choose_weighted(&mut rng, state_root, weight);
+            let variant_suffix = choose_weighted(&mut rng, &[temp_suffix, cond_suffix, lum_suffix].concat(), (material.temperature + 1.0) / 2.0);
             name = format!("{}{}-{}", prefix, root, variant_suffix.strip_prefix('-').unwrap_or(variant_suffix));
         }
         "T5" => {
-            let attr_prefix = choose(&mut rng, lum_phonemes);
+            let attr_prefix = choose_weighted(&mut rng, lum_phonemes, material.luminescence);
             // Generate a base name using T2 template
-            let base_prefix = choose(&mut rng, state_prefix);
-            let base_root = choose(&mut rng, state_root);
-            let base_suffix = choose(&mut rng, state_suffix);
+            let weight = match material.state {
+                State::Solid => material.hardness,
+                State::Liquid => material.viscosity,
+                State::Gas => 1.0 - material.density,
+            };
+            let base_prefix = choose_weighted(&mut rng, state_prefix, weight);
+            let base_root = choose_weighted(&mut rng, state_root, weight);
+            let base_suffix = choose_weighted(&mut rng, state_suffix, weight);
             let base_name = format!("{}{}{}", base_prefix, base_root, base_suffix.strip_prefix('-').unwrap_or(base_suffix));
             name = format!("{}-{}{}", attr_prefix, base_name.chars().next().unwrap().to_uppercase(), &base_name[1..]);
         }

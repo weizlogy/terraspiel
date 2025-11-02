@@ -251,12 +251,12 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                     // TODO: Add explosion force to nearby dots
                 }
             }
-            _ => {} // Particle state, no temperature-based change for now
+
         }
 
         // 2. Apply forces based on the (potentially new) state (後に処理)
         match dot.material.state {
-            State::Solid | State::Liquid | State::Particle => {
+            State::Solid | State::Liquid => {
                 dot.vy += gravity * dt;
             }
 
@@ -306,6 +306,11 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                     // 床との摩擦を適用
                     let friction_factor = dot.material.viscosity as f64 * 0.7; // 係数を調整
                     dot.vx *= (1.0 - friction_factor).max(0.0);
+                    // Particles behave similarly to solids but with more spreading
+                    if dot.material.viscosity < 0.5 {
+                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 1.5;
+                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
+                    }
                 }
                 State::Liquid => {
                     // Liquids spread based on viscosity
@@ -321,14 +326,6 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
                 State::Gas => {
                     // Gases should have minimal interaction with bottom, just bounce slightly
                     dot.vy *= -elasticity * 0.1; // Very little bounce to keep gases moving
-                }
-                State::Particle => {
-                    // Particles behave similarly to solids but with more spreading
-                    dot.vy *= -elasticity;
-                    if dot.material.viscosity < 0.5 {
-                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 1.5;
-                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
-                    }
                 }
             }
         }
