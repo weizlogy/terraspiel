@@ -16,6 +16,7 @@ pub struct Dot {
     pub vy: f64, // y方向速度
     pub material: BaseMaterialParams,
     pub material_dna: MaterialDNA, // 物質DNA
+    pub name: String, // 自動生成された名前
     pub reaction_count: u32,
     pub last_reaction_time: std::time::Instant,
     pub is_selected: bool, // 選択状態
@@ -51,6 +52,7 @@ pub struct App {
     pub last_fps_update: std::time::Instant,
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
+    pub brush_seed: u64, // ブラシのシード
     pub selected_dot_index: Option<usize>,  // マウスがクリックしたドット
 
     // 非同期処理用
@@ -97,6 +99,8 @@ impl App {
 
             brush_material: BaseMaterialParams::default(),
 
+            brush_seed: 0,
+
             selected_dot_index: None,
             collision_tx,
             result_rx,
@@ -107,30 +111,8 @@ impl App {
 
     fn randomize_brush_material(&mut self) {
         let mut rng = thread_rng();
-
-        self.brush_material.state = match rng.gen_range(0..=3) {
-            0 => State::Solid,
-            1 => State::Liquid,
-            2 => State::Gas,
-            _ => State::Particle,
-        };
-
-        self.brush_material.density = rng.gen();
-        self.brush_material.viscosity = rng.gen();
-        self.brush_material.hardness = rng.gen();
-        self.brush_material.elasticity = rng.gen();
-        self.brush_material.melting_point = rng.gen();
-        self.brush_material.boiling_point = rng.gen();
-        self.brush_material.flammability = rng.gen();
-        self.brush_material.temperature = rng.gen::<f32>() * 2.0 - 1.0; // -1.0 ~ 1.0
-        self.brush_material.heat_conductivity = rng.gen();
-        self.brush_material.heat_capacity = rng.gen();
-        self.brush_material.conductivity = rng.gen();
-        self.brush_material.magnetism = rng.gen::<f32>() * 2.0 - 1.0; // -1.0 ~ 1.0
-        self.brush_material.color_hue = rng.gen();
-        self.brush_material.color_saturation = rng.gen();
-        self.brush_material.color_luminance = rng.gen();
-        self.brush_material.luminescence = rng.gen();
+        self.brush_seed = rng.gen();
+        self.brush_material = crate::material::from_seed(self.brush_seed);
     }
 
     pub fn clear_dots(&mut self) {
@@ -153,8 +135,8 @@ impl App {
     }
 
     pub fn add_dot_if_not_exists(&mut self, x: i32, y: i32) {
-        let seed = 0; // ベース物質のseedは0とする
-        let material_dna = to_dna(&self.brush_material, seed);
+        let material_dna = to_dna(&self.brush_material, self.brush_seed);
+        let name = crate::naming::generate_name(&material_dna);
 
         let dot = Dot {
             x: x as f64,
@@ -163,6 +145,7 @@ impl App {
             vy: 0.0,
             material: self.brush_material.clone(), // ブラシの物質を適用
             material_dna,
+            name,
             reaction_count: 0,
             last_reaction_time: std::time::Instant::now(),
             is_selected: false,
@@ -320,6 +303,7 @@ impl App {
             if let Some(dot) = self.dots.get_mut(index) {
                 dot.material_dna = new_dna;
                 dot.material = from_dna(&dot.material_dna);
+                dot.name = crate::naming::generate_name(&dot.material_dna);
             }
         }
 
@@ -346,11 +330,15 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let (hovered_material, hovered_dot_dna) = self
+        let (hovered_material, hovered_dot_dna, hovered_dot_name) = self
             .selected_dot_index
             .and_then(|i| self.dots.get(i))
-            .map_or((None, None), |dot| {
-                (Some(dot.material.clone()), Some(dot.material_dna.clone()))
+            .map_or((None, None, None), |dot| {
+                (
+                    Some(dot.material.clone()),
+                    Some(dot.material_dna.clone()),
+                    Some(dot.name.clone()),
+                )
             });
 
         let mut ui_data = crate::renderer::gui::UiData {
@@ -360,6 +348,7 @@ impl App {
 
             selected_material: hovered_material,
             selected_dot_dna: hovered_dot_dna,
+            selected_dot_name: hovered_dot_name,
         };
 
         if let Some(renderer) = &mut self.renderer {

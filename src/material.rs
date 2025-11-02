@@ -1,4 +1,6 @@
 use palette::{FromColor, Hsl, RgbHue, Srgb};
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 
 /// 物質の状態 (固体/液体/気体/粒子)
@@ -116,6 +118,37 @@ impl BaseMaterialParams {
         let rgb: Srgb<u8> = Srgb::from_color(hsl).into_format();
 
         (rgb.red, rgb.green, rgb.blue)
+    }
+}
+
+pub fn from_seed(seed: u64) -> BaseMaterialParams {
+    let mut rng = StdRng::seed_from_u64(seed);
+
+    let state = match rng.gen_range(0..=3) {
+        0 => State::Solid,
+        1 => State::Liquid,
+        2 => State::Gas,
+        _ => State::Particle,
+    };
+
+    BaseMaterialParams {
+        state,
+        density: rng.gen(),
+        viscosity: rng.gen(),
+        hardness: rng.gen(),
+        elasticity: rng.gen(),
+        melting_point: rng.gen(),
+        boiling_point: rng.gen(),
+        flammability: rng.gen(),
+        temperature: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
+        heat_conductivity: rng.gen(),
+        heat_capacity: rng.gen(),
+        conductivity: rng.gen(),
+        magnetism: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
+        color_hue: rng.gen(),
+        color_saturation: rng.gen(),
+        color_luminance: rng.gen(),
+        luminescence: rng.gen(),
     }
 }
 

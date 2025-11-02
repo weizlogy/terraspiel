@@ -1,5 +1,6 @@
 mod app;
 mod material;
+mod naming;
 mod physics;
 mod renderer;
 
@@ -38,6 +39,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let results: Vec<BlendResult> = collision_batch
                         .par_iter()
                         .flat_map(|((index_a, dna_a), (index_b, dna_b))| {
+                            if dna_a.seed == dna_b.seed {
+                                return Vec::new(); // 同じseedを持つドットはブレンドしない
+                            }
+
                             let params_a = from_dna(dna_a);
                             let params_b = from_dna(dna_b);
 

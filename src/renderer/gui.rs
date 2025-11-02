@@ -7,6 +7,7 @@ pub struct UiData {
     pub dot_count: usize,
     pub selected_material: Option<BaseMaterialParams>,
     pub selected_dot_dna: Option<MaterialDNA>,
+    pub selected_dot_name: Option<String>,
 }
 
 pub struct Gui {
@@ -85,10 +86,9 @@ impl Gui {
             // ホバーした物質の情報を表示するウィンドウ
             if let Some(material) = &ui_data.selected_material {
                 let window_title = ui_data
-                    .selected_dot_dna
-                    .as_ref()
-                    .filter(|dna| dna.seed != 0)
-                    .map_or(String::from("Selected Material"), |dna| dna.get_name());
+                    .selected_dot_name
+                    .clone()
+                    .unwrap_or_else(|| "Selected Material".to_string());
 
                 egui::Window::new(window_title)
                     .default_pos(egui::pos2(10.0, 80.0))

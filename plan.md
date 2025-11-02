@@ -19,9 +19,9 @@
 ブレンド方法は単純な線形補間でもいいし、ノイズ関数（Perlin/Simplex）を挟むのも面白い。
 各特性は範囲（例: 密度=0〜1）を持ち、そこから中間値を生成。
 
-見た目と名前の自動生成
+## 見た目と名前の自動生成
 シードを使って：
-名前: ノイズ＋ルール生成（例: "Aeralite", "Mundra", "Saphone" みたいな）
+名前: ノイズ＋ルール生成
 色: 特性のスペクトルから導出（熱伝導率や電導率が高いほど青く光る等）
 物性: 特性セットを正規化して連動（密度が高いと落下しやすい、熱伝導率高いと燃えやすい等）
 
@@ -144,6 +144,92 @@ fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
   // genes順序は固定。シンプルにマッピング。
 }
 
+### 名前の自動生成
+架空言語風・音素生成ルール表
+
+以下は MaterialDNA の特性値をもとに、音素（phoneme）セットとテンプレートを決定するためのルールです。
+各カテゴリは相対値を 0.0〜1.0 として評価し、区間ごとに音素傾向を変化させます。
+
+さらに、Weighted選択ロジックにより特性値によって音素選択がゆるくシフトされる。
+つまり 特性値が高いほど末尾寄りの音素を選びやすくなる、というイメージです。
+
+- ■ 状態（State）別ベース音素セット
+状態	音素セット（prefix/root/suffix）	音感	備考
+
+Solid（固体）
+Prefix: gr, kr, st, dr, br
+Root: ar, or, an, ul, tar, dor
+Suffix: -on, -ar, -ite, -orn
+重厚・鈍重	石・金属・鉱石系。「硬い」閉音節多め
+
+Liquid（液体）
+Prefix: el, lo, va, mi, sa
+Root: ae, al, ir, ol, ra, lia
+Suffix: -ine, -el, -ra, -al
+滑らか・流動的	母音多めで音のつながりが柔らかい
+
+Gas（気体）
+Prefix: ae, pha, is, sy, lu
+Root: el, ar, ia, es, the, ion
+Suffix: -is, -os, -ion, -eth
+軽い・風っぽい	気配・風音のような語感を重視
+
+Particle（粒子）
+Prefix: mu, fi, sha, ki, to
+Root: ra, en, ta, il, mi
+Suffix: -a, -en, -um, -ir
+細かい・繊細	粒子・粉末・霧など微細感
+
+- ■ 温度（Temperature）
+範囲	音素傾向	音例
+-1.0〜-0.3（冷）	cr, sil, el, is, fr, ne / -el, -ine, -is	“氷”や“静寂”を連想：「Crinels, Silais」
+-0.3〜+0.3（中性）	al, er, an, ol, mi / -ar, -en	自然・穏やか：「Molar, Enel」
++0.3〜+1.0（熱）	ra, fi, or, py, th, an / -or, -as, -ar	炎・発熱：「Pyraor, Firan」
+
+- ■ 電導率（Conductivity）
+範囲	音素傾向	音例
+0.0〜0.3（絶縁）	ka, ta, mo, du / -on, -ar, -a	鈍い・土っぽい
+0.3〜0.7（中）	lo, el, en, sa / -in, -al	標準的・液体寄り
+0.7〜1.0（高導電）	ly, ele, ion, ex, sy / -is, -ion, -ex	光・電気的：「Lyion, Sylex」
+
+- ■ 磁性（Magnetism）
+範囲	音素傾向	音例
+-1.0〜-0.3（負磁・S極）	柔音中心：syl, ne, lum, ae, vi	「Sylvae, Nelum」
+-0.3〜+0.3（中性）	バランス型：ar, el, ra, mi	「Armel, Ralia」
++0.3〜+1.0（正磁・N極）	強音中心：pol, nor, mag, dr, kr	「Magnor, Polkran」
+
+- ■ 自発光（Luminescence）
+範囲	音素傾向	音例
+0.0〜0.3（暗）	mor, dul, tar, ol / -ar, -um	鈍い・闇的
+0.3〜0.7（中）	el, la, mi, ae / -en, -al	通常物質
+0.7〜1.0（光）	ael, lux, the, ion, syl / -is, -iel, -ae	聖・幻想的：「Aelion, Luxiel」
+
+- ■ 粘度（Viscosity）
+範囲	音素傾向	傾向
+0.0〜0.4（低）	明瞭短音節 (ki, ra, to)	サラサラ・軽快
+0.4〜0.7（中）	柔音 (el, la, sa, mi)	標準流体
+0.7〜1.0（高）	濁音多め (gr, dr, mu, ul)	ネバネバ・重厚
+
+- ■ 硬度（Hardness）
+範囲	音素傾向	傾向
+0.0〜0.3（柔）	li, ne, sa, el / -a, -in	やわらか
+0.3〜0.7（中）	ar, en, ol / -en, -ar	標準
+0.7〜1.0（硬）	kr, gr, st, dor / -ite, -orn	石っぽい・鋭い
+
+- ⚙ テンプレート定義（構文ルール）
+ID	構文	用途・特徴	例
+T1	[Prefix][Root]	単純物質	Gral, Lia, Syl
+T2	[Prefix][Root][Suffix]	標準形	Lumeron, Kratite
+T3	[Root][Suffix]	小物質／派生物	Aelis, Ranor
+T4	[Prefix][Root]-[Variant]	合成・変種表現	Cryth-ion, Aera-lis
+T5	[AttrPrefix]-[BaseName]	属性付与形	Pyro-Elin, Lux-Aerion
+
+テンプレートは状態＋ルミネセンスを軸に選択：
+Solid系: T2 or T3
+Liquid系: T2
+Gas系: T1 or T4
+高Luminescence: T5（冠詞つき）
+
 ### DNAから物質名・色を生成する方法
 DNAの決定性を維持しつつ、多様性を演出する手続き生成がカギ！
 
@@ -153,10 +239,6 @@ color_hue, saturation, luminance はDNAから直接決定。
 追加演出として：
 temperatureが高ければ暖色寄り、低ければ寒色寄りに補正。
 luminescenceが高ければ発光エフェクトを追加。
-
-### 名前の決定（アルケミー名生成）
-DNAのシードを擬似乱数生成器に使って、
-「母音＋子音パターン」を使った人工言語的ネームジェネレーターが定番。
 
 ### ブレンド処理の後処理
 ブレンドに使用した物質はどうするのがいいか？
