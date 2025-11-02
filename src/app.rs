@@ -1,4 +1,4 @@
-use crate::material::{from_dna, to_dna, BaseMaterialParams, MaterialDNA, State};
+use crate::material::{from_dna, to_dna, BaseMaterialParams, MaterialDNA};
 use crate::physics::engine::DOT_RADIUS;
 use crate::physics::{engine, Physics};
 use crate::renderer::Renderer;
@@ -16,7 +16,7 @@ pub struct Dot {
     pub vy: f64, // y方向速度
     pub material: BaseMaterialParams,
     pub material_dna: MaterialDNA, // 物質DNA
-    pub name: String, // 自動生成された名前
+    pub name: String,              // 自動生成された名前
     pub reaction_count: u32,
     pub last_reaction_time: std::time::Instant,
     pub is_selected: bool, // 選択状態
@@ -43,16 +43,16 @@ pub struct App {
     pub last_time: std::time::Instant, // 時間管理用
     pub physics: Physics,
 
-    pub is_updating: bool,      // 物理更新中かどうかのフラグ
-    pub left_mouse_pressed: bool, // 左クリックが押されているか
-    pub right_mouse_pressed: bool, // 右クリックが押されているか
+    pub is_updating: bool,                     // 物理更新中かどうかのフラグ
+    pub left_mouse_pressed: bool,              // 左クリックが押されているか
+    pub right_mouse_pressed: bool,             // 右クリックが押されているか
     pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
     pub dot_add_interval: std::time::Duration, // ドット追加の間隔
     pub frame_times: std::collections::VecDeque<f64>,
     pub last_fps_update: std::time::Instant,
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
-    pub brush_seed: u64, // ブラシのシード
+    pub brush_seed: u64,                    // ブラシのシード
     pub selected_dot_index: Option<usize>,  // マウスがクリックしたドット
 
     // 非同期処理用

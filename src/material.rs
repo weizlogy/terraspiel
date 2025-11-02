@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 /// 物質の状態 (固体/液体/気体/粒子)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
-    Solid,    // 固体
-    Liquid,   // 液体
-    Gas,      // 気体
+    Solid,  // 固体
+    Liquid, // 液体
+    Gas,    // 気体
 }
 
 impl State {
@@ -55,13 +55,13 @@ pub struct BaseMaterialParams {
     pub state: State,
 
     // 物理特性
-    pub density: f32,    // 密度 (0.0 ~ 1.0)
-    pub viscosity: f32,  // 粘度 (0.0 ~ 1.0)
-    pub hardness: f32,   // 硬度 (0.0 ~ 1.0)
-    pub elasticity: f32, // 弾性 (0.0 ~ 1.0)
+    pub density: f32,       // 密度 (0.0 ~ 1.0)
+    pub viscosity: f32,     // 粘度 (0.0 ~ 1.0)
+    pub hardness: f32,      // 硬度 (0.0 ~ 1.0)
+    pub elasticity: f32,    // 弾性 (0.0 ~ 1.0)
     pub melting_point: f32, // 融点 (0.0 ~ 1.0)
     pub boiling_point: f32, // 沸点 (0.0 ~ 1.0)
-    pub flammability: f32, // 可燃性 (0.0 ~ 1.0)
+    pub flammability: f32,  // 可燃性 (0.0 ~ 1.0)
 
     // 熱・エネルギー系
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
