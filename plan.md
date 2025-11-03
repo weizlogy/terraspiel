@@ -92,10 +92,24 @@ temperature
 - 低温: 凝固 or 着色変化
 - 周囲温度との差で heat_flux = (neighbor.temp - self.temp) * heat_conductivity
 
-temperatureの値に応じて、
-高温なSolidは徐々に融解しLiquidに変化する。
-高温なLiquidは徐々に蒸発しGasに変化する。
-高温なGasは爆発する。
+heat_capacityを超えるtemperatureの値に応じて、
+Solidは徐々に融解しLiquidに変化する。
+Liquidは徐々に蒸発しGasに変化する。
+Gasは爆発する。
+
+爆発の手順
+- 一瞬の発光（luminescence最大化）
+- 周囲を加熱（自身のtemperatureを周囲に伝達）
+- 爆風による吹き飛ばし
+- 該当物質の消滅
+
+cool_capacity未満のtemperatureの値に応じて、
+Solidは崩壊する。
+Liquidは徐々に冷却しSolidに変化する。
+Gasは徐々に冷却しLiquidに変化する。
+
+崩壊の手順
+- 該当物質の削除
 
 heat_conductivity
 熱伝達スピード
@@ -103,9 +117,12 @@ heat_conductivity
 - 実装：セル間で温度を線形補間（diffusion）
 
 heat_capacity
-温度変化の鈍さ（慣性）
-- 高いと加熱・冷却に時間がかかる
-- 実装：温度変化量 ΔT *= 1.0 - heat_capacity
+温度変化閾値（高温）
+- 高いと加熱による変化が発生しにくい。
+
+cool_capacity
+温度変化閾値（低温）
+- 低いと冷却による変化が発生しにくい。
 
 conductivity
 電流・エネルギー伝播率
@@ -278,9 +295,8 @@ AとBが両方とも同時に新物質に変化
 
 各状態のエネルギーレベル
 Solid    0.2
-Particle 0.4
-Liquid   0.6
-Gas      0.9
+Liquid   0.5
+Gas      0.8
 
 状態差による反応分類ルール
 ΔE < 0.2	    Reaction（両方変化）	     同質系の混合反応

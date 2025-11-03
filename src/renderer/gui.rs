@@ -145,9 +145,7 @@ impl Gui {
                                     ui.label("Temperature");
                                     ui.label(format!("{:.2}", material.temperature));
                                     ui.end_row();
-                                    ui.label("Heat Conductivity");
-                                    ui.label(format!("{:.2}", material.heat_conductivity));
-                                    ui.end_row();
+                                    
                                     ui.label("Heat Capacity");
                                     ui.label(format!("{:.2}", material.heat_capacity));
                                     ui.end_row();

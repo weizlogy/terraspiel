@@ -45,7 +45,6 @@ pub struct App {
 
     pub is_updating: bool,                     // 物理更新中かどうかのフラグ
     pub left_mouse_pressed: bool,              // 左クリックが押されているか
-    pub right_mouse_pressed: bool,             // 右クリックが押されているか
     pub last_dot_add_time: std::time::Instant, // 最後にドットを追加した時刻
     pub dot_add_interval: std::time::Duration, // ドット追加の間隔
     pub frame_times: std::collections::VecDeque<f64>,
@@ -56,7 +55,6 @@ pub struct App {
     pub selected_dot_index: Option<usize>,  // マウスがクリックしたドット
 
     // 非同期処理用
-    pub collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>, // 衝突イベント送信
     pub result_rx: mpsc::Receiver<BlendResult>, // ブレンド結果受信
 }
 
@@ -85,7 +83,6 @@ impl App {
             is_updating: false,
 
             left_mouse_pressed: false,
-            right_mouse_pressed: false,
 
             last_dot_add_time: std::time::Instant::now(),
 
@@ -102,7 +99,6 @@ impl App {
             brush_seed: 0,
 
             selected_dot_index: None,
-            collision_tx,
             result_rx,
         }
     }

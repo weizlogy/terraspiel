@@ -65,7 +65,6 @@ pub struct BaseMaterialParams {
 
     // 熱・エネルギー系
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
-    pub heat_conductivity: f32, // 熱伝導率 (0.0 ~ 1.0)
     pub heat_capacity: f32,     // 熱容量 (0.0 ~ 1.0)
 
     // 電磁特性
@@ -91,7 +90,6 @@ impl Default for BaseMaterialParams {
             boiling_point: 0.7,
             flammability: 0.1,
             temperature: 0.0,
-            heat_conductivity: 0.4,
             heat_capacity: 0.6,
             conductivity: 0.1,
             magnetism: 0.0,
@@ -138,7 +136,6 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         boiling_point: rng.gen(),
         flammability: rng.gen(),
         temperature: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
-        heat_conductivity: rng.gen(),
         heat_capacity: rng.gen(),
         conductivity: rng.gen(),
         magnetism: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
@@ -154,7 +151,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
 pub struct MaterialDNA {
     pub seed: u64,
     /// 各特性を0〜1正規化した値。順序はBaseMaterialParamsのフィールドに対応。
-    pub genes: [f32; 17],
+    pub genes: [f32; 16],
 }
 
 impl MaterialDNA {
@@ -164,8 +161,8 @@ impl MaterialDNA {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut new_genes = [0.0; 17];
-        for i in 0..17 {
+        let mut new_genes = [0.0; 16];
+        for i in 0..16 {
             new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
         }
 
@@ -207,14 +204,13 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         boiling_point: dna.genes[6],
         flammability: dna.genes[7],
         temperature: dna.genes[8] * 2.0 - 1.0, // 0..1 to -1..1
-        heat_conductivity: dna.genes[9],
-        heat_capacity: dna.genes[10],
-        conductivity: dna.genes[11],
-        magnetism: dna.genes[12] * 2.0 - 1.0, // 0..1 to -1..1
-        color_hue: dna.genes[13],
-        color_saturation: dna.genes[14],
-        color_luminance: dna.genes[15],
-        luminescence: dna.genes[16],
+        heat_capacity: dna.genes[9],
+        conductivity: dna.genes[10],
+        magnetism: dna.genes[11] * 2.0 - 1.0, // 0..1 to -1..1
+        color_hue: dna.genes[12],
+        color_saturation: dna.genes[13],
+        color_luminance: dna.genes[14],
+        luminescence: dna.genes[15],
     }
 }
 
@@ -238,7 +234,6 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.boiling_point,
             params.flammability,
             (params.temperature + 1.0) / 2.0, // -1..1 to 0..1
-            params.heat_conductivity,
             params.heat_capacity,
             params.conductivity,
             (params.magnetism + 1.0) / 2.0, // -1..1 to 0..1
@@ -247,50 +242,5 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.color_luminance,
             params.luminescence,
         ],
-    }
-}
-
-/// DNAシードに基づいて手続き的な名前を生成する
-pub fn generate_material_name(seed: u64) -> String {
-    use rand::Rng;
-    use rand_seeder::Seeder;
-
-    let mut rng: rand::rngs::StdRng = Seeder::from(seed).make_rng();
-
-    let vowels = ["a", "i", "u", "e", "o", "ya", "yu", "yo"];
-    let consonants = [
-        "k", "s", "t", "n", "h", "m", "r", "w", "g", "z", "d", "b", "p",
-    ];
-    let special_syllables = ["n", "xtu", "ltsu"];
-
-    let mut name = String::new();
-    let length = rng.gen_range(2..=5); // 2〜5音節
-
-    for i in 0..length {
-        // たまに特殊な音節を入れる
-        if rng.gen_bool(0.1) {
-            name.push_str(special_syllables[rng.gen_range(0..special_syllables.len())]);
-        } else {
-            let consonant = consonants[rng.gen_range(0..consonants.len())];
-            let vowel = vowels[rng.gen_range(0..vowels.len())];
-            name.push_str(consonant);
-            name.push_str(vowel);
-        }
-
-        // 最初の文字を大文字にする
-        if i == 0 {
-            if let Some(first) = name.get_mut(0..1) {
-                first.make_ascii_uppercase();
-            }
-        }
-    }
-
-    name
-}
-
-impl MaterialDNA {
-    /// このDNAに基づいた物質名を生成する
-    pub fn get_name(&self) -> String {
-        generate_material_name(self.seed)
     }
 }
