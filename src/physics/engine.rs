@@ -213,46 +213,33 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
     let mut rng = thread_rng();
     let mut explosions: Vec<Explosion> = Vec::new();
     let mut dots_to_remove: Vec<usize> = Vec::new();
-    let heat_loss_rate = 0.01; // 熱が失われる速度
 
     // 1. 状態変化と爆発の検出
     for (i, dot) in dots.iter_mut().enumerate() {
-        match dot.material.state {
-            State::Solid => {
-                if dot.material.temperature > dot.material.melting_point {
-                    dot.material.hardness -= 0.05 * dt as f32;
-                    dot.material.temperature -= heat_loss_rate * dt as f32;
-                    if dot.material.hardness <= 0.1 {
+        if dot.material.temperature > dot.material.heat_capacity {
+            dot.material.heat_conductivity += 0.1 * dt as f32;
+            if dot.material.heat_conductivity > 1.0 {
+                match dot.material.state {
+                    State::Solid => {
                         dot.material.state = State::Liquid;
-                        dot.material.hardness = 0.1;
-                        dot.material.viscosity = dot.material.viscosity.max(0.3);
+                        dot.material.heat_conductivity = 0.0;
                     }
-                }
-            }
-            State::Liquid => {
-                if dot.material.temperature > dot.material.boiling_point {
-                    dot.material.viscosity -= 0.1 * dt as f32;
-                    dot.material.temperature -= heat_loss_rate * dt as f32;
-                    if dot.material.viscosity <= 0.05 {
+                    State::Liquid => {
                         dot.material.state = State::Gas;
-                        dot.material.viscosity = 0.05;
+                        dot.material.heat_conductivity = 0.0;
                     }
-                }
-            }
-            State::Gas => {
-                if dot.material.temperature > dot.material.heat_capacity && dot.material.flammability > 0.8 {
-                    // 爆発イベントを生成
-                    explosions.push(Explosion {
-                        x: dot.x,
-                        y: dot.y,
-                        radius: 50.0, // 爆発半径
-                        force: 2000.0, // 爆発の力
-                        heat: dot.material.temperature, // 爆発の熱
-                    });
-                    // 発光
-                    dot.material.luminescence = 1.0;
-                    // 削除リストに追加
-                    dots_to_remove.push(i);
+                    State::Gas => {
+                        // Gas explodes when temperature is high
+                        explosions.push(Explosion {
+                            x: dot.x,
+                            y: dot.y,
+                            radius: 50.0, // 爆発半径
+                            force: 2000.0, // 爆発の力
+                            heat: dot.material.temperature, // 爆発の熱
+                        });
+                        dot.material.luminescence = 1.0;
+                        dots_to_remove.push(i);
+                    }
                 }
             }
         }
@@ -262,7 +249,6 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
     if !explosions.is_empty() {
         for explosion in &explosions {
             for (i, dot) in dots.iter_mut().enumerate() {
-                // 爆発したドット自身には影響を与えない
                 if dots_to_remove.contains(&i) {
                     continue;
                 }
@@ -279,12 +265,11 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         let nx = dx / distance;
                         let ny = dy / distance;
 
-                        // 爆風
                         dot.vx += nx * force * dt;
                         dot.vy += ny * force * dt;
 
-                        // 加熱
-                        dot.material.temperature += explosion.heat * falloff as f32 * 0.5;
+                        // dot.material.temperature += explosion.heat * falloff as f32 * 0.5;
+                        dot.material.temperature = dot.material.temperature.min(2.0); // 温度の上限を設定
                     }
                 }
             }
@@ -293,7 +278,6 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
 
     // 3. 通常の力の適用
     for (i, dot) in dots.iter_mut().enumerate() {
-        // 爆発したドットは物理演算から除外
         if dots_to_remove.contains(&i) {
             continue;
         }
@@ -471,6 +455,13 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
 
     let avg_viscosity = (dot1.material.viscosity + dot2.material.viscosity) / 2.0;
 
+    // --- 熱交換 ---
+    let temp_diff = dot1.material.temperature - dot2.material.temperature;
+    let avg_heat_conductivity = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+    let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
+    dot1.material.temperature -= heat_transfer;
+    dot2.material.temperature += heat_transfer;
+
     // Liquids spread based on viscosity
     if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
         let viscosity_threshold = 0.5; // Liquids require lower viscosity to spread
@@ -514,6 +505,13 @@ fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     dot2.vx += (v2n_new - v2n) * nx;
 
     dot2.vy += (v2n_new - v2n) * ny;
+
+    // --- 熱交換 ---
+    let temp_diff = dot1.material.temperature - dot2.material.temperature;
+    let avg_heat_conductivity = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+    let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
+    dot1.material.temperature -= heat_transfer;
+    dot2.material.temperature += heat_transfer;
 }
 
 // Gasが他の物体に押し出される処理

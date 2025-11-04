@@ -129,15 +129,7 @@ impl Gui {
                                     ui.label("Elasticity");
                                     ui.label(format!("{:.2}", material.elasticity));
                                     ui.end_row();
-                                    ui.label("Melting Point");
-                                    ui.label(format!("{:.2}", material.melting_point));
-                                    ui.end_row();
-                                    ui.label("Boiling Point");
-                                    ui.label(format!("{:.2}", material.boiling_point));
-                                    ui.end_row();
-                                    ui.label("Flammability");
-                                    ui.label(format!("{:.2}", material.flammability));
-                                    ui.end_row();
+                                    
 
                                     // --- Thermal ---
                                     ui.heading("Thermal");
@@ -146,15 +138,15 @@ impl Gui {
                                     ui.label(format!("{:.2}", material.temperature));
                                     ui.end_row();
                                     
+                                    ui.label("Heat Conductivity");
+                                    ui.label(format!("{:.2}", material.heat_conductivity));
+                                    ui.end_row();
                                     ui.label("Heat Capacity");
                                     ui.label(format!("{:.2}", material.heat_capacity));
                                     ui.end_row();
 
                                     // --- Electromagnetic ---
                                     ui.heading("Electromagnetic");
-                                    ui.end_row();
-                                    ui.label("Conductivity");
-                                    ui.label(format!("{:.2}", material.conductivity));
                                     ui.end_row();
                                     ui.label("Magnetism");
                                     ui.label(format!("{:.2}", material.magnetism));

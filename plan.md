@@ -87,7 +87,7 @@ elasticity
 - 実装：速度反転時に velocity *= elasticity
 
 temperature
-相変化トリガー・熱拡散・光度変化
+state変化トリガー・熱拡散・光度変化
 - 高温: 蒸発 or 発光
 - 低温: 凝固 or 着色変化
 - 周囲温度との差で heat_flux = (neighbor.temp - self.temp) * heat_conductivity
@@ -99,7 +99,6 @@ Gasは爆発する。
 
 爆発の手順
 - 一瞬の発光（luminescence最大化）
-- 周囲を加熱（自身のtemperatureを周囲に伝達）
 - 爆風による吹き飛ばし
 - 該当物質の消滅
 
@@ -113,21 +112,15 @@ Gasは徐々に冷却しLiquidに変化する。
 
 heat_conductivity
 熱伝達スピード
-- 高いほど温度が早く均一化
-- 実装：セル間で温度を線形補間（diffusion）
+- 高いほど温度変化が速くなる。
 
-heat_capacity
+heat_capacity_high
 温度変化閾値（高温）
 - 高いと加熱による変化が発生しにくい。
 
-cool_capacity
+heat_capacity_low
 温度変化閾値（低温）
 - 低いと冷却による変化が発生しにくい。
-
-conductivity
-電流・エネルギー伝播率
-- 近傍の電位差に応じて電流伝搬
-- 高ければ連鎖的に発光や加熱が広がる
 
 magnetism
 近距離での引力／斥力
