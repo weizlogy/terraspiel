@@ -90,9 +90,8 @@ temperature
 state変化トリガー・熱拡散・光度変化
 - 高温: 蒸発 or 発光
 - 低温: 凝固 or 着色変化
-- 周囲温度との差で heat_flux = (neighbor.temp - self.temp) * heat_conductivity
 
-heat_capacityを超えるtemperatureの値に応じて、
+heat_capacity_highを超えるtemperatureの場合に、heat_conductivityが上昇。上限を超えると、
 Solidは徐々に融解しLiquidに変化する。
 Liquidは徐々に蒸発しGasに変化する。
 Gasは爆発する。
@@ -102,7 +101,7 @@ Gasは爆発する。
 - 爆風による吹き飛ばし
 - 該当物質の消滅
 
-cool_capacity未満のtemperatureの値に応じて、
+heat_capacity_low未満のtemperatureの場合に、heat_conductivityが下降。下限を下回ると、
 Solidは崩壊する。
 Liquidは徐々に冷却しSolidに変化する。
 Gasは徐々に冷却しLiquidに変化する。

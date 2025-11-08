@@ -141,8 +141,11 @@ impl Gui {
                                     ui.label("Heat Conductivity");
                                     ui.label(format!("{:.2}", material.heat_conductivity));
                                     ui.end_row();
-                                    ui.label("Heat Capacity");
-                                    ui.label(format!("{:.2}", material.heat_capacity));
+                                    ui.label("Heat Capacity High");
+                                    ui.label(format!("{:.2}", material.heat_capacity_high));
+                                    ui.end_row();
+                                    ui.label("Heat Capacity Low");
+                                    ui.label(format!("{:.2}", material.heat_capacity_low));
                                     ui.end_row();
 
                                     // --- Electromagnetic ---

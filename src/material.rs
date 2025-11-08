@@ -63,7 +63,8 @@ pub struct BaseMaterialParams {
     // 熱・エネルギー系
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
     pub heat_conductivity: f32, // 熱伝導率 (0.0 ~ 1.0)
-    pub heat_capacity: f32,     // 熱容量 (0.0 ~ 1.0)
+    pub heat_capacity_high: f32,     // 熱容量(高) (0.0 ~ 1.0)
+    pub heat_capacity_low: f32,      // 熱容量(低) (0.0 ~ 1.0)
 
     // 電磁特性
     pub magnetism: f32,    // 磁性 (-1.0 ~ 1.0)
@@ -85,7 +86,8 @@ impl Default for BaseMaterialParams {
             elasticity: 0.2,
             temperature: 0.0,
             heat_conductivity: 0.4,
-            heat_capacity: 0.6,
+            heat_capacity_high: 0.6,
+            heat_capacity_low: 0.1,
             magnetism: 0.0,
             color_hue: 0.5,
             color_saturation: 0.8,
@@ -128,7 +130,8 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         elasticity: rng.gen(),
         temperature: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
         heat_conductivity: rng.gen(),
-        heat_capacity: rng.gen(),
+        heat_capacity_high: rng.gen(),
+        heat_capacity_low: rng.gen(),
         magnetism: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
         color_hue: rng.gen(),
         color_saturation: rng.gen(),
@@ -142,7 +145,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
 pub struct MaterialDNA {
     pub seed: u64,
     /// 各特性を0〜1正規化した値。順序はBaseMaterialParamsのフィールドに対応。
-    pub genes: [f32; 13],
+    pub genes: [f32; 14],
 }
 
 impl MaterialDNA {
@@ -152,8 +155,8 @@ impl MaterialDNA {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut new_genes = [0.0; 13];
-        for i in 0..13 {
+        let mut new_genes = [0.0; 14];
+        for i in 0..14 {
             new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
         }
 
@@ -193,12 +196,13 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         elasticity: dna.genes[4],
         temperature: dna.genes[5] * 2.0 - 1.0, // 0..1 to -1..1
         heat_conductivity: dna.genes[6],
-        heat_capacity: dna.genes[7],
-        magnetism: dna.genes[8] * 2.0 - 1.0, // 0..1 to -1..1
-        color_hue: dna.genes[9],
-        color_saturation: dna.genes[10],
-        color_luminance: dna.genes[11],
-        luminescence: dna.genes[12],
+        heat_capacity_high: dna.genes[7],
+        heat_capacity_low: dna.genes[8],
+        magnetism: dna.genes[9] * 2.0 - 1.0, // 0..1 to -1..1
+        color_hue: dna.genes[10],
+        color_saturation: dna.genes[11],
+        color_luminance: dna.genes[12],
+        luminescence: dna.genes[13],
     }
 }
 
@@ -220,7 +224,8 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.elasticity,
             (params.temperature + 1.0) / 2.0, // -1..1 to 0..1
             params.heat_conductivity,
-            params.heat_capacity,
+            params.heat_capacity_high,
+            params.heat_capacity_low,
             (params.magnetism + 1.0) / 2.0, // -1..1 to 0..1
             params.color_hue,
             params.color_saturation,

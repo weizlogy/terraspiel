@@ -216,7 +216,12 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
 
     // 1. 状態変化と爆発の検出
     for (i, dot) in dots.iter_mut().enumerate() {
-        if dot.material.temperature > dot.material.heat_capacity {
+        if dots_to_remove.contains(&i) {
+            continue;
+        }
+
+        // 高温時の状態変化
+        if dot.material.temperature > dot.material.heat_capacity_high {
             dot.material.heat_conductivity += 0.1 * dt as f32;
             if dot.material.heat_conductivity > 1.0 {
                 match dot.material.state {
@@ -240,6 +245,23 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         dot.material.luminescence = 1.0;
                         dots_to_remove.push(i);
                     }
+                }
+            }
+        }
+
+        // 低温時の状態変化 (plan.md L105-L111)
+        if dot.material.temperature < -dot.material.heat_capacity_low {
+            match dot.material.state {
+                State::Gas => {
+                    dot.material.state = State::Liquid;
+                    dot.material.temperature = -dot.material.heat_capacity_low;
+                }
+                State::Liquid => {
+                    dot.material.state = State::Solid;
+                    dot.material.temperature = -dot.material.heat_capacity_low;
+                }
+                State::Solid => {
+                    dots_to_remove.push(i);
                 }
             }
         }
