@@ -90,7 +90,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &mut UiData) -> (bool, bool) {
+    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &mut UiData, time: f32) -> (bool, bool) {
         let frame = self
             .surface
             .get_current_texture()
@@ -106,7 +106,7 @@ impl Renderer {
             });
 
         self.wgpu_renderer
-            .render(&self.device, &mut encoder, &view, dots);
+            .render(&self.device, &self.queue, &mut encoder, &view, dots, time);
 
         let (randomize_clicked, clear_clicked) = self.gui.render(
             window,

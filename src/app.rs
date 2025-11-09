@@ -41,6 +41,7 @@ pub struct App {
     pub dots: Vec<Dot>,                // ドットリスト
     pub gravity: f64,                  // 重力加速度
     pub last_time: std::time::Instant, // 時間管理用
+    pub start_time: std::time::Instant, // 経過時間用
     pub physics: Physics,
 
     pub is_updating: bool,                     // 物理更新中かどうかのフラグ
@@ -78,6 +79,7 @@ impl App {
             gravity: 9.8 * 10.0,
 
             last_time: std::time::Instant::now(),
+            start_time: std::time::Instant::now(),
             physics: Physics::new(collision_tx.clone()),
 
             is_updating: false,
@@ -171,7 +173,7 @@ impl App {
         }
 
         self.last_time = std::time::Instant::now();
-
+        self.start_time = std::time::Instant::now();
         self.last_dot_add_time = std::time::Instant::now();
     }
 
@@ -348,8 +350,9 @@ impl App {
         };
 
         if let Some(renderer) = &mut self.renderer {
+            let time = self.start_time.elapsed().as_secs_f32();
             let (randomize_clicked, clear_clicked) =
-                renderer.render(window, &self.dots, &mut ui_data); // 戻り値を受け取る
+                renderer.render(window, &self.dots, &mut ui_data, time); // 戻り値を受け取る
 
             if randomize_clicked {
                 self.randomize_brush_material();

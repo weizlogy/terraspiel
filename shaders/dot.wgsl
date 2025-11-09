@@ -1,9 +1,17 @@
+@group(0) @binding(0) var<uniform> uniforms: DotUniforms;
+
+struct DotUniforms {
+    time: f32,
+}
+
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec3<f32>,
     @location(1) is_selected: f32,
     @location(2) local_pos: vec2<f32>,
     @location(3) luminescence: f32,
+    @location(4) temperature: f32,
+    @location(5) state: f32,
 }
 
 struct FragmentOutput {
@@ -21,6 +29,8 @@ fn vs_main(
     @location(2) instance_color: vec3<f32>,
     @location(3) instance_luminescence: f32,
     @location(4) instance_is_selected: f32,
+    @location(5) instance_temperature: f32,
+    @location(6) instance_state: f32,
 ) -> VertexOutput {
     let final_pos = instance_position + (vertex_offset * DOT_RADIUS);
     
@@ -34,9 +44,16 @@ fn vs_main(
     output.color = instance_color;
     output.luminescence = instance_luminescence;
     output.is_selected = instance_is_selected;
+    output.temperature = instance_temperature;
+    output.state = instance_state;
     output.local_pos = vertex_offset;
     
     return output;
+}
+
+// 簡易ノイズ関数
+fn noise(p: vec2<f32>) -> f32 {
+    return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453);
 }
 
 // フラグメントシェーダー
@@ -48,16 +65,46 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
         discard;
     }
 
+    let RED = vec3<f32>(1.0, 0.1, 0.1);
+    let ORANGE = vec3<f32>(1.0, 0.5, 0.1);
+    let WHITE = vec3<f32>(1.0, 1.0, 1.0);
+    let LIGHT_BLUE = vec3<f32>(0.8, 0.9, 1.0);
+
     var output: FragmentOutput;
     var scene_color = vec4<f32>(in.color, 1.0);
     var glow_color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
     // 発光処理
     if (in.luminescence > 0.8) {
-        let glow_intensity = (in.luminescence - 0.8) / 0.2;
-        // 要求: 元の色も少し混ぜる -> ドットの色を使って光らせる
-        glow_color = vec4<f32>(in.color * glow_intensity, 1.0);
-        // シーンの色にも少しだけ発光を加える（HDRテクスチャなので1.0を超えても良い）
+        var glow_intensity = (in.luminescence - 0.8) / 0.2;
+
+        // --- 状態ごとのエフェクト ---
+        // Gas (state == 2.0)
+        if (in.state > 1.5) {
+            let flicker = noise(in.clip_position.xy + uniforms.time) * 0.5 + 0.7; // 0.7-1.2の範囲で揺らぐ
+            glow_intensity = glow_intensity * flicker;
+        }
+        // Liquid (state == 1.0)
+        else if (in.state > 0.5) {
+            glow_intensity = glow_intensity * 1.5; // 周囲をより明るく染める
+        }
+        // Solid (state == 0.0) - 何もしない
+
+        // 温度に応じて色を決定
+        let temp_norm = (in.temperature + 1.0) / 2.0;
+        
+        var temp_color: vec3<f32>;
+        if (temp_norm < 0.33) {
+            temp_color = mix(RED, ORANGE, temp_norm / 0.33);
+        } else if (temp_norm < 0.66) {
+            temp_color = mix(ORANGE, WHITE, (temp_norm - 0.33) / 0.33);
+        } else {
+            temp_color = mix(WHITE, LIGHT_BLUE, (temp_norm - 0.66) / 0.34);
+        }
+
+        glow_color = vec4<f32>(temp_color * glow_intensity, 1.0);
+        
+        // シーンの色にも少しだけ発光を加える
         scene_color = vec4<f32>(scene_color.rgb + glow_color.rgb * 0.2, 1.0);
     }
 

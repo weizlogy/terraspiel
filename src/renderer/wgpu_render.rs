@@ -8,8 +8,17 @@ struct CompositeUniforms {
     falloff_exponent: f32,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+struct DotUniforms {
+    time: f32,
+}
+
 pub struct WgpuRenderer {
     dot_render_pipeline: wgpu::RenderPipeline,
+    dot_pipeline_layout: wgpu::PipelineLayout,
+    dot_bind_group: wgpu::BindGroup,
+    dot_uniform_buffer: wgpu::Buffer,
     square_vertex_buffer: wgpu::Buffer,
 
     scene_texture: wgpu::Texture,
@@ -75,22 +84,62 @@ impl WgpuRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/dot.wgsl").into()),
         });
 
+        let dot_uniforms = DotUniforms { time: 0.0 };
+        let dot_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Dot Uniform Buffer"),
+            contents: bytemuck::bytes_of(&dot_uniforms),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let dot_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Dot Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
+
+        let dot_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Dot Bind Group"),
+            layout: &dot_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: dot_uniform_buffer.as_entire_binding(),
+            }],
+        });
+
+        let dot_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Dot Pipeline Layout"),
+            bind_group_layouts: &[&dot_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
         let instance_layout = wgpu::VertexBufferLayout {
-            array_stride: (2 + 3 + 1 + 1) as wgpu::BufferAddress
+            array_stride: (2 + 3 + 1 + 1 + 2) as wgpu::BufferAddress
                 * std::mem::size_of::<f32>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &[
                 wgpu::VertexAttribute { offset: 0, shader_location: 1, format: wgpu::VertexFormat::Float32x2, },
                 wgpu::VertexAttribute { offset: (2 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 2, format: wgpu::VertexFormat::Float32x3, },
-                wgpu::VertexAttribute { offset: (5 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 3, format: wgpu::VertexFormat::Float32, },
-                wgpu::VertexAttribute { offset: (6 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 4, format: wgpu::VertexFormat::Float32, },
+                wgpu::VertexAttribute { offset: (5 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 3, format: wgpu::VertexFormat::Float32, }, // luminescence
+                wgpu::VertexAttribute { offset: (6 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 4, format: wgpu::VertexFormat::Float32, }, // is_selected
+                wgpu::VertexAttribute { offset: (7 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 5, format: wgpu::VertexFormat::Float32, }, // temperature
+                wgpu::VertexAttribute { offset: (8 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 6, format: wgpu::VertexFormat::Float32, }, // state
             ],
         };
 
         let dot_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Dot render pipeline"),
-            layout: None,
-            vertex: wgpu::VertexState {                 module: &dot_shader_module,
+            layout: Some(&dot_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &dot_shader_module,
                 entry_point: "vs_main",
                 buffers: &[
                     wgpu::VertexBufferLayout {
@@ -225,46 +274,10 @@ impl WgpuRenderer {
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("Composite Bind Group Layout"),
                 entries: &[
-                    // scene_texture
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    // glow_texture
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    // texture_sampler
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    // uniforms
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
+                    wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false, }, count: None, },
+                    wgpu::BindGroupLayoutEntry { binding: 1, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false, }, count: None, },
+                    wgpu::BindGroupLayoutEntry { binding: 2, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering), count: None, },
+                    wgpu::BindGroupLayoutEntry { binding: 3, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None, }, count: None, },
                 ],
             });
 
@@ -279,56 +292,30 @@ impl WgpuRenderer {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some("Composite render pipeline"),
                 layout: Some(&composite_pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &composite_shader_module,
-                    entry_point: "vs_main",
-                    buffers: &[],
-                    compilation_options: Default::default(),
-                },
+                vertex: wgpu::VertexState { module: &composite_shader_module, entry_point: "vs_main", buffers: &[], compilation_options: Default::default(), },
                 fragment: Some(wgpu::FragmentState {
                     module: &composite_shader_module,
                     entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format: surface_format,
-                        blend: Some(wgpu::BlendState::REPLACE),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
+                    targets: &[Some(wgpu::ColorTargetState { format: surface_format, blend: Some(wgpu::BlendState::REPLACE), write_mask: wgpu::ColorWrites::ALL, })],
                     compilation_options: Default::default(),
                 }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    ..Default::default()
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState::default(),
-                multiview: None,
+                primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::TriangleList, ..Default::default() },
+                depth_stencil: None, multisample: wgpu::MultisampleState::default(), multiview: None,
             });
 
         let composite_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Composite Bind Group"),
             layout: &composite_bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&scene_texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&glow_texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&texture_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: composite_uniform_buffer.as_entire_binding(),
-                },
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&scene_texture_view), },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&glow_texture_view), },
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&texture_sampler), },
+                wgpu::BindGroupEntry { binding: 3, resource: composite_uniform_buffer.as_entire_binding(), },
             ],
         });
 
         Self {
-            dot_render_pipeline, square_vertex_buffer,
+            dot_render_pipeline, dot_pipeline_layout, dot_bind_group, dot_uniform_buffer, square_vertex_buffer,
             scene_texture, scene_texture_view,
             glow_texture, glow_texture_view,
             blur_ping_pong_texture, blur_ping_pong_texture_view,
@@ -340,24 +327,34 @@ impl WgpuRenderer {
     }
 
     fn create_dot_instance_data(dots: &[Dot]) -> Vec<f32> {
-        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 7);
+        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 9);
         for dot in dots {
             let (r, g, b) = dot.material.get_color_rgb();
             let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0];
+            let state_f32 = match dot.material.state {
+                crate::material::State::Solid => 0.0,
+                crate::material::State::Liquid => 1.0,
+                crate::material::State::Gas => 2.0,
+            };
             instance_data.push(dot.x as f32);
             instance_data.push(dot.y as f32);
             instance_data.extend_from_slice(&color);
             instance_data.push(dot.material.luminescence);
             let is_selected = if dot.is_selected { 1.0 } else { 0.0 };
             instance_data.push(is_selected);
+            instance_data.push(dot.material.temperature);
+            instance_data.push(state_f32);
         }
         instance_data
     }
 
-    pub fn render(&mut self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot]) {
+    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot], time: f32) {
+        // --- ユニフォームの更新 ---
+        queue.write_buffer(&self.dot_uniform_buffer, 0, bytemuck::bytes_of(&DotUniforms { time }));
+
         // --- ドット描画パス ---
-        let instance_data = Self::create_dot_instance_data(dots);
-        if !instance_data.is_empty() {
+        if !dots.is_empty() {
+            let instance_data = Self::create_dot_instance_data(dots);
             let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: bytemuck::cast_slice(&instance_data),
@@ -367,21 +364,14 @@ impl WgpuRenderer {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Dot Render Pass"),
                 color_attachments: &[
-                    Some(wgpu::RenderPassColorAttachment {
-                        view: &self.scene_texture_view,
-                        resolve_target: None,
-                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store, },
-                    }),
-                    Some(wgpu::RenderPassColorAttachment {
-                        view: &self.glow_texture_view,
-                        resolve_target: None,
-                        ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store, },
-                    }),
+                    Some(wgpu::RenderPassColorAttachment { view: &self.scene_texture_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store, }, }),
+                    Some(wgpu::RenderPassColorAttachment { view: &self.glow_texture_view, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store, }, }),
                 ],
                 depth_stencil_attachment: None, timestamp_writes: None, occlusion_query_set: None,
             });
 
             render_pass.set_pipeline(&self.dot_render_pipeline);
+            render_pass.set_bind_group(0, &self.dot_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.square_vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
             render_pass.draw(0..4, 0..dots.len() as u32);
