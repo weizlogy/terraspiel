@@ -133,7 +133,7 @@ color_hue / saturation / luminance
 - luminance：視覚的なエネルギー量指標（温度と連動しても良い）
 
 luminescence	自発光（明度オフセット）
-- render_color = base_color + luminescence * glow
+- 0.8以上で数値に応じて発光する。
 - 熱や電気で増加するよう連動させると“生命感”が出る
 
 ## 物質DNAのデータ構造
