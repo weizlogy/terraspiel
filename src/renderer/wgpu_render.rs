@@ -14,6 +14,7 @@ struct DotUniforms {
     time: f32,
 }
 
+#[allow(dead_code)]
 pub struct WgpuRenderer {
     dot_render_pipeline: wgpu::RenderPipeline,
     dot_pipeline_layout: wgpu::PipelineLayout,

@@ -74,7 +74,7 @@ impl Physics {
                         let cell_idx = (check_y as usize) * self.cols + (check_x as usize);
                         for &j in &self.grid[cell_idx] {
                             if i < j {
-                                // 各ペアを一度だけ処理
+                                // ペアを一度だけ登録
                                 potentially_colliding_pairs.push((i, j));
                             }
                         }
@@ -201,6 +201,7 @@ impl Physics {
     }
 }
 
+#[allow(dead_code)]
 pub struct Explosion {
     x: f64,
     y: f64,
@@ -238,8 +239,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         explosions.push(Explosion {
                             x: dot.x,
                             y: dot.y,
-                            radius: 50.0, // 爆発半径
-                            force: 2000.0, // 爆発の力
+                            radius: 50.0,                   // 爆発半径
+                            force: 2000.0,                  // 爆発の力
                             heat: dot.material.temperature, // 爆発の熱
                         });
                         dot.material.luminescence = 1.0;
@@ -291,14 +292,15 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         dot.vy += ny * force * dt;
 
                         // dot.material.temperature += explosion.heat * falloff as f32 * 0.5;
-                        dot.material.temperature = dot.material.temperature.min(2.0); // 温度の上限を設定
+                        dot.material.temperature = dot.material.temperature.min(2.0);
+                        // 温度の上限を設宁E
                     }
                 }
             }
         }
     }
 
-    // 3. 通常の力の適用
+    // 3. 通常の力を適用
     for (i, dot) in dots.iter_mut().enumerate() {
         if dots_to_remove.contains(&i) {
             continue;
@@ -311,7 +313,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
             State::Gas => {
                 let buoyancy = (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * gravity;
                 dot.vy -= buoyancy * dt;
-                let diffusion_strength = (1.0 - dot.material.viscosity) as f64 * GAS_DIFFUSION_FACTOR;
+                let diffusion_strength =
+                    (1.0 - dot.material.viscosity) as f64 * GAS_DIFFUSION_FACTOR;
                 dot.vx += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
                 dot.vy += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
             }
@@ -438,7 +441,6 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
 // --- ヘルパー関数 ---
 
 // Solid/Liquid間の詳細な衝突処理
-
 fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
@@ -479,7 +481,8 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
 
     // --- 熱交換 ---
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
-    let avg_heat_conductivity = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+    let avg_heat_conductivity =
+        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
     let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
     dot1.material.temperature -= heat_transfer;
     dot2.material.temperature += heat_transfer;
@@ -504,7 +507,6 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
 }
 
 // Gas間の衝突処理
-
 fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
@@ -530,21 +532,20 @@ fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
 
     // --- 熱交換 ---
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
-    let avg_heat_conductivity = (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+    let avg_heat_conductivity =
+        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
     let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
     dot1.material.temperature -= heat_transfer;
     dot2.material.temperature += heat_transfer;
 }
 
-// Gasが他の物体に押し出される処理
-
+// Gasが他の物体に押される処理
 fn handle_gas_displacement(gas: &mut Dot, other: &Dot, nx: f64, ny: f64) {
     let e = (gas.material.elasticity + other.material.elasticity) as f64 / 2.0;
 
     let v_gas_n = gas.vx * nx + gas.vy * ny;
 
     // nx,nyは常に gas->other を指すため、v_gas_nが正なら向かっている
-
     if v_gas_n > 0.0 {
         gas.vx -= (1.0 + e) * v_gas_n * nx;
 
@@ -552,9 +553,7 @@ fn handle_gas_displacement(gas: &mut Dot, other: &Dot, nx: f64, ny: f64) {
     }
 }
 
-
-
-// 液体の蓄積処理
+// 液体の蓄積の処理
 fn handle_liquid_accumulation(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     // Only apply accumulation if both dots are near the bottom
     let near_bottom = dot1.y >= (HEIGHT as f64 - DOT_RADIUS - 5.0)
@@ -602,8 +601,8 @@ fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: 
     // 接線方向の相対速度
     let v_rel_t = (dot2.vx - dot1.vx) * tx + (dot2.vy - dot1.vy) * ty;
 
-    // 摩擦による速度変化量。v_rel_tを0に近づける方向に力を加える。
-    // 粘度が高いほど強くなる。
+    // 摩擦による速度変化量。v_rel_tを0に近づける方向に力を加える
+    // 粘度が高いほど強くなる
     let friction_impulse = v_rel_t * avg_viscosity * 0.5; // 係数は要調整
 
     // 質量に応じて摩擦力積を適用
@@ -623,7 +622,7 @@ fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: 
     // 粘度が低いほどわずかに広がる力を持たせる
     if avg_viscosity < 0.8 && avg_hardness < 0.5 {
         let spread_factor = (1.0 - avg_viscosity) * (1.0 - avg_hardness) * 0.01; // 係数をさらに小さく
-                                                                                 // ほぼ上下の衝突のときだけ、わずかに広がる
+                                                                                 // ほぼ上下の衝突のときだけ、わずかに広げる
         if ny.abs() > 0.8 {
             let spread_force = spread_factor * dt;
             if dot1.x < dot2.x {
