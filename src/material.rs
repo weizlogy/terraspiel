@@ -135,7 +135,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         magnetism: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
         color_hue: rng.gen(),
         color_saturation: rng.gen(),
-        color_luminance: rng.gen(),
+        color_luminance: rng.gen::<f32>() * 0.8 + 0.2, // 0.2-1.0の範囲にマッピング
         luminescence: rng.gen(),
     }
 }

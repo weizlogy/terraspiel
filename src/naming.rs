@@ -80,13 +80,16 @@ pub fn generate_name(dna: &MaterialDNA) -> String {
     // --- Generate Name ---
     let all_phonemes: Vec<Phoneme> = transitions.keys().cloned().collect();
     let mut name_phonemes = Vec::new();
-    let mut current_phoneme = all_phonemes.choose(&mut rng).unwrap().clone();
+    let mut current_phoneme = all_phonemes.choose(&mut rng)
+        .expect("Failed to choose initial phoneme. 'all_phonemes' might be empty.")
+        .clone();
     name_phonemes.push(current_phoneme.clone());
 
     for _ in 1..template_len {
         if let Some(dests) = transitions.get(&current_phoneme) {
             if !dests.is_empty() {
-                let dist = WeightedIndex::new(dests.iter().map(|(_, w)| *w).collect::<Vec<_>>()).unwrap();
+                let dist = WeightedIndex::new(dests.iter().map(|(_, w)| *w).collect::<Vec<_>>())
+                    .expect("Failed to create WeightedIndex. 'dests' might be empty or weights sum to zero.");
                 current_phoneme = dests[dist.sample(&mut rng)].0.clone();
                 name_phonemes.push(current_phoneme.clone());
             } else {
