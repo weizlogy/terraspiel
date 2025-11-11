@@ -78,7 +78,9 @@ pub fn generate_name(dna: &MaterialDNA) -> String {
     };
 
     // --- Generate Name ---
-    let all_phonemes: Vec<Phoneme> = transitions.keys().cloned().collect();
+    let mut all_phonemes: Vec<Phoneme> = transitions.keys().cloned().collect();
+    // Sort the phonemes to ensure deterministic name generation
+    all_phonemes.sort_by(|a, b| a.0.cmp(&b.0));
     let mut name_phonemes = Vec::new();
     let mut current_phoneme = all_phonemes.choose(&mut rng)
         .expect("Failed to choose initial phoneme. 'all_phonemes' might be empty.")
