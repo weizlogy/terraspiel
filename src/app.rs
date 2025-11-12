@@ -57,6 +57,11 @@ pub struct App {
 
     // 非同期処理用
     pub result_rx: mpsc::Receiver<BlendResult>, // ブレンド結果受信
+
+    // Test features
+    pub last_test_dot_add_time: std::time::Instant,
+    pub test_dot_add_interval: std::time::Duration,
+    pub is_test_mode_enabled: bool,
 }
 
 pub const WIDTH: u32 = 640;
@@ -66,6 +71,7 @@ impl App {
     pub fn new(
         collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
         result_rx: mpsc::Receiver<BlendResult>,
+        is_test_mode_enabled: bool,
     ) -> Self {
         Self {
             window: None,
@@ -102,6 +108,11 @@ impl App {
 
             selected_dot_index: None,
             result_rx,
+
+            // Test features
+            last_test_dot_add_time: std::time::Instant::now(),
+            test_dot_add_interval: std::time::Duration::from_secs(5),
+            is_test_mode_enabled,
         }
     }
 
@@ -111,6 +122,36 @@ impl App {
         let mut rng = thread_rng();
         self.brush_seed = rng.gen();
         self.brush_material = crate::material::from_seed(self.brush_seed);
+    }
+
+    fn add_random_dots(&mut self) {
+        let mut rng = thread_rng();
+        let num_dots_to_add = rng.gen_range(5..=20);
+
+        for _ in 0..num_dots_to_add {
+            let x = rng.gen_range(DOT_RADIUS..WIDTH as f64 - DOT_RADIUS);
+            let y = rng.gen_range(DOT_RADIUS..HEIGHT as f64 - DOT_RADIUS);
+
+            let seed: u64 = rng.gen();
+            let material = crate::material::from_seed(seed);
+            let material_dna = crate::material::to_dna(&material, seed);
+            let name = crate::naming::generate_name(&material_dna);
+
+            let dot = Dot {
+                x,
+                y,
+                vx: 0.0,
+                vy: 0.0,
+                material,
+                material_dna,
+                name,
+                reaction_count: 0,
+                last_reaction_time: std::time::Instant::now(),
+                is_selected: false,
+            };
+            self.dots.push(dot);
+        }
+        self.is_updating = true;
     }
 
     pub fn clear_dots(&mut self) {
@@ -262,6 +303,14 @@ impl App {
 
     pub fn handle_redraw_requested(&mut self) {
         let now = std::time::Instant::now();
+
+        // --- Test Dot Generation ---
+        if self.is_test_mode_enabled {
+            if now.duration_since(self.last_test_dot_add_time) >= self.test_dot_add_interval {
+                self.add_random_dots();
+                self.last_test_dot_add_time = now;
+            }
+        }
 
         let delta_time = now.duration_since(self.last_time).as_secs_f64();
 

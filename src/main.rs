@@ -13,6 +13,9 @@ use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let is_test_mode_enabled = args.iter().any(|arg| arg == "--test-mode");
+
     let event_loop = EventLoop::new()?;
 
     // 衝突イベント送受信用チャネル
@@ -20,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ブレンド結果送受信用チャネル
     let (result_tx, result_rx) = mpsc::channel::<BlendResult>();
 
-    let mut app = App::new(collision_tx, result_rx);
+    let mut app = App::new(collision_tx, result_rx, is_test_mode_enabled);
 
     // --- ワーカースレッドを起動 ---
     thread::spawn(move || {
