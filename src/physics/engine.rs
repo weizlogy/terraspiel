@@ -228,11 +228,19 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 match dot.material.state {
                     State::Solid => {
                         dot.material.state = State::Liquid;
-                        dot.material.heat_conductivity = 0.0;
+                        // 連続した状態変化を防ぐためにパラメータをランダム化
+                        dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
+                        dot.material.temperature =
+                            dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
+                        dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                     }
                     State::Liquid => {
                         dot.material.state = State::Gas;
-                        dot.material.heat_conductivity = 0.0;
+                        // 連続した状態変化を防ぐためにパラメータをランダム化
+                        dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
+                        dot.material.temperature =
+                            dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
+                        dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                     }
                     State::Gas => {
                         // Gas explodes when temperature is high
@@ -255,11 +263,19 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
             match dot.material.state {
                 State::Gas => {
                     dot.material.state = State::Liquid;
-                    dot.material.temperature = -dot.material.heat_capacity_low;
+                    // 連続した状態変化を防ぐためにパラメータをランダム化
+                    dot.material.heat_capacity_low = rng.gen(); // 0.0 ~ 1.0
+                    dot.material.temperature =
+                        -dot.material.heat_capacity_low * rng.gen::<f32>(); // 新しい下限より高い値に
+                    dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                 }
                 State::Liquid => {
                     dot.material.state = State::Solid;
-                    dot.material.temperature = -dot.material.heat_capacity_low;
+                    // 連続した状態変化を防ぐためにパラメータをランダム化
+                    dot.material.heat_capacity_low = rng.gen(); // 0.0 ~ 1.0
+                    dot.material.temperature =
+                        -dot.material.heat_capacity_low * rng.gen::<f32>(); // 新しい下限より高い値に
+                    dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                 }
                 State::Solid => {
                     dots_to_remove.push(i);
