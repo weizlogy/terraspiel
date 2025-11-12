@@ -148,13 +148,6 @@ impl Gui {
                                     ui.label(format!("{:.2}", material.heat_capacity_low));
                                     ui.end_row();
 
-                                    // --- Electromagnetic ---
-                                    ui.heading("Electromagnetic");
-                                    ui.end_row();
-                                    ui.label("Magnetism");
-                                    ui.label(format!("{:.2}", material.magnetism));
-                                    ui.end_row();
-
                                     // --- Optical ---
                                     ui.heading("Optical");
                                     ui.end_row();
