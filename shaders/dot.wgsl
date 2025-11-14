@@ -61,8 +61,17 @@ fn noise(p: vec2<f32>) -> f32 {
 fn fs_main(in: VertexOutput) -> FragmentOutput {
     let dist_sq = dot(in.local_pos, in.local_pos);
 
-    if dist_sq > 1.0 {
-        discard;
+    // 状態に応じて形状を決定
+    if (in.state < 0.5) { // Solid (state == 0.0)
+        // 四角形
+        if (abs(in.local_pos.x) > 1.0 || abs(in.local_pos.y) > 1.0) {
+            discard;
+        }
+    } else { // Liquid (state == 1.0) or Gas (state == 2.0)
+        // 円形
+        if dist_sq > 1.0 {
+            discard;
+        }
     }
 
     let RED = vec3<f32>(1.0, 0.1, 0.1);
