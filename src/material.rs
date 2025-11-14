@@ -149,13 +149,65 @@ impl MaterialDNA {
     /// 2つのDNAを線形補間でブレンドする
     /// ratio: 0.0でa、1.0でbになる
     pub fn blend(&self, other: &Self, ratio: f32) -> Self {
+        use rand::rngs::StdRng;
+        use rand::Rng;
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
         let mut new_genes = [0.0; 13];
+
+        // --- 他の特性は線形補間 ---
         for i in 0..13 {
-            new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
+            if i < 9 || i > 11 {
+                new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
+            }
         }
+
+        // --- 色の計算 ---
+        let mut hasher_for_noise = DefaultHasher::new();
+        self.seed.hash(&mut hasher_for_noise);
+        other.seed.hash(&mut hasher_for_noise);
+        ratio.to_bits().hash(&mut hasher_for_noise);
+        let noise_seed = hasher_for_noise.finish();
+        let mut rng = StdRng::seed_from_u64(noise_seed);
+
+        // 9: color_hue
+        let hue_a = self.genes[9];
+        let hue_b = other.genes[9];
+        let mut diff = hue_b - hue_a;
+        let non_linear_ratio = ratio.powf(2.0);
+
+        if diff.abs() > 0.5 {
+            if diff > 0.0 {
+                diff -= 1.0;
+            } else {
+                diff += 1.0;
+            }
+        }
+        let blended_hue = hue_a + diff * non_linear_ratio;
+        let noise = rng.gen_range(-0.005..0.005);
+        new_genes[9] = (blended_hue + noise + 1.0) % 1.0; // 0-1の範囲に正規化
+
+        // 10: color_saturation
+        let density_a = self.genes[1];
+        let density_b = other.genes[1];
+        let total_density = density_a + density_b;
+        let sat_a = self.genes[10];
+        let sat_b = other.genes[10];
+
+        let blended_saturation = if total_density > 0.0 {
+            (sat_a * density_a + sat_b * density_b) / total_density
+        } else {
+            (sat_a + sat_b) / 2.0 // 密度が両方0の場合のフォールバック
+        };
+
+        let blended_temp_gene = new_genes[5]; // 0..1
+        let temperature = blended_temp_gene * 2.0 - 1.0; // -1..1
+        let temp_correction = temperature * 0.2; // 温度に応じて彩度が上下する (±20%)
+        new_genes[10] = (blended_saturation * (1.0 + temp_correction)).clamp(0.0, 1.0);
+
+        // 11: color_luminance
+        new_genes[11] = rng.gen(); // 高止まりを防ぐため、完全にランダム化
 
         // ブレンド後のgenesからハッシュを計算して新しいseedとする
         let mut hasher = DefaultHasher::new();

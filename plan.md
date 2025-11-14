@@ -166,9 +166,6 @@ fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
 - 粘度・硬度連動
 高粘度：母音連続挿入
 高硬度：子音強化
-- 電導率・発光連動
-高電導率：母音上昇
-高発光率：“-is” “-ion” “-iel” の接尾優先
 
 音素連鎖モデル（Markov Chain / Bigramモデル）により、
 有限音素セットでも、統計的連鎖確率を持たせることで自然語のような無限バリエーションを生成可能とする。
@@ -212,18 +209,6 @@ Suffix: -a, -en, -um, -ir
 -0.3〜+0.3（中性）	al, er, an, ol, mi / -ar, -en	自然・穏やか：「Molar, Enel」
 +0.3〜+1.0（熱）	ra, fi, or, py, th, an / -or, -as, -ar	炎・発熱：「Pyraor, Firan」
 
-- ■ 電導率（Conductivity）
-範囲	音素傾向	音例
-0.0〜0.3（絶縁）	ka, ta, mo, du / -on, -ar, -a	鈍い・土っぽい
-0.3〜0.7（中）	lo, el, en, sa / -in, -al	標準的・液体寄り
-0.7〜1.0（高導電）	ly, ele, ion, ex, sy / -is, -ion, -ex	光・電気的：「Lyion, Sylex」
-
-- ■ 磁性（Magnetism）
-範囲	音素傾向	音例
--1.0〜-0.3（負磁・S極）	柔音中心：syl, ne, lum, ae, vi	「Sylvae, Nelum」
--0.3〜+0.3（中性）	バランス型：ar, el, ra, mi	「Armel, Ralia」
-+0.3〜+1.0（正磁・N極）	強音中心：pol, nor, mag, dr, kr	「Magnor, Polkran」
-
 - ■ 自発光（Luminescence）
 範囲	音素傾向	音例
 0.0〜0.3（暗）	mor, dul, tar, ol / -ar, -um	鈍い・闇的
@@ -261,10 +246,12 @@ DNAの決定性を維持しつつ、多様性を演出する手続き生成が�
 
 色の決定
 color_hue, saturation, luminance はDNAから直接決定。
-
-追加演出として：
-temperatureが高ければ暖色寄り、低ければ寒色寄りに補正。
-luminescenceが高ければ発光エフェクトを追加。
+- color_hue
+    非線形ブレンド + ノイズ付きブレンド
+- saturation
+    加重平均 + 温度補正（温度が高いほど鮮やか）
+- luminance
+    ランダム
 
 ### ブレンド処理の後処理
 ブレンドに使用した物質はどうするのがいいか？
