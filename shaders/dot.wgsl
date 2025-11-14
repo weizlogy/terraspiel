@@ -22,6 +22,20 @@ struct FragmentOutput {
 // 頂点シェーダー
 const DOT_RADIUS: f32 = 2.0;
 
+// xorShift
+fn xorshift32(p: vec2<u32>) -> u32 {
+    var x = p.x * 12345u + p.y * 67890u;
+    x = x ^ (x << 13u);
+    x = x ^ (x >> 17u);
+    x = x ^ (x << 5u);
+    return x;
+}
+
+// u32 を [-1, 1] の f32 に変換
+fn to_f32_range(n: u32) -> f32 {
+    return (f32(n) / f32(0xFFFFFFFFu)) * 2.0 - 1.0;
+}
+
 @vertex
 fn vs_main(
     @location(0) vertex_offset: vec2<f32>,
@@ -32,7 +46,22 @@ fn vs_main(
     @location(5) instance_temperature: f32,
     @location(6) instance_state: f32,
 ) -> VertexOutput {
-    let final_pos = instance_position + (vertex_offset * DOT_RADIUS);
+    var final_pos = instance_position + (vertex_offset * DOT_RADIUS);
+
+    // Gas (state > 1.5) の場合に揺れを追加
+    if (instance_state > 1.5) {
+        // instance_position と time からシードを生成
+        let seed_pos = vec2<u32>(u32(instance_position.x), u32(instance_position.y));
+        let seed_time = u32(uniforms.time * 10.0); // 揺れの速さを調整
+
+        // 2つの異なるシードで乱数を生成してx, yのオフセットにする
+        let rand_x = to_f32_range(xorshift32(seed_pos + vec2<u32>(seed_time, 0u)));
+        let rand_y = to_f32_range(xorshift32(seed_pos + vec2<u32>(0u, seed_time)));
+
+        // 揺れの大きさを調整
+        let shake_amount = 0.5; // ピクセル単位
+        final_pos += vec2<f32>(rand_x, rand_y) * shake_amount;
+    }
     
     var ndc_pos = vec2<f32>(
         (final_pos.x / 640.0) * 2.0 - 1.0,
