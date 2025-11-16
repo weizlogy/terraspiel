@@ -64,7 +64,7 @@ pub struct BaseMaterialParams {
     pub temperature: f32,       // 相対温度 (-1.0 ~ 1.0)
     pub heat_conductivity: f32, // 熱伝導率 (0.0 ~ 1.0)
     pub heat_capacity_high: f32,     // 熱容量(高) (0.0 ~ 1.0)
-    pub heat_capacity_low: f32,      // 熱容量(低) (0.0 ~ 1.0)
+    pub heat_capacity_low: f32,      // 熱容量(低) (-1.0 ~ 0.0)
 
     // 電磁特性
 
@@ -86,7 +86,7 @@ impl Default for BaseMaterialParams {
             temperature: 0.0,
             heat_conductivity: 0.4,
             heat_capacity_high: 0.6,
-            heat_capacity_low: 0.1,
+            heat_capacity_low: -0.1,
             color_hue: 0.5,
             color_saturation: 0.8,
             color_luminance: 0.6,
@@ -129,7 +129,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         temperature: rng.gen::<f32>() * 2.0 - 1.0, // -1.0 ~ 1.0
         heat_conductivity: rng.gen(),
         heat_capacity_high: rng.gen(),
-        heat_capacity_low: rng.gen(),
+        heat_capacity_low: rng.gen::<f32>() - 1.0,
         color_hue: rng.gen(),
         color_saturation: rng.gen(),
         color_luminance: rng.gen::<f32>() * 0.8 + 0.2, // 0.2-1.0の範囲にマッピング
@@ -246,7 +246,7 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         temperature: dna.genes[5] * 2.0 - 1.0, // 0..1 to -1..1
         heat_conductivity: dna.genes[6],
         heat_capacity_high: dna.genes[7],
-        heat_capacity_low: dna.genes[8],
+        heat_capacity_low: dna.genes[8] - 1.0,
         color_hue: dna.genes[9],
         color_saturation: dna.genes[10],
         color_luminance: dna.genes[11],
@@ -273,7 +273,7 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             (params.temperature + 1.0) / 2.0, // -1..1 to 0..1
             params.heat_conductivity,
             params.heat_capacity_high,
-            params.heat_capacity_low,
+            params.heat_capacity_low + 1.0,
             params.color_hue,
             params.color_saturation,
             params.color_luminance,

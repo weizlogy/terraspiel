@@ -264,7 +264,7 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 State::Gas => {
                     dot.material.state = State::Liquid;
                     // 連続した状態変化を防ぐためにパラメータをランダム化
-                    dot.material.heat_capacity_low = rng.gen(); // 0.0 ~ 1.0
+                    dot.material.heat_capacity_low = rng.gen::<f32>() - 1.0; // 0.0 ~ 1.0
                     dot.material.temperature =
                         -dot.material.heat_capacity_low * rng.gen::<f32>(); // 新しい下限より高い値に
                     dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
@@ -272,7 +272,7 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 State::Liquid => {
                     dot.material.state = State::Solid;
                     // 連続した状態変化を防ぐためにパラメータをランダム化
-                    dot.material.heat_capacity_low = rng.gen(); // 0.0 ~ 1.0
+                    dot.material.heat_capacity_low = rng.gen::<f32>() - 1.0; // 0.0 ~ 1.0
                     dot.material.temperature =
                         -dot.material.heat_capacity_low * rng.gen::<f32>(); // 新しい下限より高い値に
                     dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
