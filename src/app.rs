@@ -19,6 +19,7 @@ pub struct Dot {
     pub name: String,              // 自動生成された名前
     pub reaction_count: u32,
     pub last_reaction_time: std::time::Instant,
+    pub last_check_time: std::time::Instant, // 最後の確率判定時刻
     pub is_selected: bool, // 選択状態
 }
 
@@ -147,6 +148,7 @@ impl App {
                 name,
                 reaction_count: 0,
                 last_reaction_time: std::time::Instant::now(),
+                last_check_time: std::time::Instant::now(),
                 is_selected: false,
             };
             self.dots.push(dot);
@@ -187,6 +189,7 @@ impl App {
             name,
             reaction_count: 0,
             last_reaction_time: std::time::Instant::now(),
+            last_check_time: std::time::Instant::now(),
             is_selected: false,
         };
 

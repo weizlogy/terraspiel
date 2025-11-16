@@ -5,8 +5,9 @@ use crate::{
 use rand::thread_rng;
 use rand::Rng;
 use std::sync::mpsc;
-
 use std::time::Instant;
+
+const COOL_DOWN_SECONDS: f64 = 1.0; // 1秒のクールダウン
 
 pub const DOT_RADIUS: f64 = 2.0;
 const GAS_REFERENCE_DENSITY: f32 = 0.5;
@@ -244,15 +245,23 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                     }
                     State::Gas => {
                         // Gas explodes when temperature is high
-                        explosions.push(Explosion {
-                            x: dot.x,
-                            y: dot.y,
-                            radius: 50.0,                   // 爆発半径
-                            force: 2000.0,                  // 爆発の力
-                            heat: dot.material.temperature, // 爆発の熱
-                        });
-                        dot.material.luminescence = 1.0;
-                        dots_to_remove.push(i);
+                        // クールダウンチェック
+                        if dot.last_check_time.elapsed().as_secs_f64() > COOL_DOWN_SECONDS {
+                            if rng.gen::<f32>() < 0.001 {
+                                // 0.1%の確率で爆発
+                                explosions.push(Explosion {
+                                    x: dot.x,
+                                    y: dot.y,
+                                    radius: 50.0,                   // 爆発半径
+                                    force: 2000.0,                  // 爆発の力
+                                    heat: dot.material.temperature, // 爆発の熱
+                                });
+                                dot.material.luminescence = 1.0;
+                                dots_to_remove.push(i);
+                            }
+                            // 確率判定を行ったら時刻を更新
+                            dot.last_check_time = Instant::now();
+                        }
                     }
                 }
             }
@@ -278,7 +287,15 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                     dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                 }
                 State::Solid => {
-                    dots_to_remove.push(i);
+                    // クールダウンチェック
+                    if dot.last_check_time.elapsed().as_secs_f64() > COOL_DOWN_SECONDS {
+                        if rng.gen::<f32>() < 0.001 {
+                            // 0.1%の確率で崩壊
+                            dots_to_remove.push(i);
+                        }
+                        // 確率判定を行ったら時刻を更新
+                        dot.last_check_time = Instant::now();
+                    }
                 }
             }
         }
