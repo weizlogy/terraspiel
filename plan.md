@@ -92,15 +92,10 @@ state変化トリガー・熱拡散・光度変化
 heat_capacity_highを超えるtemperatureの場合に、heat_conductivityが上昇。上限を超えると、
 Solidは徐々に融解しLiquidに変化する。
 Liquidは徐々に蒸発しGasに変化する。
-Gasは爆発する。
-
-爆発の手順
-- 一瞬の発光（luminescence最大化）
-- 爆風による吹き飛ばし
-- 該当物質の消滅
+Gasは5秒間luminanceを最大化し、その後Solidに変化し、Temperatureとluminanceを0にする。
 
 heat_capacity_low未満のtemperatureの場合に、heat_conductivityが下降。下限を下回ると、
-Solidは崩壊する。
+Solidは5秒間luminanceを最小化し、その後Gasに変化する。
 Liquidは徐々に冷却しSolidに変化する。
 Gasは徐々に冷却しLiquidに変化する。
 

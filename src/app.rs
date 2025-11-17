@@ -21,6 +21,7 @@ pub struct Dot {
     pub last_reaction_time: std::time::Instant,
     pub last_check_time: std::time::Instant, // 最後の確率判定時刻
     pub is_selected: bool, // 選択状態
+    pub glowing_since: Option<std::time::Instant>,
 }
 
 /// 非同期ブレンド処理の結果
@@ -150,6 +151,7 @@ impl App {
                 last_reaction_time: std::time::Instant::now(),
                 last_check_time: std::time::Instant::now(),
                 is_selected: false,
+                glowing_since: None,
             };
             self.dots.push(dot);
         }
@@ -191,6 +193,7 @@ impl App {
             last_reaction_time: std::time::Instant::now(),
             last_check_time: std::time::Instant::now(),
             is_selected: false,
+            glowing_since: None,
         };
 
         self.dots.push(dot);

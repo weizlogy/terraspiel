@@ -213,13 +213,25 @@ pub struct Explosion {
 
 pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
     let mut rng = thread_rng();
-    let mut explosions: Vec<Explosion> = Vec::new();
+    let explosions: Vec<Explosion> = Vec::new();
     let mut dots_to_remove: Vec<usize> = Vec::new();
 
     // 1. 状態変化と爆発の検出
     for (i, dot) in dots.iter_mut().enumerate() {
         if dots_to_remove.contains(&i) {
             continue;
+        }
+
+        // 発光中のGasの状態をチェック
+        if let Some(since) = dot.glowing_since {
+            if since.elapsed().as_secs_f64() > 5.0 {
+                dot.material.state = State::Solid;
+                dot.material.temperature = 0.0;
+                dot.material.luminescence = 0.0;
+                dot.glowing_since = None;
+                // 固体化したら、このフレームでの他の状態変化はスキップ
+                continue;
+            }
         }
 
         // 高温時の状態変化
@@ -244,24 +256,14 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
                     }
                     State::Gas => {
-                        // Gas explodes when temperature is high
-                        // クールダウンチェック
-                        if dot.last_check_time.elapsed().as_secs_f64() > COOL_DOWN_SECONDS {
-                            if rng.gen::<f32>() < 0.001 {
-                                // 0.1%の確率で爆発
-                                explosions.push(Explosion {
-                                    x: dot.x,
-                                    y: dot.y,
-                                    radius: 50.0,                   // 爆発半径
-                                    force: 2000.0,                  // 爆発の力
-                                    heat: dot.material.temperature, // 爆発の熱
-                                });
-                                dot.material.luminescence = 1.0;
-                                dots_to_remove.push(i);
-                            }
-                            // 確率判定を行ったら時刻を更新
-                            dot.last_check_time = Instant::now();
-                        }
+                        // 発光状態に移行
+                        dot.material.luminescence = 1.0;
+                        dot.glowing_since = Some(Instant::now());
+                        // パラメータをリセットして、すぐに再発火しないようにする
+                        dot.material.heat_capacity_high = rng.gen();
+                        dot.material.temperature =
+                            dot.material.heat_capacity_high * rng.gen::<f32>();
+                        dot.material.heat_conductivity = rng.gen();
                     }
                 }
             }
