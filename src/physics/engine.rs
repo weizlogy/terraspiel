@@ -213,7 +213,7 @@ pub struct Explosion {
 
 pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
     let mut rng = thread_rng();
-    let explosions: Vec<Explosion> = Vec::new();
+    let mut explosions: Vec<Explosion> = Vec::new();
     let mut dots_to_remove: Vec<usize> = Vec::new();
 
     // 1. 状態変化と爆発の検出
@@ -304,6 +304,25 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                 }
             }
         }
+
+        // 爆発条件のチェック (plan.md L65-66, 爆発処理)
+        if dot.material.entropy_bias >= 0.8 && dot.material.volatility >= 0.5 {
+            // heat_conductivityが高いほど爆発しやすくなる
+            let explosion_probability = dot.material.heat_conductivity * 0.01; // 係数は要調整
+            if rng.gen::<f32>() < explosion_probability {
+                let explosion_power = dot.material.heat_conductivity;
+                explosions.push(Explosion {
+                    x: dot.x,
+                    y: dot.y,
+                    radius: 20.0 + (explosion_power * 80.0) as f64, // 20 ~ 100
+                    force: 100.0 + (explosion_power * 400.0) as f64, // 100 ~ 500
+                    heat: explosion_power * 1.5, // 0.0 ~ 1.5
+                });
+                // 爆発したドットを削除リストに追加
+                dots_to_remove.push(i);
+                continue; // この後の処理はスキップ
+            }
+        }
     }
 
     // 2. 爆発の影響を適用
@@ -329,9 +348,10 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
                         dot.vx += nx * force * dt;
                         dot.vy += ny * force * dt;
 
-                        // dot.material.temperature += explosion.heat * falloff as f32 * 0.5;
-                        dot.material.temperature = dot.material.temperature.min(2.0);
-                        // 温度の上限を設宁E
+                        // 爆発による熱影響
+                        dot.material.temperature += explosion.heat * falloff as f32 * 0.5;
+                        dot.material.temperature = dot.material.temperature.clamp(-1.0, 2.0);
+                        // 温度の有効範囲を少し超えることを許容する
                     }
                 }
             }
