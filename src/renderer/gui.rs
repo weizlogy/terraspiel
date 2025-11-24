@@ -166,6 +166,9 @@ impl Gui {
                                     ui.label("Entropy Bias");
                                     ui.label(format!("{:.2}", material.entropy_bias));
                                     ui.end_row();
+                                    ui.label("Volatility");
+                                    ui.label(format!("{:.2}", material.volatility));
+                                    ui.end_row();
                                 });
                         });
                     });

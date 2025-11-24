@@ -238,32 +238,35 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
         if dot.material.temperature > dot.material.heat_capacity_high {
             dot.material.heat_conductivity += 0.1 * dt as f32;
             if dot.material.heat_conductivity > 1.0 {
-                match dot.material.state {
-                    State::Solid => {
-                        dot.material.state = State::Liquid;
-                        // 連続した状態変化を防ぐためにパラメータをランダム化
-                        dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
-                        dot.material.temperature =
-                            dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
-                        dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
-                    }
-                    State::Liquid => {
-                        dot.material.state = State::Gas;
-                        // 連続した状態変化を防ぐためにパラメータをランダム化
-                        dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
-                        dot.material.temperature =
-                            dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
-                        dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
-                    }
-                    State::Gas => {
-                        // 発光状態に移行
-                        dot.material.luminescence = 1.0;
-                        dot.glowing_since = Some(Instant::now());
-                        // パラメータをリセットして、すぐに再発火しないようにする
-                        dot.material.heat_capacity_high = rng.gen();
-                        dot.material.temperature =
-                            dot.material.heat_capacity_high * rng.gen::<f32>();
-                        dot.material.heat_conductivity = rng.gen();
+                // volatilityが0.5以上の場合のみ状態変化
+                if dot.material.volatility >= 0.5 {
+                    match dot.material.state {
+                        State::Solid => {
+                            dot.material.state = State::Liquid;
+                            // 連続した状態変化を防ぐためにパラメータをランダム化
+                            dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
+                            dot.material.temperature =
+                                dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
+                            dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
+                        }
+                        State::Liquid => {
+                            dot.material.state = State::Gas;
+                            // 連続した状態変化を防ぐためにパラメータをランダム化
+                            dot.material.heat_capacity_high = rng.gen(); // 0.0 ~ 1.0
+                            dot.material.temperature =
+                                dot.material.heat_capacity_high * rng.gen::<f32>(); // 新しい上限より低い値に
+                            dot.material.heat_conductivity = rng.gen(); // 0.0 ~ 1.0
+                        }
+                        State::Gas => {
+                            // 発光状態に移行
+                            dot.material.luminescence = 1.0;
+                            dot.glowing_since = Some(Instant::now());
+                            // パラメータをリセットして、すぐに再発火しないようにする
+                            dot.material.heat_capacity_high = rng.gen();
+                            dot.material.temperature =
+                                dot.material.heat_capacity_high * rng.gen::<f32>();
+                            dot.material.heat_conductivity = rng.gen();
+                        }
                     }
                 }
             }

@@ -21,7 +21,7 @@ pub struct Dot {
     pub reaction_count: u32,
     pub last_reaction_time: std::time::Instant,
     pub last_check_time: std::time::Instant, // 最後の確率判定時刻
-    pub is_selected: bool, // 選択状態
+    pub is_selected: bool,                   // 選択状態
     pub glowing_since: Option<std::time::Instant>,
 }
 
@@ -41,9 +41,9 @@ pub struct App {
     pub window: Option<Arc<Window>>,
     pub renderer: Option<Renderer>,
     pub mouse_position: Option<(f64, f64)>,
-    pub dots: Vec<Dot>,                // ドットリスト
-    pub gravity: f64,                  // 重力加速度
-    pub last_time: std::time::Instant, // 時間管理用
+    pub dots: Vec<Dot>,                 // ドットリスト
+    pub gravity: f64,                   // 重力加速度
+    pub last_time: std::time::Instant,  // 時間管理用
     pub start_time: std::time::Instant, // 経過時間用
     pub physics: Physics,
 
@@ -56,8 +56,8 @@ pub struct App {
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
     pub brush_seed: u64,                    // ブラシのシード
-    pub selected_dot_id: Option<u64>,  // マウスがクリックしたドットのID
-    pub next_dot_id: u64, // 次に生成するドットのID
+    pub selected_dot_id: Option<u64>,       // マウスがクリックしたドットのID
+    pub next_dot_id: u64,                   // 次に生成するドットのID
 
     // 非同期処理用
     pub result_rx: mpsc::Receiver<BlendResult>, // ブレンド結果受信
@@ -278,7 +278,6 @@ impl App {
                         for dot in self.dots.iter_mut() {
                             dot.is_selected = Some(dot.id) == clicked_dot_id;
                         }
-
 
                         if let Some(ref window) = self.window {
                             window.request_redraw();
