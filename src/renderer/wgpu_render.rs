@@ -22,6 +22,10 @@ pub struct WgpuRenderer {
     dot_uniform_buffer: wgpu::Buffer,
     square_vertex_buffer: wgpu::Buffer,
 
+    dot_instance_buffer: Option<wgpu::Buffer>,
+    dot_instance_buffer_capacity: usize,
+    dot_instance_data_size_bytes: wgpu::BufferAddress, // インスタンスデータ1つあたりのバイトサイズ
+
     scene_texture: wgpu::Texture,
     scene_texture_view: wgpu::TextureView,
     glow_texture: wgpu::Texture,
@@ -122,9 +126,11 @@ impl WgpuRenderer {
             push_constant_ranges: &[],
         });
 
+        let instance_layout_stride = (2 + 3 + 1 + 1 + 2) as wgpu::BufferAddress
+            * std::mem::size_of::<f32>() as wgpu::BufferAddress;
+
         let instance_layout = wgpu::VertexBufferLayout {
-            array_stride: (2 + 3 + 1 + 1 + 2) as wgpu::BufferAddress
-                * std::mem::size_of::<f32>() as wgpu::BufferAddress,
+            array_stride: instance_layout_stride,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &[
                 wgpu::VertexAttribute { offset: 0, shader_location: 1, format: wgpu::VertexFormat::Float32x2, },
@@ -317,6 +323,9 @@ impl WgpuRenderer {
 
         Self {
             dot_render_pipeline, dot_pipeline_layout, dot_bind_group, dot_uniform_buffer, square_vertex_buffer,
+            dot_instance_buffer: None,
+            dot_instance_buffer_capacity: 0,
+            dot_instance_data_size_bytes: instance_layout_stride,
             scene_texture, scene_texture_view,
             glow_texture, glow_texture_view,
             blur_ping_pong_texture, blur_ping_pong_texture_view,
@@ -356,11 +365,37 @@ impl WgpuRenderer {
         // --- ドット描画パス ---
         if !dots.is_empty() {
             let instance_data = Self::create_dot_instance_data(dots);
-            let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&instance_data),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+            let instance_data_bytes = bytemuck::cast_slice(&instance_data);
+            let num_dots = dots.len();
+
+            // バッファが存在しないか、容量が不足している場合は再作成
+            if self.dot_instance_buffer.is_none() || num_dots > self.dot_instance_buffer_capacity {
+                // 現在のドット数に応じて新しい容量を決定。少し余裕を持たせる。
+                let new_capacity = num_dots.max(1) * 2; // 最低1、または現在の2倍
+                let new_buffer_size = new_capacity * self.dot_instance_data_size_bytes as usize;
+
+                self.dot_instance_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("Instance Buffer"),
+                    size: new_buffer_size as wgpu::BufferAddress,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }));
+                self.dot_instance_buffer_capacity = new_capacity;
+            }
+
+            // データが空でない場合のみ書き込み
+            if !instance_data.is_empty() {
+                if let Some(buffer) = &self.dot_instance_buffer {
+                    queue.write_buffer(buffer, 0, instance_data_bytes);
+                }
+            }
+
+            let instance_buffer_slice = if let Some(buffer) = &self.dot_instance_buffer {
+                buffer.slice(..(num_dots * self.dot_instance_data_size_bytes as usize) as wgpu::BufferAddress)
+            } else {
+                // ドットがない場合、空のスライスを渡す
+                self.square_vertex_buffer.slice(..0) // square_vertex_buffer はダミーとして使用
+            };
 
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Dot Render Pass"),
@@ -374,7 +409,7 @@ impl WgpuRenderer {
             render_pass.set_pipeline(&self.dot_render_pipeline);
             render_pass.set_bind_group(0, &self.dot_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.square_vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, instance_buffer_slice);
             render_pass.draw(0..4, 0..dots.len() as u32);
         } else {
             // ドットがない場合もテクスチャをクリアする
