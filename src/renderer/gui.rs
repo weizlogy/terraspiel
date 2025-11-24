@@ -163,6 +163,9 @@ impl Gui {
                                     ui.label("Luminescence");
                                     ui.label(format!("{:.2}", material.luminescence));
                                     ui.end_row();
+                                    ui.label("Entropy Bias");
+                                    ui.label(format!("{:.2}", material.entropy_bias));
+                                    ui.end_row();
                                 });
                         });
                     });
