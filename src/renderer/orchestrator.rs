@@ -90,7 +90,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &mut UiData, time: f32) -> (bool, bool) {
+    pub fn render(&mut self, window: &Window, dots: &[Dot], ui_data: &UiData, time: f32) -> (bool, bool) {
         let frame = self
             .surface
             .get_current_texture()

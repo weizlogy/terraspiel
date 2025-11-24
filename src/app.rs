@@ -407,7 +407,7 @@ impl App {
                 (None, None, None)
             };
 
-        let mut ui_data = crate::renderer::gui::UiData {
+        let ui_data = crate::renderer::gui::UiData {
             fps: self.fps,
 
             dot_count: self.dots.len(),
