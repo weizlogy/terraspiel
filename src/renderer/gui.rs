@@ -2,13 +2,12 @@ use crate::material::{BaseMaterialParams, MaterialDNA};
 use egui_wgpu::{wgpu, Renderer, ScreenDescriptor};
 use egui_winit::winit;
 
-pub struct UiData<'a> {
+pub struct UiData {
     pub fps: f64,
     pub dot_count: usize,
     pub selected_material: Option<BaseMaterialParams>,
     pub selected_dot_dna: Option<MaterialDNA>,
     pub selected_dot_name: Option<String>,
-    pub brush_material: &'a mut BaseMaterialParams,
 }
 
 pub struct Gui {
@@ -44,14 +43,14 @@ impl Gui {
     }
 
     // render関数は、ランダム化ボタンが押された場合にtrueを返す
-    pub fn render<'a>(
+    pub fn render(
         &mut self,
         window: &winit::window::Window,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
-        ui_data: &mut UiData<'a>,
+        ui_data: &UiData,
     ) -> (bool, bool) { // 戻り値を (randomize_clicked, clear_clicked) に変更
         let mut randomize_button_clicked = false;
         let mut clear_button_clicked = false; // 新しいフラグ
@@ -82,74 +81,6 @@ impl Gui {
                     {
                         clear_button_clicked = true;
                     }
-                });
-
-            // --- Brush Settings Window ---
-            egui::Window::new("Brush Settings")
-                .default_pos(egui::pos2(480.0, 10.0))
-                .resizable(true)
-                .show(ctx, |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        ui.heading("Brush Material Properties");
-                        ui.separator();
-                        egui::Grid::new("brush_properties_grid")
-                            .num_columns(2)
-                            .spacing([20.0, 4.0])
-                            .striped(true)
-                            .show(ui, |ui| {
-                                // State
-                                ui.label("State");
-                                egui::ComboBox::from_label("")
-                                    .selected_text(format!("{:?}", ui_data.brush_material.state))
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(&mut ui_data.brush_material.state, crate::material::State::Solid, "Solid");
-                                        ui.selectable_value(&mut ui_data.brush_material.state, crate::material::State::Liquid, "Liquid");
-                                        ui.selectable_value(&mut ui_data.brush_material.state, crate::material::State::Gas, "Gas");
-                                    });
-                                ui.end_row();
-
-                                // Sliders for f32 properties
-                                ui.label("Density");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.density, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Viscosity");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.viscosity, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Hardness");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.hardness, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Elasticity");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.elasticity, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Temperature");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.temperature, -1.0..=1.0));
-                                ui.end_row();
-                                ui.label("Heat Conductivity");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.heat_conductivity, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Heat Capacity High");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.heat_capacity_high, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Heat Capacity Low");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.heat_capacity_low, -1.0..=0.0));
-                                ui.end_row();
-                                ui.label("Color Hue");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.color_hue, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Color Saturation");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.color_saturation, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Color Luminance");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.color_luminance, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Luminescence");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.luminescence, 0.0..=1.0));
-                                ui.end_row();
-                                ui.label("Entropy Bias");
-                                ui.add(egui::Slider::new(&mut ui_data.brush_material.entropy_bias, 0.0..=1.0));
-                                ui.end_row();
-                            });
-                    });
                 });
 
             // ホバーした物質の情報を表示するウィンドウ

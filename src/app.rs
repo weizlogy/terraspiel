@@ -415,13 +415,12 @@ impl App {
             selected_material: hovered_material,
             selected_dot_dna: hovered_dot_dna,
             selected_dot_name: hovered_dot_name,
-            brush_material: &mut self.brush_material,
         };
 
         if let Some(renderer) = &mut self.renderer {
             let time = self.start_time.elapsed().as_secs_f32();
             let (randomize_clicked, clear_clicked) =
-                renderer.render(window, &self.dots, &mut ui_data, time); // 戻り値を受け取る
+                renderer.render(window, &self.dots, &ui_data, time); // 戻り値を受け取る
 
             if randomize_clicked {
                 self.randomize_brush_material();
