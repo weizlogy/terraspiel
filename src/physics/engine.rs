@@ -521,9 +521,10 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
     let avg_heat_conductivity =
         (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
-    dot1.material.temperature -= heat_transfer;
-    dot2.material.temperature += heat_transfer;
+    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.1).clamp(-1.0, 1.0); // NaNガード
+    
+    dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
+    dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
     // Liquids spread based on viscosity
     if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
@@ -572,9 +573,10 @@ fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
     let avg_heat_conductivity =
         (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = temp_diff * avg_heat_conductivity * 0.1;
-    dot1.material.temperature -= heat_transfer;
-    dot2.material.temperature += heat_transfer;
+    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.1).clamp(-1.0, 1.0); // NaNガード
+
+    dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
+    dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 }
 
 // Gasが他の物体に押される処理
