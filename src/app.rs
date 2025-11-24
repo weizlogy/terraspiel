@@ -10,6 +10,7 @@ use winit::window::{Window, WindowBuilder};
 // ドットの状態を保持する構造体
 #[derive(Clone)]
 pub struct Dot {
+    pub id: u64,
     pub x: f64,
     pub y: f64,
     pub vx: f64, // x方向速度
@@ -55,7 +56,8 @@ pub struct App {
     pub fps: f64,
     pub brush_material: BaseMaterialParams, // 現在選択中の物質
     pub brush_seed: u64,                    // ブラシのシード
-    pub selected_dot_index: Option<usize>,  // マウスがクリックしたドット
+    pub selected_dot_id: Option<u64>,  // マウスがクリックしたドットのID
+    pub next_dot_id: u64, // 次に生成するドットのID
 
     // 非同期処理用
     pub result_rx: mpsc::Receiver<BlendResult>, // ブレンド結果受信
@@ -108,7 +110,8 @@ impl App {
 
             brush_seed: 0,
 
-            selected_dot_index: None,
+            selected_dot_id: None,
+            next_dot_id: 0,
             result_rx,
 
             // Test features
@@ -140,6 +143,7 @@ impl App {
             let name = crate::naming::generate_name(&material_dna);
 
             let dot = Dot {
+                id: self.next_dot_id,
                 x,
                 y,
                 vx: 0.0,
@@ -154,6 +158,7 @@ impl App {
                 glowing_since: None,
             };
             self.dots.push(dot);
+            self.next_dot_id += 1;
         }
         self.is_updating = true;
     }
@@ -182,6 +187,7 @@ impl App {
         let name = crate::naming::generate_name(&material_dna);
 
         let dot = Dot {
+            id: self.next_dot_id,
             x: x as f64,
             y: y as f64,
             vx: 0.0,
@@ -197,6 +203,7 @@ impl App {
         };
 
         self.dots.push(dot);
+        self.next_dot_id += 1;
 
         self.is_updating = true;
 
@@ -253,24 +260,25 @@ impl App {
             winit::event::MouseButton::Right => {
                 if state == winit::event::ElementState::Pressed {
                     if let Some((x, y)) = self.mouse_position {
-                        let mut clicked_dot_index = None;
+                        let mut clicked_dot_id = None;
                         // クリック位置のドットを探す
-                        for (i, dot) in self.dots.iter().enumerate().rev() {
+                        for dot in self.dots.iter().rev() {
                             let dx = dot.x - x;
                             let dy = dot.y - y;
                             if (dx * dx + dy * dy) < (DOT_RADIUS * DOT_RADIUS) {
-                                clicked_dot_index = Some(i);
+                                clicked_dot_id = Some(dot.id);
                                 break;
                             }
                         }
 
+                        // selected_dot_id を更新
+                        self.selected_dot_id = clicked_dot_id;
+
                         // is_selected フラグを更新
-                        for (i, dot) in self.dots.iter_mut().enumerate() {
-                            dot.is_selected = Some(i) == clicked_dot_index;
+                        for dot in self.dots.iter_mut() {
+                            dot.is_selected = Some(dot.id) == clicked_dot_id;
                         }
 
-                        // selected_dot_index を更新
-                        self.selected_dot_index = clicked_dot_index;
 
                         if let Some(ref window) = self.window {
                             window.request_redraw();
@@ -383,16 +391,21 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let (hovered_material, hovered_dot_dna, hovered_dot_name) = self
-            .selected_dot_index
-            .and_then(|i| self.dots.get(i))
-            .map_or((None, None, None), |dot| {
-                (
-                    Some(dot.material.clone()),
-                    Some(dot.material_dna.clone()),
-                    Some(dot.name.clone()),
-                )
-            });
+        let (hovered_material, hovered_dot_dna, hovered_dot_name) =
+            if let Some(selected_id) = self.selected_dot_id {
+                self.dots
+                    .iter()
+                    .find(|d| d.id == selected_id)
+                    .map_or((None, None, None), |dot| {
+                        (
+                            Some(dot.material.clone()),
+                            Some(dot.material_dna.clone()),
+                            Some(dot.name.clone()),
+                        )
+                    })
+            } else {
+                (None, None, None)
+            };
 
         let mut ui_data = crate::renderer::gui::UiData {
             fps: self.fps,
@@ -402,6 +415,7 @@ impl App {
             selected_material: hovered_material,
             selected_dot_dna: hovered_dot_dna,
             selected_dot_name: hovered_dot_name,
+            brush_material: &mut self.brush_material,
         };
 
         if let Some(renderer) = &mut self.renderer {

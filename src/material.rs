@@ -73,6 +73,7 @@ pub struct BaseMaterialParams {
     pub color_saturation: f32, // 彩度 (0.0 ~ 1.0)
     pub color_luminance: f32,  // 明度 (0.0 ~ 1.0)
     pub luminescence: f32,     // 自発光度 (0.0 ~ 1.0)
+    pub entropy_bias: f32,     // エントロピーバイアス (0.0 ~ 1.0)
 }
 
 impl Default for BaseMaterialParams {
@@ -91,6 +92,7 @@ impl Default for BaseMaterialParams {
             color_saturation: 0.8,
             color_luminance: 0.6,
             luminescence: 0.0,
+            entropy_bias: 0.1,
         }
     }
 }
@@ -134,6 +136,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         color_saturation: rng.gen(),
         color_luminance: rng.gen::<f32>() * 0.8 + 0.2, // 0.2-1.0の範囲にマッピング
         luminescence: rng.gen(),
+        entropy_bias: rng.gen(),
     }
 }
 
@@ -142,7 +145,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
 pub struct MaterialDNA {
     pub seed: u64,
     /// 各特性を0〜1正規化した値。順序はBaseMaterialParamsのフィールドに対応。
-    pub genes: [f32; 13],
+    pub genes: [f32; 14],
 }
 
 impl MaterialDNA {
@@ -154,10 +157,10 @@ impl MaterialDNA {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut new_genes = [0.0; 13];
+        let mut new_genes = [0.0; 14];
 
         // --- 他の特性は線形補間 ---
-        for i in 0..13 {
+        for i in 0..14 {
             if i < 9 || i > 11 {
                 new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
             }
@@ -175,7 +178,8 @@ impl MaterialDNA {
         let hue_a = self.genes[9];
         let hue_b = other.genes[9];
         let mut diff = hue_b - hue_a;
-        let non_linear_ratio = ratio.powf(2.0);
+        // エントロピーバイアスが高いほど、より積極的な補間になる
+        let non_linear_ratio = ratio.powf(2.0 - new_genes[13].clamp(0.0, 1.9)); // powfは負にならないように
 
         if diff.abs() > 0.5 {
             if diff > 0.0 {
@@ -185,7 +189,9 @@ impl MaterialDNA {
             }
         }
         let blended_hue = hue_a + diff * non_linear_ratio;
-        let noise = rng.gen_range(-0.005..0.005);
+        // エントロピーバイアスが高いほど、ノイズが大きくなる
+        let noise_range = 0.005 + new_genes[13] * 0.1; // 0.005 ~ 0.105
+        let noise = rng.gen_range(-noise_range..noise_range);
         new_genes[9] = (blended_hue + noise + 1.0) % 1.0; // 0-1の範囲に正規化
 
         // 10: color_saturation
@@ -251,6 +257,7 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         color_saturation: dna.genes[10],
         color_luminance: dna.genes[11],
         luminescence: dna.genes[12],
+        entropy_bias: dna.genes[13],
     }
 }
 
@@ -278,6 +285,7 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.color_saturation,
             params.color_luminance,
             params.luminescence,
+            params.entropy_bias,
         ],
     }
 }
