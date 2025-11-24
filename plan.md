@@ -70,6 +70,14 @@ Hue の非線形補正量が増える
 heat_capacity_highによるState変化の条件に、volatilityが追加され、
 volatilityが0.5以上ならStateが変化する、以下なら変化しない
 
+## cohesion（凝集力）
+density/viscosity/hardness では表現しきれない
+“まとまりやすさ”や“砂と泥の違い”。
+0.0 → 粒子がバラバラ
+1.0 → すぐ塊になる
+効果：
+粒子がクラスタ化しやすくなる
+
 ## 各パラメータのシミュレーション影響まとめ
 state
 セルの移動ロジック・隣接チェック方法を決定

@@ -75,6 +75,7 @@ pub struct BaseMaterialParams {
     pub luminescence: f32,     // 自発光度 (0.0 ~ 1.0)
     pub entropy_bias: f32,     // エントロピーバイアス (0.0 ~ 1.0)
     pub volatility: f32,       // 揮発性 (0.0 ~ 1.0)
+    pub cohesion: f32,         // 凝集力 (0.0 ~ 1.0)
 }
 
 impl Default for BaseMaterialParams {
@@ -95,6 +96,7 @@ impl Default for BaseMaterialParams {
             luminescence: 0.0,
             entropy_bias: 0.1,
             volatility: 0.3,
+            cohesion: 0.2,
         }
     }
 }
@@ -140,6 +142,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
         luminescence: rng.gen(),
         entropy_bias: rng.gen(),
         volatility: rng.gen(),
+        cohesion: rng.gen(),
     }
 }
 
@@ -148,7 +151,7 @@ pub fn from_seed(seed: u64) -> BaseMaterialParams {
 pub struct MaterialDNA {
     pub seed: u64,
     /// 各特性を0〜1正規化した値。順序はBaseMaterialParamsのフィールドに対応。
-    pub genes: [f32; 15],
+    pub genes: [f32; 16],
 }
 
 impl MaterialDNA {
@@ -160,10 +163,10 @@ impl MaterialDNA {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        let mut new_genes = [0.0; 15];
+        let mut new_genes = [0.0; 16];
 
         // --- 他の特性は線形補間 ---
-        for i in 0..15 {
+        for i in 0..16 {
             if i < 9 || i > 11 {
                 new_genes[i] = self.genes[i] * (1.0 - ratio) + other.genes[i] * ratio;
             }
@@ -262,6 +265,7 @@ pub fn from_dna(dna: &MaterialDNA) -> BaseMaterialParams {
         luminescence: dna.genes[12],
         entropy_bias: dna.genes[13],
         volatility: dna.genes[14],
+        cohesion: dna.genes[15],
     }
 }
 
@@ -291,6 +295,7 @@ pub fn to_dna(params: &BaseMaterialParams, seed: u64) -> MaterialDNA {
             params.luminescence,
             params.entropy_bias,
             params.volatility,
+            params.cohesion,
         ],
     }
 }

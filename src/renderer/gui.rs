@@ -169,6 +169,9 @@ impl Gui {
                                     ui.label("Volatility");
                                     ui.label(format!("{:.2}", material.volatility));
                                     ui.end_row();
+                                    ui.label("Cohesion");
+                                    ui.label(format!("{:.2}", material.cohesion));
+                                    ui.end_row();
                                 });
                         });
                     });

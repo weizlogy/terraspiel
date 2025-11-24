@@ -526,6 +526,41 @@ fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, d
     dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
     dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
+    // --- 凝集力 ---
+    if dot1.material.state == dot2.material.state {
+        let avg_cohesion = (dot1.material.cohesion + dot2.material.cohesion) / 2.0;
+        if avg_cohesion > 0.01 { // 計算負荷を減らすために閾値を設ける
+            let ideal_dist = DOT_RADIUS * 1.5; // この距離に近づけようとする
+            let dist_sq = (dot1.x - dot2.x).powi(2) + (dot1.y - dot2.y).powi(2);
+            let dist = dist_sq.sqrt();
+            
+            // 凝集力が働く範囲 (e.g., DOT_RADIUS * 4)
+            let effective_range = DOT_RADIUS * 4.0;
+
+            if dist < effective_range && dist > 1e-6 {
+                // 理想的な距離との差に基づいて力を計算
+                let force_magnitude = (ideal_dist - dist) * (avg_cohesion as f64) * 0.01; // 係数は要調整
+                
+                let nx = (dot2.x - dot1.x) / dist;
+                let ny = (dot2.y - dot1.y) / dist;
+
+                let force_x = nx * force_magnitude;
+                let force_y = ny * force_magnitude;
+
+                // 質量に応じて力を適用
+                let m1 = dot1.material.density as f64;
+                let m2 = dot2.material.density as f64;
+                let total_mass = m1 + m2;
+                if total_mass > 1e-6 {
+                    dot1.vx += force_x * (m2 / total_mass);
+                    dot1.vy += force_y * (m2 / total_mass);
+                    dot2.vx -= force_x * (m1 / total_mass);
+                    dot2.vy -= force_y * (m1 / total_mass);
+                }
+            }
+        }
+    }
+
     // Liquids spread based on viscosity
     if dot1.material.state == State::Liquid && dot2.material.state == State::Liquid {
         let viscosity_threshold = 0.5; // Liquids require lower viscosity to spread
