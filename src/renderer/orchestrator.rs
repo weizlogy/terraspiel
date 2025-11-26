@@ -105,8 +105,20 @@ impl Renderer {
                 label: Some("Render Encoder"),
             });
 
-        self.wgpu_renderer
-            .render(&self.device, &self.queue, &mut encoder, &view, dots, time);
+        let max_volatility = dots
+            .iter()
+            .map(|dot| dot.material.volatility)
+            .fold(0.0, f32::max);
+
+        self.wgpu_renderer.render(
+            &self.device,
+            &self.queue,
+            &mut encoder,
+            &view,
+            dots,
+            time,
+            max_volatility,
+        );
 
         let (randomize_clicked, clear_clicked) = self.gui.render(
             window,

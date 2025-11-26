@@ -72,6 +72,8 @@ entropy_biasが0.8以上で、volatilityが0.5以上ならば、
 効果：
 heat_capacity_highによるState変化の条件に、volatilityが追加され、
 volatilityが0.5以上ならStateが変化する、以下なら変化しない
+見た目：
+volatilityが0.5以上なら、描画時に周囲に(volatility - 0.5)*適当な係数でちょうどいいブラーをかける
 
 ## cohesion（凝集力）
 density/viscosity/hardness では表現しきれない
@@ -80,6 +82,10 @@ density/viscosity/hardness では表現しきれない
 1.0 → すぐ塊になる
 効果：
 粒子がクラスタ化しやすくなる
+見た目：
+粒子描画に“粒ノイズ”を入れる
+cohesion 低 → ザラザラ
+cohesion 高 → ツルツル
 
 ## 熱伝導率（thermal_conductivity）
 「このセルが、周囲のセルとどれくらい速く温度を共有するか」

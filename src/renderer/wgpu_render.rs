@@ -4,6 +4,13 @@ use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
+struct BlurUniforms {
+    blur_strength: f32,
+    _padding: [f32; 3], // for uniform buffer alignment
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
 struct CompositeUniforms {
     falloff_exponent: f32,
 }
@@ -40,6 +47,8 @@ pub struct WgpuRenderer {
     composite_uniform_buffer: wgpu::Buffer,
 
     blur_pipeline_layout: wgpu::PipelineLayout,
+    blur_uniform_buffer: wgpu::Buffer,
+    blur_bind_group_layout: wgpu::BindGroupLayout,
     blur_horizontal_pipeline: wgpu::RenderPipeline,
     blur_vertical_pipeline: wgpu::RenderPipeline,
     blur_bind_group_horizontal: wgpu::BindGroup,
@@ -188,10 +197,17 @@ impl WgpuRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/blur.wgsl").into()),
         });
 
+        let blur_uniforms = BlurUniforms { blur_strength: 0.0, _padding: [0.0; 3] };
+        let blur_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Blur Uniform Buffer"),
+            contents: bytemuck::bytes_of(&blur_uniforms),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
         let blur_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Blur Bind Group Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry { // input_texture
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
@@ -201,10 +217,20 @@ impl WgpuRenderer {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry { // texture_sampler
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry { // blur_uniforms
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
                     count: None,
                 },
             ],
@@ -250,6 +276,7 @@ impl WgpuRenderer {
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&glow_texture_view) },
                 wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&texture_sampler) },
+                wgpu::BindGroupEntry { binding: 2, resource: blur_uniform_buffer.as_entire_binding() },
             ],
         });
 
@@ -259,6 +286,7 @@ impl WgpuRenderer {
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&blur_ping_pong_texture_view) },
                 wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&texture_sampler) },
+                wgpu::BindGroupEntry { binding: 2, resource: blur_uniform_buffer.as_entire_binding() },
             ],
         });
 
@@ -331,7 +359,8 @@ impl WgpuRenderer {
             blur_ping_pong_texture, blur_ping_pong_texture_view,
             texture_sampler,
             composite_pipeline, composite_bind_group, composite_uniform_buffer,
-            blur_pipeline_layout, blur_horizontal_pipeline, blur_vertical_pipeline,
+            blur_pipeline_layout, blur_uniform_buffer, blur_bind_group_layout,
+            blur_horizontal_pipeline, blur_vertical_pipeline,
             blur_bind_group_horizontal, blur_bind_group_vertical,
         }
     }
@@ -358,9 +387,19 @@ impl WgpuRenderer {
         instance_data
     }
 
-    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot], time: f32) {
+    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot], time: f32, max_volatility: f32) {
         // --- ユニフォームの更新 ---
         queue.write_buffer(&self.dot_uniform_buffer, 0, bytemuck::bytes_of(&DotUniforms { time }));
+
+        // blur_strengthを計算
+        let blur_strength = if max_volatility > 0.5 {
+            (max_volatility - 0.5) * 8.0 // 係数は見た目で調整
+        } else {
+            0.0
+        };
+        let blur_uniforms = BlurUniforms { blur_strength, _padding: [0.0; 3] };
+        queue.write_buffer(&self.blur_uniform_buffer, 0, bytemuck::bytes_of(&blur_uniforms));
+
 
         // --- ドット描画パス ---
         if !dots.is_empty() {
