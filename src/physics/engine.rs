@@ -306,7 +306,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
         }
 
         // 爆発条件のチェック (plan.md L65-66, 爆発処理)
-        if dot.material.entropy_bias >= 0.8 && dot.material.volatility >= 0.5 {
+        let is_stationary = (dot.vx * dot.vx + dot.vy * dot.vy) < 0.1;
+        if dot.material.entropy_bias >= 0.8 && dot.material.volatility >= 0.5 && is_stationary {
             // heat_conductivityが高いほど爆発しやすくなる
             let explosion_probability = dot.material.heat_conductivity * 0.01; // 係数は要調整
             if rng.gen::<f32>() < explosion_probability {
