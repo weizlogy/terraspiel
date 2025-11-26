@@ -109,6 +109,11 @@ impl Renderer {
             .iter()
             .map(|dot| dot.material.volatility)
             .fold(0.0, f32::max);
+        
+        let max_entropy_bias = dots
+            .iter()
+            .map(|dot| dot.material.entropy_bias)
+            .fold(0.0, f32::max);
 
         self.wgpu_renderer.render(
             &self.device,
@@ -118,6 +123,7 @@ impl Renderer {
             dots,
             time,
             max_volatility,
+            max_entropy_bias,
         );
 
         let (randomize_clicked, clear_clicked) = self.gui.render(

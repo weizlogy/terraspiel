@@ -19,6 +19,8 @@ struct CompositeUniforms {
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
 struct DotUniforms {
     time: f32,
+    max_entropy_bias: f32,
+    _padding: [f32; 2],
 }
 
 #[allow(dead_code)]
@@ -98,7 +100,7 @@ impl WgpuRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/dot.wgsl").into()),
         });
 
-        let dot_uniforms = DotUniforms { time: 0.0 };
+        let dot_uniforms = DotUniforms { time: 0.0, max_entropy_bias: 0.0, _padding: [0.0; 2] };
         let dot_uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Dot Uniform Buffer"),
             contents: bytemuck::bytes_of(&dot_uniforms),
@@ -135,19 +137,21 @@ impl WgpuRenderer {
             push_constant_ranges: &[],
         });
 
-        let instance_layout_stride = (2 + 3 + 1 + 1 + 2) as wgpu::BufferAddress
+        let instance_layout_stride = (2 + 3 + 1 + 1 + 2 + 1 + 1) as wgpu::BufferAddress
             * std::mem::size_of::<f32>() as wgpu::BufferAddress;
 
         let instance_layout = wgpu::VertexBufferLayout {
             array_stride: instance_layout_stride,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &[
-                wgpu::VertexAttribute { offset: 0, shader_location: 1, format: wgpu::VertexFormat::Float32x2, },
-                wgpu::VertexAttribute { offset: (2 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 2, format: wgpu::VertexFormat::Float32x3, },
+                wgpu::VertexAttribute { offset: 0, shader_location: 1, format: wgpu::VertexFormat::Float32x2, }, // position
+                wgpu::VertexAttribute { offset: (2 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 2, format: wgpu::VertexFormat::Float32x3, }, // color
                 wgpu::VertexAttribute { offset: (5 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 3, format: wgpu::VertexFormat::Float32, }, // luminescence
                 wgpu::VertexAttribute { offset: (6 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 4, format: wgpu::VertexFormat::Float32, }, // is_selected
                 wgpu::VertexAttribute { offset: (7 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 5, format: wgpu::VertexFormat::Float32, }, // temperature
                 wgpu::VertexAttribute { offset: (8 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 6, format: wgpu::VertexFormat::Float32, }, // state
+                wgpu::VertexAttribute { offset: (9 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 7, format: wgpu::VertexFormat::Float32, }, // cohesion
+                wgpu::VertexAttribute { offset: (10 * std::mem::size_of::<f32>()) as wgpu::BufferAddress, shader_location: 8, format: wgpu::VertexFormat::Float32, }, // entropy_bias
             ],
         };
 
@@ -366,7 +370,7 @@ impl WgpuRenderer {
     }
 
     fn create_dot_instance_data(dots: &[Dot]) -> Vec<f32> {
-        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 9);
+        let mut instance_data: Vec<f32> = Vec::with_capacity(dots.len() * 11);
         for dot in dots {
             let (r, g, b) = dot.material.get_color_rgb();
             let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0];
@@ -383,15 +387,17 @@ impl WgpuRenderer {
             instance_data.push(is_selected);
             instance_data.push(dot.material.temperature);
             instance_data.push(state_f32);
+            instance_data.push(dot.material.cohesion);
+            instance_data.push(dot.material.entropy_bias);
         }
         instance_data
     }
 
-    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot], time: f32, max_volatility: f32) {
-        // --- ユニフォームの更新 ---
-        queue.write_buffer(&self.dot_uniform_buffer, 0, bytemuck::bytes_of(&DotUniforms { time }));
+    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, dots: &[Dot], time: f32, max_volatility: f32, max_entropy_bias: f32) {
+        // --- Dot/Blur ユニフォームの更新 ---
+        let dot_uniforms = DotUniforms { time, max_entropy_bias, _padding: [0.0; 2] };
+        queue.write_buffer(&self.dot_uniform_buffer, 0, bytemuck::bytes_of(&dot_uniforms));
 
-        // blur_strengthを計算
         let blur_strength = if max_volatility > 0.5 {
             (max_volatility - 0.5) * 8.0 // 係数は見た目で調整
         } else {
