@@ -216,6 +216,7 @@ impl App {
         if self.window.is_none() {
             let window = Arc::new(
                 WindowBuilder::new()
+                    .with_title("terraspiel")
                     .with_inner_size(winit::dpi::PhysicalSize::new(WIDTH, HEIGHT))
                     .build(event_loop)
                     .expect("Failed to create window"),
