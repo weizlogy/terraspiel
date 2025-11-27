@@ -86,7 +86,7 @@ impl App {
 
             dots: Vec::new(),
 
-            gravity: 9.8 * 10.0,
+            gravity: 9.8 * 20.0,
 
             last_time: std::time::Instant::now(),
             start_time: std::time::Instant::now(),
@@ -391,30 +391,30 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let (hovered_material, hovered_dot_dna, hovered_dot_name) =
+        let (hovered_material, hovered_dot_dna, hovered_dot_name, hovered_dot_velocity) =
             if let Some(selected_id) = self.selected_dot_id {
                 self.dots
                     .iter()
                     .find(|d| d.id == selected_id)
-                    .map_or((None, None, None), |dot| {
+                    .map_or((None, None, None, None), |dot| {
                         (
                             Some(dot.material.clone()),
                             Some(dot.material_dna.clone()),
                             Some(dot.name.clone()),
+                            Some((dot.vx, dot.vy)),
                         )
                     })
             } else {
-                (None, None, None)
+                (None, None, None, None)
             };
 
         let ui_data = crate::renderer::gui::UiData {
             fps: self.fps,
-
             dot_count: self.dots.len(),
-
             selected_material: hovered_material,
             selected_dot_dna: hovered_dot_dna,
             selected_dot_name: hovered_dot_name,
+            selected_dot_velocity: hovered_dot_velocity,
         };
 
         if let Some(renderer) = &mut self.renderer {

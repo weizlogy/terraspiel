@@ -482,6 +482,11 @@ pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
             }
         }
 
+        // ここに減衰処理を追加
+        let damping_factor = 0.998; // 速度を99.8%に減衰
+        dot.vx *= damping_factor;
+        dot.vy *= damping_factor;
+
         if dot.material.state != State::Gas {
             let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
 
