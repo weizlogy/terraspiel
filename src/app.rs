@@ -414,7 +414,6 @@ impl App {
             selected_material: hovered_material,
             selected_dot_dna: hovered_dot_dna,
             selected_dot_name: hovered_dot_name,
-            selected_dot_velocity: hovered_dot_velocity,
         };
 
         if let Some(renderer) = &mut self.renderer {
