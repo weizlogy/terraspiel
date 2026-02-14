@@ -319,11 +319,9 @@ impl App {
         let now = std::time::Instant::now();
 
         // --- Test Dot Generation ---
-        if self.is_test_mode_enabled {
-            if now.duration_since(self.last_test_dot_add_time) >= self.test_dot_add_interval {
-                self.add_random_dots();
-                self.last_test_dot_add_time = now;
-            }
+        if self.is_test_mode_enabled && now.duration_since(self.last_test_dot_add_time) >= self.test_dot_add_interval {
+            self.add_random_dots();
+            self.last_test_dot_add_time = now;
         }
 
         let delta_time = now.duration_since(self.last_time).as_secs_f64();
