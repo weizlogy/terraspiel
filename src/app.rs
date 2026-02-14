@@ -389,7 +389,7 @@ impl App {
 
         let window = self.window.as_ref().unwrap();
 
-        let (hovered_material, hovered_dot_dna, hovered_dot_name, hovered_dot_velocity) =
+        let (hovered_material, hovered_dot_dna, hovered_dot_name, _hovered_dot_velocity) =
             if let Some(selected_id) = self.selected_dot_id {
                 self.dots
                     .iter()
