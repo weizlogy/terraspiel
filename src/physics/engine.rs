@@ -172,10 +172,10 @@ impl Physics {
         self.physics_bind_group_layout = Some(bind_group_layout);
     }
 
-    pub fn update_gpu_resources(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, dots: &[Dot]) {
+    pub fn update_gpu_resources(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, dots: &[Dot], dt: f64) {
         // パラメータバッファの作成・更新
         let params = PhysicsParams {
-            delta_time: 0.016, // 60 FPS相当
+            delta_time: dt as f32, // 実際の経過時間を使用
             gravity: 9.8 * 20.0,
             width: WIDTH as f32,
             height: HEIGHT as f32,

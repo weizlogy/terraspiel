@@ -311,7 +311,7 @@ impl App {
             }
 
             // GPUリソースを更新
-            self.physics.update_gpu_resources(device, queue, &self.dots);
+            self.physics.update_gpu_resources(device, queue, &self.dots, dt);
 
             // GPUで物理演算を実行
             let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
