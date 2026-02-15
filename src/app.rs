@@ -116,7 +116,7 @@ impl App {
 
             // Test features
             last_test_dot_add_time: std::time::Instant::now(),
-            test_dot_add_interval: std::time::Duration::from_secs(5),
+            test_dot_add_interval: std::time::Duration::from_millis(1000), // 1000ms = 1秒
             is_test_mode_enabled,
         }
     }
@@ -131,7 +131,7 @@ impl App {
 
     fn add_random_dots(&mut self) {
         let mut rng = thread_rng();
-        let num_dots_to_add = rng.gen_range(5..=20);
+        let num_dots_to_add = rng.gen_range(10..=100);
 
         for _ in 0..num_dots_to_add {
             let x = rng.gen_range(DOT_RADIUS..WIDTH as f64 - DOT_RADIUS);
