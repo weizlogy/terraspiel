@@ -5,6 +5,7 @@ mod physics;
 mod renderer;
 
 use app::{App, BlendResult};
+use clap::Parser;
 use material::{decide_reaction_type, from_dna, ReactionType};
 use rayon::prelude::*;
 use std::sync::mpsc;
@@ -12,9 +13,19 @@ use std::thread;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 
+#[derive(Parser)]
+#[command(name = "terraspiel")]
+#[command(about = "A material simulation game", long_about = None)]
+struct Args {
+    /// Enable test mode with specified max dot count
+    #[arg(long, value_name = "MAX_DOTS")]
+    test_mode: Option<u32>,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = std::env::args().collect();
-    let is_test_mode_enabled = args.iter().any(|arg| arg == "--test-mode");
+    let args = Args::parse();
+    let is_test_mode_enabled = args.test_mode.is_some();
+    let max_test_dots = args.test_mode.unwrap_or(0);
 
     let event_loop = EventLoop::new()?;
 
@@ -23,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ブレンド結果送受信用チャネル
     let (result_tx, result_rx) = mpsc::channel::<BlendResult>();
 
-    let mut app = App::new(collision_tx, result_rx, is_test_mode_enabled);
+    let mut app = App::new(collision_tx, result_rx, is_test_mode_enabled, max_test_dots);
 
     // --- ワーカースレッドを起動 ---
     thread::spawn(move || {

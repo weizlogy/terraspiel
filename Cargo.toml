@@ -21,3 +21,5 @@ bevy_egui = "0.27.0"
 rand = "0.8.5"
 rand_seeder = "0.2.3"
 rayon = "1.10.0"
+# CLI
+clap = { version = "4.5", features = ["derive"] }

@@ -66,6 +66,7 @@ pub struct App {
     pub last_test_dot_add_time: std::time::Instant,
     pub test_dot_add_interval: std::time::Duration,
     pub is_test_mode_enabled: bool,
+    pub max_test_dots: u32,
 }
 
 pub const WIDTH: u32 = 640;
@@ -76,6 +77,7 @@ impl App {
         collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
         result_rx: mpsc::Receiver<BlendResult>,
         is_test_mode_enabled: bool,
+        max_test_dots: u32,
     ) -> Self {
         Self {
             window: None,
@@ -118,6 +120,7 @@ impl App {
             last_test_dot_add_time: std::time::Instant::now(),
             test_dot_add_interval: std::time::Duration::from_millis(1000), // 1000ms = 1秒
             is_test_mode_enabled,
+            max_test_dots,
         }
     }
 
@@ -343,7 +346,10 @@ impl App {
         let now = std::time::Instant::now();
 
         // --- Test Dot Generation ---
-        if self.is_test_mode_enabled && now.duration_since(self.last_test_dot_add_time) >= self.test_dot_add_interval {
+        if self.is_test_mode_enabled
+            && now.duration_since(self.last_test_dot_add_time) >= self.test_dot_add_interval
+            && self.dots.len() < self.max_test_dots as usize
+        {
             self.add_random_dots();
             self.last_test_dot_add_time = now;
         }
