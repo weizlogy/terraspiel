@@ -1,13 +1,17 @@
 use crate::{
-    app::{Dot, HEIGHT, WIDTH},
+    app::Dot,
     material::{MaterialDNA, State},
 };
+
+pub use crate::app::{HEIGHT, WIDTH};
 use bytemuck::{Pod, Zeroable};
 use rand::thread_rng;
 use rand::Rng;
 use std::sync::mpsc;
 use std::time::Instant;
 use wgpu::util::DeviceExt;
+
+use super::state_manager::{update_state_for_dot, update_position_for_dot};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
@@ -78,11 +82,11 @@ impl GpuDot {
     }
 }
 
-const COOL_DOWN_SECONDS: f64 = 1.0; // 1秒のクールダウン
+pub const COOL_DOWN_SECONDS: f64 = 1.0; // 1秒のクールダウン
 
 pub const DOT_RADIUS: f64 = 2.0;
-const GAS_REFERENCE_DENSITY: f32 = 0.5;
-const GAS_DIFFUSION_FACTOR: f64 = 5.0;
+pub const GAS_REFERENCE_DENSITY: f32 = 0.5;
+pub const GAS_DIFFUSION_FACTOR: f64 = 5.0;
 const INITIAL_WAIT_TIME: f64 = 0.1; // seconds
 const DECAY_FACTOR: f64 = 0.5;
 
@@ -620,19 +624,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
             continue;
         }
 
-        match dot.material.state {
-            State::Solid | State::Liquid => {
-                dot.vy += gravity * dt;
-            }
-            State::Gas => {
-                let buoyancy = (GAS_REFERENCE_DENSITY - dot.material.density) as f64 * gravity;
-                dot.vy -= buoyancy * dt;
-                let diffusion_strength =
-                    (1.0 - dot.material.viscosity) as f64 * GAS_DIFFUSION_FACTOR;
-                dot.vx += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
-                dot.vy += (rng.gen::<f64>() - 0.5) * diffusion_strength * dt;
-            }
-        }
+        // Stateに応じた処理を呼び分ける
+        update_state_for_dot(dot, gravity, dt);
     }
 
     // 4. 爆発したドットを削除
@@ -645,102 +638,14 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
 
 pub fn update_position(dots: &mut Vec<Dot>, dt: f64) -> bool {
     let mut all_stopped = true;
-    let mut rng = thread_rng();
 
     for dot in dots {
         dot.x += dot.vx * dt;
 
         dot.y += dot.vy * dt;
 
-        let elasticity = dot.material.elasticity as f64;
-
-        // Handle bottom boundary collision with different behavior based on state
-        if dot.y >= (HEIGHT as f64 - DOT_RADIUS) {
-            dot.y = HEIGHT as f64 - DOT_RADIUS;
-
-            // Different behavior based on material state
-            match dot.material.state {
-                State::Solid => {
-                    // Solids bounce with elasticity and stop when velocity is low
-                    dot.vy *= -elasticity;
-                    // 床との摩擦を適用
-                    let friction_factor = dot.material.viscosity as f64 * 0.7; // 係数を調整
-                    dot.vx *= (1.0 - friction_factor).max(0.0);
-                    // Particles behave similarly to solids but with more spreading
-                    if dot.material.viscosity < 0.5 {
-                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 1.5;
-                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
-                    }
-                }
-                State::Liquid => {
-                    // Liquids spread based on viscosity
-                    dot.vy *= -elasticity * (1.0 - dot.material.viscosity as f64); // More viscous liquids lose more vertical energy
-
-                    // Apply horizontal spreading based on viscosity
-                    if dot.material.viscosity < 0.7 {
-                        // Only spread if not highly viscous
-                        let spread_factor = (1.0 - dot.material.viscosity as f64) * 2.0;
-                        dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor;
-                    }
-                }
-                State::Gas => {
-                    // Gases should have minimal interaction with bottom, just bounce slightly
-                    dot.vy *= -elasticity * 0.1; // Very little bounce to keep gases moving
-                }
-            }
-        }
-
-        if dot.y <= DOT_RADIUS {
-            dot.y = DOT_RADIUS;
-
-            // For gases, minimal bounce to keep them moving
-            if dot.material.state == State::Gas {
-                dot.vy *= -elasticity * 0.1;
-            } else {
-                // Apply viscosity effect when hitting top boundary too
-                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
-                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vx += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited horizontal variability
-                }
-                dot.vy *= -elasticity;
-            }
-        }
-        if dot.x >= (WIDTH as f64 - DOT_RADIUS) {
-            dot.x = WIDTH as f64 - DOT_RADIUS;
-
-            // Handle gas differently - allow more energy to be preserved
-            if dot.material.state == State::Gas {
-                dot.vx *= -elasticity * 0.3; // Gases preserve more horizontal momentum
-            } else {
-                // Apply viscosity effect when hitting side walls too
-                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
-                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vy += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
-                }
-                dot.vx *= -elasticity;
-            }
-        }
-
-        if dot.x <= DOT_RADIUS {
-            dot.x = DOT_RADIUS;
-
-            // Handle gas differently - allow more energy to be preserved
-            if dot.material.state == State::Gas {
-                dot.vx *= -elasticity * 0.3; // Gases preserve more horizontal momentum
-            } else {
-                // Apply viscosity effect when hitting side walls too
-                if dot.material.state == State::Solid && dot.material.viscosity < 0.6 {
-                    let spread_factor = (1.0 - dot.material.viscosity as f64) * 0.3;
-                    dot.vy += (rng.gen::<f64>() - 0.5) * spread_factor * 0.3; // Very limited vertical variability
-                }
-                dot.vx *= -elasticity;
-            }
-        }
-
-        // ここに減衰処理を追加
-        let damping_factor = 0.998; // 速度を99.8%に減衰
-        dot.vx *= damping_factor;
-        dot.vy *= damping_factor;
+        // Stateに応じた境界処理と減衰処理を呼び分ける
+        update_position_for_dot(dot, dt);
 
         if dot.material.state != State::Gas {
             let velocity_small = dot.vy.abs() < 0.1 && dot.vx.abs() < 0.1;
