@@ -322,19 +322,20 @@ impl App {
 
             // GPUからCPUへのデータ同期
             self.physics.sync_gpu_to_cpu(device, queue, &mut self.dots);
-        } else {
-            // 1. 状態に基づいて力を適用
-            engine::update_state(&mut self.dots, self.gravity, dt);
+        }
 
-            // 2. 衝突判定と応答
-            self.physics.update_collision(&mut self.dots, dt);
+        // GPUが利用可能でも、CPUでの衝突判定と位置更新を行う
+        // 1. 状態に基づいて力を適用
+        engine::update_state(&mut self.dots, self.gravity, dt);
 
-            // 3. 位置更新と壁との衝突
-            let all_stopped = engine::update_position(&mut self.dots, dt);
+        // 2. 衝突判定と応答
+        self.physics.update_collision(&mut self.dots, dt);
 
-            if all_stopped && !self.dots.is_empty() {
-                self.is_updating = false;
-            }
+        // 3. 位置更新と壁との衝突
+        let all_stopped = engine::update_position(&mut self.dots, dt);
+
+        if all_stopped && !self.dots.is_empty() {
+            self.is_updating = false;
         }
     }
 
