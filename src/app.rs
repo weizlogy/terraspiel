@@ -301,17 +301,40 @@ impl App {
 
         self.last_time = now;
 
-        // 1. 状態に基づいて力を適用
-        engine::update_state(&mut self.dots, self.gravity, dt);
+        if let Some(ref renderer) = self.renderer {
+            let device = renderer.get_device();
+            let queue = renderer.get_queue();
 
-        // 2. 衝突判定と応答
-        self.physics.update_collision(&mut self.dots, dt);
+            // GPUリソースを初期化
+            if self.physics.compute_pipeline.is_none() {
+                self.physics.initialize_gpu_resources(device);
+            }
 
-        // 3. 位置更新と壁との衝突
-        let all_stopped = engine::update_position(&mut self.dots, dt);
+            // GPUリソースを更新
+            self.physics.update_gpu_resources(device, queue, &self.dots);
 
-        if all_stopped && !self.dots.is_empty() {
-            self.is_updating = false;
+            // GPUで物理演算を実行
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Physics Encoder"),
+            });
+            self.physics.update_gpu_physics(device, queue, &mut encoder);
+            queue.submit(std::iter::once(encoder.finish()));
+
+            // GPUからCPUへのデータ同期
+            self.physics.sync_gpu_to_cpu(device, queue, &mut self.dots);
+        } else {
+            // 1. 状態に基づいて力を適用
+            engine::update_state(&mut self.dots, self.gravity, dt);
+
+            // 2. 衝突判定と応答
+            self.physics.update_collision(&mut self.dots, dt);
+
+            // 3. 位置更新と壁との衝突
+            let all_stopped = engine::update_position(&mut self.dots, dt);
+
+            if all_stopped && !self.dots.is_empty() {
+                self.is_updating = false;
+            }
         }
     }
 

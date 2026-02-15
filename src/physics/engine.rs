@@ -2,10 +2,81 @@ use crate::{
     app::{Dot, HEIGHT, WIDTH},
     material::{MaterialDNA, State},
 };
+use bytemuck::{Pod, Zeroable};
 use rand::thread_rng;
 use rand::Rng;
 use std::sync::mpsc;
 use std::time::Instant;
+use wgpu::util::DeviceExt;
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+struct PhysicsParams {
+    delta_time: f32,
+    gravity: f32,
+    width: f32,
+    height: f32,
+    dot_radius: f32,
+    dots_count: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+struct GpuDot {
+    position: [f32; 2],
+    velocity: [f32; 2],
+    mass: f32,
+    state: u32,
+    temperature: f32,
+    density: f32,
+    viscosity: f32,
+    elasticity: f32,
+    cohesion: f32,
+    entropy_bias: f32,
+    luminescence: f32,
+    heat_capacity_high: f32,
+    heat_capacity_low: f32,
+    heat_conductivity: f32,
+    hardness: f32,
+    volatility: f32,
+    id: u32,
+    reaction_count: u32,
+    is_selected: u32,
+    _padding: u32, // WGSLのアラインメントに合わせて4バイトのパディングを追加
+}
+
+impl GpuDot {
+    fn from_cpu_dot(dot: &Dot) -> Self {
+        let state_u32 = match dot.material.state {
+            State::Solid => 0,
+            State::Liquid => 1,
+            State::Gas => 2,
+        };
+        
+        GpuDot {
+            position: [dot.x as f32, dot.y as f32],
+            velocity: [dot.vx as f32, dot.vy as f32],
+            mass: dot.material.density,
+            state: state_u32,
+            temperature: dot.material.temperature,
+            density: dot.material.density,
+            viscosity: dot.material.viscosity,
+            elasticity: dot.material.elasticity,
+            cohesion: dot.material.cohesion,
+            entropy_bias: dot.material.entropy_bias,
+            luminescence: dot.material.luminescence,
+            heat_capacity_high: dot.material.heat_capacity_high,
+            heat_capacity_low: dot.material.heat_capacity_low,
+            heat_conductivity: dot.material.heat_conductivity,
+            hardness: dot.material.hardness,
+            volatility: dot.material.volatility,
+            id: dot.id as u32,
+            reaction_count: dot.reaction_count,
+            is_selected: if dot.is_selected { 1 } else { 0 },
+            _padding: 0, // パディングフィールドをゼロで初期化
+        }
+    }
+}
 
 const COOL_DOWN_SECONDS: f64 = 1.0; // 1秒のクールダウン
 
@@ -16,11 +87,16 @@ const INITIAL_WAIT_TIME: f64 = 0.1; // seconds
 const DECAY_FACTOR: f64 = 0.5;
 
 pub struct Physics {
-    grid: Vec<Vec<usize>>,
-    cols: usize,
-    rows: usize,
-    cell_size: f64,
-    collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
+    pub grid: Vec<Vec<usize>>,
+    pub cols: usize,
+    pub rows: usize,
+    pub cell_size: f64,
+    pub collision_tx: mpsc::Sender<((usize, MaterialDNA), (usize, MaterialDNA))>,
+    pub compute_pipeline: Option<wgpu::ComputePipeline>,
+    pub physics_bind_group_layout: Option<wgpu::BindGroupLayout>,
+    pub physics_bind_group: Option<wgpu::BindGroup>,
+    pub physics_params_buffer: Option<wgpu::Buffer>,
+    pub dots_buffer: Option<wgpu::Buffer>,
 }
 
 impl Physics {
@@ -36,6 +112,185 @@ impl Physics {
             rows,
             cell_size,
             collision_tx,
+            compute_pipeline: None,
+            physics_bind_group_layout: None,
+            physics_bind_group: None,
+            physics_params_buffer: None,
+            dots_buffer: None,
+        }
+    }
+
+    pub fn initialize_gpu_resources(&mut self, device: &wgpu::Device) {
+        // Compute Pipelineの作成
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Physics Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/physics.wgsl").into()),
+        });
+
+        // バインドグループレイアウトの作成
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Physics Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
+        let compute_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Physics Compute Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        self.compute_pipeline = Some(device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("Physics Compute Pipeline"),
+            layout: Some(&compute_pipeline_layout),
+            module: &shader_module,
+            entry_point: "cs_main",
+            compilation_options: Default::default(),
+        }));
+
+        // バインドグループレイアウトを保存
+        self.physics_bind_group_layout = Some(bind_group_layout);
+    }
+
+    pub fn update_gpu_resources(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, dots: &[Dot]) {
+        // パラメータバッファの作成・更新
+        let params = PhysicsParams {
+            delta_time: 0.016, // 60 FPS相当
+            gravity: 9.8 * 20.0,
+            width: WIDTH as f32,
+            height: HEIGHT as f32,
+            dot_radius: DOT_RADIUS as f32,
+            dots_count: dots.len() as u32,
+        };
+
+        if let Some(buffer) = &self.physics_params_buffer {
+            queue.write_buffer(buffer, 0, bytemuck::bytes_of(&params));
+        } else {
+            self.physics_params_buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Physics Params Buffer"),
+                contents: bytemuck::bytes_of(&params),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }));
+        }
+
+        // ドットデータバッファの作成・更新
+        let dots_data: Vec<GpuDot> = dots.iter().map(|dot| GpuDot::from_cpu_dot(dot)).collect();
+        let dots_bytes = bytemuck::cast_slice(&dots_data);
+
+        if let Some(buffer) = &self.dots_buffer {
+            // 既存バッファーのサイズと新しいデータのサイズを比較
+            if buffer.size() != dots_bytes.len() as u64 {
+                // サイズが異なる場合は新しいバッファーを作成
+                self.dots_buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Dots Buffer"),
+                    contents: dots_bytes,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+                }));
+            } else {
+                // サイズが同じ場合は既存バッファーに書き込み
+                queue.write_buffer(buffer, 0, dots_bytes);
+            }
+        } else {
+            self.dots_buffer = Some(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Dots Buffer"),
+                contents: dots_bytes,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            }));
+        }
+
+        // Bind Groupの作成
+        if let (Some(params_buffer), Some(dots_buffer), Some(bind_group_layout)) = (&self.physics_params_buffer, &self.dots_buffer, &self.physics_bind_group_layout) {
+            self.physics_bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Physics Bind Group"),
+                layout: bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: params_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: dots_buffer.as_entire_binding(),
+                    },
+                ],
+            }));
+        }
+    }
+
+    pub fn update_gpu_physics(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder) {
+        if let (Some(pipeline), Some(bind_group)) = (&self.compute_pipeline, &self.physics_bind_group) {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Physics Compute Pass"),
+                timestamp_writes: None,
+            });
+
+            compute_pass.set_pipeline(pipeline);
+            compute_pass.set_bind_group(0, bind_group, &[]);
+            compute_pass.dispatch_workgroups((self.dots_buffer.as_ref().unwrap().size() as u32 / std::mem::size_of::<GpuDot>() as u32 + 63) / 64, 1, 1);
+        }
+    }
+
+    pub fn sync_gpu_to_cpu(&self, device: &wgpu::Device, queue: &wgpu::Queue, dots: &mut Vec<Dot>) {
+        if let Some(buffer) = &self.dots_buffer {
+            // GPUバッファからCPUにデータをコピー
+            let size = buffer.size();
+            let read_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Read Buffer"),
+                size,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Copy Buffer Encoder"),
+            });
+
+            encoder.copy_buffer_to_buffer(buffer, 0, &read_buffer, 0, size);
+            queue.submit(std::iter::once(encoder.finish()));
+
+            // データを読み取る
+            let buffer_slice = read_buffer.slice(..);
+            
+            // 非同期マッピングを同期的に待機
+            let _ = buffer_slice.map_async(wgpu::MapMode::Read, |_| {});
+            device.poll(wgpu::Maintain::Wait);
+
+            let data = buffer_slice.get_mapped_range();
+            let gpu_dots: &[GpuDot] = bytemuck::cast_slice(&data);
+            
+            // GPUデータをCPUデータに変換
+            for (i, gpu_dot) in gpu_dots.iter().enumerate() {
+                if i < dots.len() {
+                    dots[i].x = gpu_dot.position[0] as f64;
+                    dots[i].y = gpu_dot.position[1] as f64;
+                    dots[i].vx = gpu_dot.velocity[0] as f64;
+                    dots[i].vy = gpu_dot.velocity[1] as f64;
+                    // 他のパラメータも必要に応じて更新
+                }
+            }
+            
+            drop(data);
+            read_buffer.unmap();
         }
     }
 

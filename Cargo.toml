@@ -11,6 +11,8 @@ serde = { version = "1.0", features = ["derive"] }
 palette = "0.7"
 pollster = "0.3"
 bytemuck = { version = "1.0", features = ["derive"] }
+# Async
+futures = "0.3"
 # GUI
 egui = "0.28"
 egui-winit = "0.28"

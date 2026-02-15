@@ -14,6 +14,16 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    pub fn get_device(&self) -> &wgpu::Device {
+        &self.device
+    }
+
+    pub fn get_queue(&self) -> &wgpu::Queue {
+        &self.queue
+    }
+}
+
+impl Renderer {
     pub fn new(
         window: &Arc<Window>,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>, 
