@@ -2,7 +2,7 @@ use crate::app::Dot;
 use crate::material::State;
 use crate::physics::engine::DOT_RADIUS;
 
-// Solid/Liquid間の詳細な衝突処理
+// Solid/Liquid 間の詳細な衝突処理
 pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
@@ -45,8 +45,9 @@ pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f6
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
     let avg_heat_conductivity =
         (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.1).clamp(-1.0, 1.0); // NaNガード
+    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.02).clamp(-1.0, 1.0); // NaN ガード
 
+    // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
     dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
     dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
@@ -104,7 +105,7 @@ pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f6
     }
 }
 
-// Gas間の衝突処理
+// Gas 間の衝突処理
 pub fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
@@ -132,19 +133,20 @@ pub fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     let temp_diff = dot1.material.temperature - dot2.material.temperature;
     let avg_heat_conductivity =
         (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.1).clamp(-1.0, 1.0); // NaNガード
+    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.02).clamp(-1.0, 1.0); // NaN ガード
 
+    // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
     dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
     dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 }
 
-// Gasが他の物体に押される処理
+// Gas が他の物体に押される処理
 pub fn handle_gas_displacement(gas: &mut Dot, other: &Dot, nx: f64, ny: f64) {
     let e = (gas.material.elasticity + other.material.elasticity) as f64 / 2.0;
 
     let v_gas_n = gas.vx * nx + gas.vy * ny;
 
-    // nx,nyは常に gas->other を指すため、v_gas_nが正なら向かっている
+    // nx,ny は常に gas->other を指すため、v_gas_n が正なら向かっている
     if v_gas_n > 0.0 {
         gas.vx -= (1.0 + e) * v_gas_n * nx;
 
@@ -200,7 +202,7 @@ pub fn handle_solid_spreading(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, 
     // 接線方向の相対速度
     let v_rel_t = (dot2.vx - dot1.vx) * tx + (dot2.vy - dot1.vy) * ty;
 
-    // 摩擦による速度変化量。v_rel_tを0に近づける方向に力を加える
+    // 摩擦による速度変化量。v_rel_t を 0 に近づける方向に力を加える
     // 粘度が高いほど強くなる
     let friction_impulse = v_rel_t * avg_viscosity * 0.5; // 係数は要調整
 
