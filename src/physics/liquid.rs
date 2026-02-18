@@ -1,4 +1,4 @@
-use crate::{
+﻿use crate::{
     app::Dot,
 };
 use rand::thread_rng;
@@ -113,15 +113,6 @@ pub fn handle_collision_for_liquid(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: 
     }
 
     let avg_viscosity = (dot1.material.viscosity + dot2.material.viscosity) / 2.0;
-
-    // --- 熱交換 ---
-    let temp_diff = dot1.material.temperature - dot2.material.temperature;
-    let avg_heat_conductivity =
-        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.1).clamp(-1.0, 1.0); // NaNガード
-
-    dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
-    dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
     // --- 凝集力 ---
     // 両方Liquidの場合のみ凝集力が働く

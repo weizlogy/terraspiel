@@ -1,6 +1,10 @@
 use crate::app::Dot;
 use crate::material::State;
 use crate::physics::engine::DOT_RADIUS;
+use crate::physics::HEAT_TRANSFER_COEFFICIENT;
+
+// 熱交換の最小間隔（秒）
+const HEAT_EXCHANGE_INTERVAL: f64 = 0.1; // 0.1 秒に 1 回だけ熱交換
 
 // Solid/Liquid 間の詳細な衝突処理
 pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
@@ -42,18 +46,25 @@ pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f6
     let avg_viscosity = (dot1.material.viscosity + dot2.material.viscosity) / 2.0;
 
     // --- 熱交換 ---
-    let temp_diff = dot1.material.temperature - dot2.material.temperature;
-    let avg_heat_conductivity =
-        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.02).clamp(-1.0, 1.0); // NaN ガード
+    // 熱交換の頻度を制限
+    let now = std::time::Instant::now();
+    let elapsed1 = now.duration_since(dot1.last_heat_exchange_time).as_secs_f64();
+    let elapsed2 = now.duration_since(dot2.last_heat_exchange_time).as_secs_f64();
+    
+    if elapsed1 >= HEAT_EXCHANGE_INTERVAL && elapsed2 >= HEAT_EXCHANGE_INTERVAL {
+        let temp_diff = dot1.material.temperature - dot2.material.temperature;
+        let avg_heat_conductivity =
+            (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+        let heat_transfer = (temp_diff * avg_heat_conductivity * HEAT_TRANSFER_COEFFICIENT).clamp(-1.0, 1.0); // NaN ガード
 
-    // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
-    dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
-    dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
+        // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
+        dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
+        dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
-    // 熱ロス（減衰）
-    dot1.material.temperature *= 0.999;
-    dot2.material.temperature *= 0.999;
+        // 熱交換時刻を更新
+        dot1.last_heat_exchange_time = now;
+        dot2.last_heat_exchange_time = now;
+    }
 
     // --- 凝集力 ---
     if dot1.material.state == dot2.material.state {
@@ -134,18 +145,25 @@ pub fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     dot2.vy += (v2n_new - v2n) * ny;
 
     // --- 熱交換 ---
-    let temp_diff = dot1.material.temperature - dot2.material.temperature;
-    let avg_heat_conductivity =
-        (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
-    let heat_transfer = (temp_diff * avg_heat_conductivity * 0.02).clamp(-1.0, 1.0); // NaN ガード
+    // 熱交換の頻度を制限
+    let now = std::time::Instant::now();
+    let elapsed1 = now.duration_since(dot1.last_heat_exchange_time).as_secs_f64();
+    let elapsed2 = now.duration_since(dot2.last_heat_exchange_time).as_secs_f64();
+    
+    if elapsed1 >= HEAT_EXCHANGE_INTERVAL && elapsed2 >= HEAT_EXCHANGE_INTERVAL {
+        let temp_diff = dot1.material.temperature - dot2.material.temperature;
+        let avg_heat_conductivity =
+            (dot1.material.heat_conductivity + dot2.material.heat_conductivity) / 2.0;
+        let heat_transfer = (temp_diff * avg_heat_conductivity * HEAT_TRANSFER_COEFFICIENT).clamp(-1.0, 1.0); // NaN ガード
 
-    // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
-    dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
-    dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
+        // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
+        dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
+        dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
-    // 熱ロス（減衰）
-    dot1.material.temperature *= 0.999;
-    dot2.material.temperature *= 0.999;
+        // 熱交換時刻を更新
+        dot1.last_heat_exchange_time = now;
+        dot2.last_heat_exchange_time = now;
+    }
 }
 
 // Gas が他の物体に押される処理

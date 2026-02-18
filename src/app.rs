@@ -23,6 +23,7 @@ pub struct Dot {
     pub last_check_time: std::time::Instant, // 最後の確率判定時刻
     pub is_selected: bool,                   // 選択状態
     pub glowing_since: Option<std::time::Instant>,
+    pub last_heat_exchange_time: std::time::Instant, // 最後の熱交換時刻
 }
 
 /// 非同期ブレンド処理の結果
@@ -159,6 +160,7 @@ impl App {
                 last_check_time: std::time::Instant::now(),
                 is_selected: false,
                 glowing_since: None,
+                last_heat_exchange_time: std::time::Instant::now(),
             };
             self.dots.push(dot);
             self.next_dot_id += 1;
@@ -203,6 +205,7 @@ impl App {
             last_check_time: std::time::Instant::now(),
             is_selected: false,
             glowing_since: None,
+            last_heat_exchange_time: std::time::Instant::now(),
         };
 
         self.dots.push(dot);
