@@ -51,6 +51,10 @@ pub fn handle_detailed_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f6
     dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
     dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
 
+    // 熱ロス（減衰）
+    dot1.material.temperature *= 0.999;
+    dot2.material.temperature *= 0.999;
+
     // --- 凝集力 ---
     if dot1.material.state == dot2.material.state {
         let avg_cohesion = (dot1.material.cohesion + dot2.material.cohesion) / 2.0;
@@ -138,6 +142,10 @@ pub fn handle_gas_collision(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     // エネルギー保存：dot1 が失う熱 = dot2 が得る熱
     dot1.material.temperature = (dot1.material.temperature - heat_transfer).clamp(-1.0, 1.0);
     dot2.material.temperature = (dot2.material.temperature + heat_transfer).clamp(-1.0, 1.0);
+
+    // 熱ロス（減衰）
+    dot1.material.temperature *= 0.999;
+    dot2.material.temperature *= 0.999;
 }
 
 // Gas が他の物体に押される処理
