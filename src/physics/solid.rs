@@ -35,7 +35,7 @@ pub fn update_state_for_solid(dot: &mut Dot, gravity: f64, dt: f64) {
 }
 
 // State::Solid に対する update_position 処理
-pub fn update_position_for_solid(dot: &mut Dot, dt: f64) {
+pub fn update_position_for_solid(dot: &mut Dot, _dt: f64) {
     let mut rng = thread_rng();
     let elasticity = dot.material.elasticity as f64;
 
@@ -95,6 +95,7 @@ pub fn update_position_for_solid(dot: &mut Dot, dt: f64) {
 }
 
 // State::Solid に対する衝突処理 (詳細な衝突処理の一部)
+#[allow(dead_code)]
 pub fn handle_collision_for_solid(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     // 既存の handle_detailed_collision の固体部分をここに移植
     // ただし、引数が2つのドットなので、両方の状態がSolidであることを前提とする

@@ -5,7 +5,7 @@ use rand::thread_rng;
 use rand::Rng;
 
 // physics/engine.rs で定義されている定数をインポート
-use super::{DOT_RADIUS, HEIGHT, WIDTH, COOL_DOWN_SECONDS, GAS_REFERENCE_DENSITY, GAS_DIFFUSION_FACTOR};
+use super::{DOT_RADIUS, HEIGHT, COOL_DOWN_SECONDS};
 
 // 各状態モジュールをインポート
 use super::{solid, liquid, gas};
@@ -29,6 +29,7 @@ pub fn update_position_for_dot(dot: &mut Dot, dt: f64) {
 }
 
 // 2つのドットの状態に応じた衝突処理を呼び分ける
+#[allow(dead_code)]
 pub fn handle_collision_between_states(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64, dt: f64) {
     match (dot1.material.state, dot2.material.state) {
         (State::Solid, State::Solid) => {
@@ -163,6 +164,7 @@ pub fn handle_collision_between_states(dot1: &mut Dot, dot2: &mut Dot, nx: f64, 
 // 低温時の状態変化処理 (State::Solid に特化)
 // これは update_state_for_dot から呼び出すか、state_manager.rs で共通処理として定義する
 // 今回は共通処理として定義し、update_state_for_dot から呼び出す
+#[allow(dead_code)]
 pub fn handle_cool_down_for_solid(dot: &mut Dot) {
     let mut rng = thread_rng();
     // State::Solid のみが崩壊の対象

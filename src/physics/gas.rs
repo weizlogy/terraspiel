@@ -23,7 +23,7 @@ pub fn update_state_for_gas(dot: &mut Dot, gravity: f64, dt: f64) {
 }
 
 // State::Gas に対する update_position 処理
-pub fn update_position_for_gas(dot: &mut Dot, dt: f64) {
+pub fn update_position_for_gas(dot: &mut Dot, _dt: f64) {
     let elasticity = dot.material.elasticity as f64;
 
     // 境界との衝突処理
@@ -62,6 +62,7 @@ pub fn update_position_for_gas(dot: &mut Dot, dt: f64) {
 }
 
 // State::Gas に対する衝突処理 (Gas-Gas)
+#[allow(dead_code)]
 pub fn handle_collision_for_gas(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64) {
     let e = (dot1.material.elasticity + dot2.material.elasticity) as f64 / 2.0;
 
@@ -82,6 +83,7 @@ pub fn handle_collision_for_gas(dot1: &mut Dot, dot2: &mut Dot, nx: f64, ny: f64
 }
 
 // Gasが他の物体に押される処理 (Gas-Other)
+#[allow(dead_code)]
 pub fn handle_displacement_for_gas(gas: &mut Dot, other: &Dot, nx: f64, ny: f64) {
     let e = (gas.material.elasticity + other.material.elasticity) as f64 / 2.0;
 
