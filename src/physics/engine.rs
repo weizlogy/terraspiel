@@ -500,6 +500,8 @@ pub fn update_state(dots: &mut Vec<Dot>, gravity: f64, dt: f64) {
         // 高温時の状態変化
         if dot.material.temperature > dot.material.heat_capacity_high {
             dot.material.heat_conductivity += 0.1 * dt as f32;
+            // heat_conductivity の上限を 1.0 に制限
+            dot.material.heat_conductivity = dot.material.heat_conductivity.min(1.0);
             if dot.material.heat_conductivity > 1.0 {
                 // volatilityが0.5以上の場合のみ状態変化
                 if dot.material.volatility >= 0.5 {
